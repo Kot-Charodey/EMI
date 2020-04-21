@@ -4,8 +4,9 @@ using System.Text;
 
 namespace MSerialization
 {
-    class IMSerializableObject
+    public interface IMSerializableObject
     {
-        
+        byte[] Serialization();
+        void DeSerialization(byte[] data);
     }
 }
