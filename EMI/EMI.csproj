@@ -7,9 +7,20 @@
     <Company>MG Team</Company>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>false</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <Optimize>true</Optimize>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
   <ItemGroup>
-    <ProjectReference Include="..\PGP\PGP.csproj" />
-    <ProjectReference Include="..\SpeedSerialization\MSerialization.csproj" />
+    <Reference Include="SpeedByteConvector">
+      <HintPath>..\..\SpeedByteConvector\SpeedByteConvector\bin\Release\SpeedByteConvector.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>
