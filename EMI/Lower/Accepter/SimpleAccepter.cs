@@ -6,21 +6,26 @@ namespace EMI.Lower.Accepter
 {
     internal class SimpleAccepter : IMyAccepter
     {
-        private UdpClient UdpClient;
-        private IPEndPoint EndPoint;
+        private readonly Socket Client;
+        public EndPoint EndPoint { get; private set; }
 
         public SimpleAccepter(IPEndPoint address)
         {
-            UdpClient = new UdpClient();
+            Client = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp)
+            {
+                ExclusiveAddressUse = false
+            };
+            Client.Bind(new IPEndPoint(IPAddress.Any, address.Port));
+            EndPoint = address;
         }
 
-        private IPEndPoint Point = new IPEndPoint(IPAddress.Any, 1);
-        private byte[] tmp;
+        private EndPoint Point = new IPEndPoint(IPAddress.Any, 1);
+        private readonly byte[] tmp=new byte[1248];
 
         public byte[] Receive()
         {
             @while:
-            tmp = UdpClient.Receive(ref Point);
+            Client.ReceiveFrom(tmp,ref Point);
 
             if (Point.Equals(EndPoint))
             {
@@ -31,7 +36,12 @@ namespace EMI.Lower.Accepter
 
         public void Send(byte[] buffer, int count)
         {
-            UdpClient.Send(buffer, count, EndPoint);
+            Client.SendTo(buffer, count,SocketFlags.None, EndPoint);
+        }
+
+        public void Stop()
+        {
+            Client.Dispose();
         }
     }
 }

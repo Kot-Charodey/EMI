@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Net;
 
 namespace EMI.Lower.Accepter
 {
     interface IMyAccepter
     {
-        public byte[] Receive();
-        public void Send(byte[] buffer, int count);
+        byte[] Receive();
+        void Send(byte[] buffer, int count);
+        void Stop();
+        EndPoint EndPoint { get; }
     }
 }

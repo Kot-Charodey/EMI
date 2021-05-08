@@ -6,10 +6,11 @@
         SndGuaranteed,
         SndGuaranteedSegmented,
         ReqConnection,
-        ReqGoodConnection,
+        ReqConnectionGood,
         SndClose,
         ReqGetPkgGuaranted,
-        SndNotCreatedPkg,
+        SndGuaranteedReturned,
+        SndGuaranteedSegmentedReturned,
         ReqPing0,
         ReqPing1,
     }
