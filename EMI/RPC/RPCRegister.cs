@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
-using SpeedByteConvector;
+using SmartPackager;
 
 namespace EMI
 {
@@ -9,11 +9,27 @@ namespace EMI
 
     public partial class RPC
     {
+        internal delegate byte[] RPCMicroFunct(byte[] arrayData, int startIndexIN);
+
         internal class MyAction
         {
             public byte LVL_Permission;
-            public MethodInfo MethodInfo;
+            public RPCMicroFunct MicroFunct;
+            public bool CanReturnValue;
             public object Context;
+            /// <summary>
+            /// для CanAddFunction - проверяет все ли функции с одиновым набором аргументов
+            /// </summary>
+            public Type[] TypeList;
+
+            public MyAction(byte lVL_Permission, RPCMicroFunct microFunct, bool canReturnValue, object context, Type[] typeList)
+            {
+                LVL_Permission = lVL_Permission;
+                MicroFunct = microFunct ?? throw new ArgumentNullException(nameof(microFunct));
+                CanReturnValue = canReturnValue;
+                Context = context ?? throw new ArgumentNullException(nameof(context));
+                TypeList = typeList ?? throw new ArgumentNullException(nameof(typeList));
+            }
         }
 
         /// <summary>
@@ -48,6 +64,40 @@ namespace EMI
             }
         }
 
+        private void CanAddFunction(ushort address, bool thisCanReturn, Type[] TypeList)
+        {
+            bool error = false;
+            foreach (MyAction action in Functions[address])
+            {
+                if (action.CanReturnValue != thisCanReturn || action.TypeList.Length != TypeList.Length)
+                {
+                    error = true;
+                }
+                else
+                {
+                    for (int i = 0; i < TypeList.Length; i++)
+                    {
+                        if (action.TypeList[i] != TypeList[i])
+                        {
+                            error = true;
+                            break;
+                        }
+                    }
+                }
+
+                break;
+            }
+
+            if (error)
+                throw new Exception("Адрес может содержать несколько функций, только если они все с одинаковым набором аргументов и не возвращают значение!");
+
+            //если это не глобальный список вызовов, ещё заглянем туда
+            if (Global != this)
+            {
+                Global.CanAddFunction(address, thisCanReturn, TypeList);
+            }
+        }
+
         #region In
         /// <summary>
         /// Регистрирует метод для последующего вызова по сети
@@ -58,7 +108,16 @@ namespace EMI
         /// <returns>Ссылка на функцию</returns>
         public Handle RegisterMethod(ushort Address, byte LVL_Permission, RPCfunct Funct)
         {
-            MyAction action = new MyAction() { Context = Funct.Target, LVL_Permission = LVL_Permission, MethodInfo = Funct.Method };
+            Type[] TypeList = { };
+            CanAddFunction(Address, false, TypeList);
+
+            RPCMicroFunct MicroFunct = (byte[] arrayData, int startIndex) =>
+            {
+                Funct();
+                return null;
+            };
+            MyAction action = new MyAction(LVL_Permission, MicroFunct, false, Funct.Target, TypeList);
+
             Functions[Address].Add(action);
             Handle handle = new Handle(this, action, Address);
 
@@ -74,52 +133,21 @@ namespace EMI
         /// <param name="Funct">Функция</param>                                                                                
         /// <returns>Ссылка на функцию</returns>                                                                                
         public unsafe Handle RegisterMethod<T1>(ushort Address, byte LVL_Permission, RPCfunct<T1> Funct)
-        where T1 : unmanaged
         {
-            MethodInfo mi = Funct.GetMethodInfo();
-            //массив аргументов                                                                                                 
-            object[] args = new object[1];
-            //Генерируем микрокод для распаковки массива байт в аргументы и запуска самой функции                               
-            RPCfunct<IntPtr> act = (IntPtr A1) =>
+            Type[] TypeList = { typeof(T1) };
+            CanAddFunction(Address, false, TypeList);
+
+            var packagerIN = Packager.Create<T1>();
+
+            RPCMicroFunct MicroFunct = (byte[] arrayData, int startIndex) =>
             {
-                T1* t1 = (T1*)(A1 + sizeof(BitArgument));
-                args[0] = *t1;
-                mi.Invoke(Funct.Target, args);
+                packagerIN.UnPack(arrayData, startIndex, out T1 t1);
+                Funct(t1);
+                return null;
             };
+            MyAction action = new MyAction(LVL_Permission, MicroFunct, false, Funct.Target, TypeList);
 
-            MyAction action = new MyAction() { Context = act.Target, LVL_Permission = LVL_Permission, MethodInfo = act.Method };
-            //регистрирует функцию по указанному адресу                                                                         
             Functions[Address].Add(action);
-            //создаёт  указатель на регистрацию для возможности дерегистрировать                                                
-            Handle handle = new Handle(this, action, Address);
-
-            return handle;
-        }
-        //  МАССИВЫ 
-        public unsafe Handle RegisterMethod<T1>(ushort Address, byte LVL_Permission, RPCfunct<T1[]> Funct)
-        where T1 : unmanaged
-        {
-            MethodInfo mi = Funct.GetMethodInfo();
-            //массив аргументов                                                                                                 
-            object[] args = new object[1];
-            //Генерируем микрокод для распаковки массива байт в аргументы и запуска самой функции                               
-            RPCfunct<IntPtr, IntPtr> act = (IntPtr A1Size, IntPtr A1Data) =>
-            {
-                T1* t1 = (T1*)(A1Data + sizeof(BitArgument));
-                T1[] arrT1 = new T1[*((int*)(A1Size + sizeof(BitArgument)))];
-                int arrT1Size = sizeof(T1) * arrT1.Length;
-                fixed (void* arr = &arrT1[0])
-                    Buffer.MemoryCopy(t1, arr, arrT1Size, arrT1Size);
-
-                args[0] = arrT1;
-
-                mi.Invoke(Funct.Target, args);
-            };
-
-            MyAction action = new MyAction() { Context = act.Target, LVL_Permission = LVL_Permission, MethodInfo = act.Method };
-            //регистрирует функцию по указанному адресу                                                                         
-            Functions[Address].Add(action);
-            //создаёт  указатель на регистрацию для возможности дерегистрировать                                                
             Handle handle = new Handle(this, action, Address);
 
             return handle;
@@ -136,19 +164,19 @@ namespace EMI
         /// <param name="Funct">Функция</param>
         /// <returns>Ссылка на функцию</returns>
         public unsafe Handle RegisterMethod<TOut>(ushort Address, byte LVL_Permission, RPCfunctOut<TOut> Funct)
-            where TOut : unmanaged
         {
-            MethodInfo mi = Funct.GetMethodInfo();
-            object[] args = new object[0];
+            Type[] TypeList = { typeof(TOut) };
+            CanAddFunction(Address, true, TypeList);
 
-            RPCfunctOut<byte[]> act = () =>
+            var packagerOUT = Packager.Create<TOut>();
+
+            RPCMicroFunct MicroFunct = (byte[] arrayData, int startIndex) =>
             {
-                byte[] buffer = new byte[sizeof(TOut)];
-                PackConvector.PackUP(buffer, (TOut)mi.Invoke(Funct.Target, args));
-                return buffer;
+                var data = Funct();
+                return packagerOUT.PackUP(data);
             };
+            MyAction action = new MyAction(LVL_Permission, MicroFunct, false, Funct.Target, TypeList);
 
-            MyAction action = new MyAction() { Context = act.Target, LVL_Permission = LVL_Permission, MethodInfo = act.Method };
             Functions[Address].Add(action);
             Handle handle = new Handle(this, action, Address);
 
@@ -165,27 +193,22 @@ namespace EMI
         /// <param name="Funct">Функция</param>                                                                               
         /// <returns>Ссылка на функцию</returns>                                                                                
         public unsafe Handle RegisterMethod<TOut, T1>(ushort Address, byte LVL_Permission, RPCfunctOut<TOut, T1> Funct)
-        where TOut : unmanaged
-        where T1 : unmanaged
         {
-            MethodInfo mi = Funct.GetMethodInfo();
-            //массив аргументов                                                                                                 
-            object[] args = new object[1];
-            //Генерируем микрокод для распаковки массива байт в аргументы и запуска самой функции                               
-            RPCfunctOut<byte[], IntPtr> act = (IntPtr A1) =>
-            {
-                T1* t1 = (T1*)(A1 + sizeof(BitArgument));
-                args[0] = *t1;
-                //Выполняет функцию и упаковывает результат в массив и возвращает его                                           
-                byte[] buffer = new byte[sizeof(TOut)];
-                PackConvector.PackUP(buffer, (TOut)mi.Invoke(Funct.Target, args));
-                return buffer;
-            };
+            Type[] TypeList = { typeof(TOut), typeof(T1) };
+            CanAddFunction(Address, true, TypeList);
 
-            MyAction action = new MyAction() { Context = act.Target, LVL_Permission = LVL_Permission, MethodInfo = act.Method };
-            //регистрирует функцию по указанному адресу                                                                         
+            var packagerIN = Packager.Create<T1>();
+            var packagerOUT = Packager.Create<TOut>();
+
+            RPCMicroFunct MicroFunct = (byte[] arrayData, int startIndex) =>
+            {
+                packagerIN.UnPack(arrayData, startIndex, out T1 t1);
+                var data = Funct(t1);
+                return packagerOUT.PackUP(data);
+            };
+            MyAction action = new MyAction(LVL_Permission, MicroFunct, false, Funct.Target, TypeList);
+
             Functions[Address].Add(action);
-            //создаёт  указатель на регистрацию для возможности дерегистрировать                                                
             Handle handle = new Handle(this, action, Address);
 
             return handle;

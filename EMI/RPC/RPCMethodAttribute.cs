@@ -9,7 +9,7 @@ namespace EMI
     /// указывает что этот метод будет автоматически зарегистрирован
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
-    public class RpcMethod : System.Attribute
+    public class RpcMethodAttribute : Attribute
 	{
         /// <summary>
         /// Адресс вызываймого метода
@@ -20,7 +20,7 @@ namespace EMI
         /// 
         /// </summary>
         /// <param name="address">Адресс вызываймого метода</param>
-        public RpcMethod(ushort address)
+        public RpcMethodAttribute(ushort address)
    		{
         	Address=address;
     	}

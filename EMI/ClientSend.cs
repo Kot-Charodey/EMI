@@ -27,7 +27,7 @@ namespace EMI
         /// <param name="ID">Айди вызываемой функции</param>
         public unsafe void RemoteStandardExecution(ushort ID)
         {
-            var bitPacket = new BitPacketSimple(PacketType.SndStandard, sizeof(Package));
+            var bitPacket = new BitPacketSimple(PacketType.SndSimple, sizeof(Package));
             Package* package = (Package*)bitPacket.ByteData;
 
             package->RPC_ID = ID;
@@ -45,7 +45,7 @@ namespace EMI
         /// <param name="t1">аргумент</param>
         public unsafe void RemoteStandardExecution<T1>(ushort ID, T1 t1) where T1 : unmanaged
         {
-            var bitPacket = new BitPacketSimple(PacketType.SndStandard);
+            var bitPacket = new BitPacketSimple(PacketType.SndSimple);
             Package* package = (Package*)bitPacket.ByteData;
 
             int argSize = sizeof(BitArgument);
@@ -85,7 +85,7 @@ namespace EMI
         /// <param name="t1">аргумент (Массив)</param>
         public unsafe void RemoteStandardExecution<T1>(ushort ID, T1[] t1) where T1 : unmanaged
         {
-            var bitPacket = new BitPacketSimple(PacketType.SndStandard);
+            var bitPacket = new BitPacketSimple(PacketType.SndSimple);
             Package* package = (Package*)bitPacket.ByteData;
 
             int argSize = sizeof(BitArgument);
@@ -201,7 +201,7 @@ namespace EMI
                     //===================
 
 
-                    BitPacketBig bitPacket;
+                    BitPacketSegmented bitPacket;
                     int count;
                     int segmentCount = buffer.Length / 1024;
                     if (segmentCount < buffer.Length / 1024f)
@@ -279,7 +279,7 @@ namespace EMI
                     package->CameBack = PackageCameBack.NeedCameBack;
 
 
-                    BitPacketBig bitPacket;
+                    BitPacketSegmented bitPacket;
                     int count;
                     int segmentCount = buffer.Length / 1024;
                     if (segmentCount < buffer.Length / 1024f)
@@ -379,7 +379,7 @@ namespace EMI
                     //===================
 
 
-                    BitPacketBig bitPacket;
+                    BitPacketSegmented bitPacket;
                     int count;
                     int segmentCount = buffer.Length / 1024;
                     if (segmentCount < buffer.Length / 1024f)

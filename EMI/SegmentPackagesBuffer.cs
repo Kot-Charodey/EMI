@@ -1,68 +1,95 @@
 ﻿using System;
 using System.Collections.Generic;
-using SpeedByteConvector;
 
 namespace EMI
 {
-    using Lower;
     using Lower.Package;
 
+    /// <summary>
+    /// Собирает пакеты в единый
+    /// </summary>
     internal class SegmentPackagesBuffer
     {
-        private class BigPackage
+        /// <summary>
+        /// Содержит информацию о собранном пакете а так же массив данных для распаковки
+        /// </summary>
+        public class ConstructedPackage
         {
-            public byte[] buffer;
-            public ushort Size = 0;
-            public ushort RemainedCount;
+            public PacketType PacketType;
+            public ulong ID;
+            public ulong ReturnID;
+            public byte[] Data;
+
+            internal ConstructedPackage(Package package)
+            {
+                PacketType = package.PacketType;
+                ID = package.ID;
+                ReturnID = package.ReturnID;
+                Data = new byte[package.Size];
+                for(int i = 0; i < package.Data.Length; i++)
+                {
+                    Array.Copy(package.Data[i], Data, package.Data[i].Length);
+                }
+            }
         }
 
-        private Dictionary<ulong, BigPackage> BufferPackages = new Dictionary<ulong, BigPackage>();
+        internal class Package
+        {
+            public PacketType PacketType;
+            public ulong ID;
+            public ulong ReturnID;
+            public ushort RemainedCount;//когда 0 значит пакет собран
+            public int Size;
+            public byte[][] Data;
+
+            public Package(in BitPacketSegmentedReturned bitPacket)
+            {
+                PacketType = bitPacket.PacketSegmented.PacketType;
+                ID = bitPacket.PacketSegmented.ID;
+                ReturnID = bitPacket.ReturnID;
+                RemainedCount = bitPacket.PacketSegmented.SegmentCount;
+                Data = new byte[RemainedCount][];
+            }
+        }
+
+        private Dictionary<ulong, Package> BufferPackages = new Dictionary<ulong, Package>();
 
 
         /// <summary>
         /// 
         /// </summary>
         /// <returns>если null то пакет ещё не готов</returns>
-        public byte[] AddSegment(in BitPacketBig bitPacket)
+        public ConstructedPackage AddSegment(in BitPacketSegmented bitPacket, byte[] data)
         {
-            BigPackage package;
-
-            if (BufferPackages.TryGetValue(bitPacket.MainID, out package))
+            BitPacketSegmentedReturned bitPacketR = new BitPacketSegmentedReturned()
             {
+                PacketSegmented = bitPacket,
+            };
+            return AddSegment(in bitPacketR, data);
+        }
 
-            }
-            else
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns>если null то пакет ещё не готов</returns>
+        public ConstructedPackage AddSegment(in BitPacketSegmentedReturned bitPacket, byte[] data)
+        {
+            Package package;
+            if(!BufferPackages.TryGetValue(bitPacket.PacketSegmented.ID,out package))
             {
-                package = new BigPackage();
-                package.buffer = new byte[bitPacket.SegmentCount * 1024];
-                package.RemainedCount = bitPacket.SegmentCount;
-
-                BufferPackages.Add(bitPacket.MainID, package);
-            }
-
-            package.Size += bitPacket.ByteDataLength;
-
-            unsafe
-            {
-                fixed (byte* bff = &package.buffer[bitPacket.Segment * 1024])
-                {
-                    fixed (byte* sou = bitPacket.ByteData)
-                    {
-                        Buffer.MemoryCopy(sou, bff, bitPacket.ByteDataLength, bitPacket.ByteDataLength);
-                    }
-                }
+                package = new Package(in bitPacket);
             }
 
+            package.Data[bitPacket.PacketSegmented.Segment] = data;
+            package.Size += data.Length;
             package.RemainedCount--;
+
             if (package.RemainedCount == 0)
             {
-                BufferPackages.Remove(bitPacket.MainID);
-                return package.buffer;
+                BufferPackages.Remove(package.ID);
+                return new ConstructedPackage(package);
             }
-            else
-            {
-                return null;
-            }
+            return null;
         }
     }
 }

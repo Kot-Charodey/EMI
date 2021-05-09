@@ -83,9 +83,9 @@ namespace EMI.Lower.Accepter
                     {
                         try
                         {
-                            if (Package.BitPacketsUtilities.GetPacketType(Buffer) == PacketType.ReqConnection)
+                            if (Package.BitPacketsUtilities.GetPacketType(Buffer) == PacketType.ReqConnection0)
                             {
-                                BitPacketSimple bitPacket = new BitPacketSimple(PacketType.ReqConnectionGood);
+                                BitPacketSimple bitPacket = new BitPacketSimple(PacketType.ReqConnection1);
                                 byte[] sendBuffer = new byte[bitPacket.GetSizeOf()];
                                 PackConvector.PackUP(sendBuffer, bitPacket);
 

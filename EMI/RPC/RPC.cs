@@ -7,7 +7,7 @@ namespace EMI
     using Lower.Package;
 
     /// <summary>
-    /// массив группы методов для регистрации и выполняния зарегистрированной группы методов по указаному адресу с результатом или без (null),(индексы массива 0-65535),(метод должен быть публичным, как и клас вкотором он находиться)
+    /// массив группы методов для регистрации и выполнения зарегистрированной группы методов по указанному адресу с результатом или без (null),(индексы массива 0-65535),(метод должен быть публичным, как и клас в котором он находиться)
     /// </summary>
     public partial class RPC
     {
@@ -16,7 +16,7 @@ namespace EMI
         /// глобальный список вызываймых методов
         /// </summary>
         public static RPC Global { get; private set; } = new RPC();
-        private readonly HashSet<MyAction>[] Functions =new  HashSet<MyAction>[ushort.MaxValue];
+        private readonly HashSet<MyAction>[] Functions = new HashSet<MyAction>[ushort.MaxValue];
 
         internal RPC()
         {
@@ -26,36 +26,61 @@ namespace EMI
             }
         }
 
-        internal unsafe PackageToReturnData Execute(byte LVL_Permission, byte* buff)
+        internal unsafe byte[] Execute(byte LVL_Permission, byte[] bufferData, ushort RPC_ID, PacketType packetType)
         {
-            Package* package = (Package*)buff;
+            int startIndex;
 
-            var funsLocal= Functions[package->RPC_ID].ToArray();
-            var funsGlobal = Global.Functions[package->RPC_ID].ToArray();
-
-            object[] args = new object[package->ArgumentCount];
-            int scan = 0;
-            IntPtr point = (IntPtr)(buff) + sizeof(Package);
-            while (scan < args.Length)
+            switch (packetType)
             {
-                args[scan++] = point;
-                point = (IntPtr)((long)point + ((BitArgument*)point)->Size);
+                case PacketType.SndSimple:
+                    startIndex = sizeof(BitPacketSimple);
+                    break;
+                case PacketType.SndGuaranteed:
+                    startIndex = sizeof(BitPacketGuaranteed);
+                    break;
+                case PacketType.SndGuaranteedSegmented: //так как пакет будет собираться то он не будет лежать в структуре
+                    startIndex = 0;
+                    break;
+                default:
+                    throw new Exception("Execute -> packetType error!");
             }
 
-            PackageToReturnData ptrd = new PackageToReturnData();
-            if (package->CameBack==PackageCameBack.NeedCameBack) {
-                ptrd.NeedReturn = true;
-                ptrd.Data = new byte[funsLocal.Length + funsGlobal.Length][];
-                byte[] arr;
-                int RetSize = sizeof(PackageReturned);
+            var funsLocal= Functions[RPC_ID].ToArray();
+            var funsGlobal = Global.Functions[RPC_ID].ToArray();
 
+            if (packetType == PacketType.SndGuaranteedReturned || packetType == PacketType.SndGuaranteedSegmentedReturned)
+            {
+                MyAction action;
+
+                if (funsLocal.Length == 1)
+                {
+                    action = funsLocal[0];
+                }
+                else if(funsGlobal.Length == 1)
+                {
+                    action = funsGlobal[0];
+                }
+                else //либо функции нет либо мы пропустили несколько функций с возвратом значений
+                {
+                    if (funsGlobal.Length>1 || funsLocal.Length > 1)
+                    {
+                        throw new Exception("Адрес может содержать несколько функций, только если они все с одинаковым набором аргументов и не возвращают значение!");
+                    }
+                    return null;
+                }
+
+                if(action.LVL_Permission <= LVL_Permission)
+                {
+                    return action.MicroFunct(bufferData, startIndex);
+                }
+            }
+            else //если надо просто выполнить (не надо отправлять результат)
+            {
                 for (int i = 0; i < funsLocal.Length; i++)
                 {
                     if (funsLocal[i].LVL_Permission <= LVL_Permission)
                     {
-                        arr = funsLocal[i].MethodInfo.Invoke(funsLocal[i].Context, args) as byte[];
-                        ptrd.Data[i] = arr;
-                        RetSize += arr.Length + sizeof(BitArgument);
+                        funsLocal[i].MicroFunct(bufferData, startIndex);
                     }
                 }
 
@@ -63,41 +88,12 @@ namespace EMI
                 {
                     if (funsGlobal[i].LVL_Permission <= LVL_Permission)
                     {
-                        arr = funsGlobal[i].MethodInfo.Invoke(funsGlobal[i].Context, args) as byte[];
-                        ptrd.Data[i + funsLocal.Length] = arr;
-                        RetSize += arr.Length + sizeof(BitArgument);
+                        funsLocal[i].MicroFunct(bufferData, startIndex);
                     }
                 }
-
-                if (RetSize > ushort.MaxValue)
-                {
-                    throw new InsufficientMemoryException("Size > 65535");
-                }
-
-                ptrd.AllSize = (ushort)RetSize;
-
-                return ptrd;
             }
-            else
-            {
-                for (int i = 0; i < funsLocal.Length; i++)
-                {
-                    if (funsLocal[i].LVL_Permission <= LVL_Permission)
-                    {
-                        funsLocal[i].MethodInfo.Invoke(funsLocal[i].Context, args);
-                    }
-                }
 
-                for (int i = 0; i < funsGlobal.Length; i++)
-                {
-                    if (funsGlobal[i].LVL_Permission <= LVL_Permission)
-                    {
-                        funsGlobal[i].MethodInfo.Invoke(funsGlobal[i].Context, args);
-                    }
-                }
-
-                return ptrd;
-            }
+            return null;
         }
     }
 }

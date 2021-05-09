@@ -6,8 +6,8 @@ using System.Net;
 
 namespace EMI
 {
-    using Lower;
     using Lower.Accepter;
+    using Lower.Package;
 
 
     public partial class Client
@@ -109,7 +109,7 @@ namespace EMI
             if (client.IsConnect == false)
             {
                 client.SendErrorClose(CloseType.StopConnectionError);
-                
+
                 return null;
             }
 
@@ -137,25 +137,22 @@ namespace EMI
             bool Fail = false;
 
             Thread threadReader = new Thread(() =>
-              {
-                  byte[] data = Accepter.Receive();
-                  BitPacketSimple reqP = PackConvector.UnPackJust<BitPacketSimple>(data);
-                  if (reqP.PacketType == PacketType.ReqConnectionGood)
-                  {
-
-                  }
-                  else
-                  {
-                      Fail = true;
-                  }
-              })
+            {
+                if (Accepter.Receive().GetPacketType() == PacketType.ReqConnection1)
+                {
+                    
+                }
+                else
+                {
+                    Fail = true;
+                }
+            })
             {
                 IsBackground = true
             };
             threadReader.Start();
 
-            BitPacketSimple sendP = new BitPacketSimple(PacketType.ReqConnection);
-            byte[] sendBuffer = sendP.GetAllBytes();
+            byte[] sendBuffer = { (byte)PacketType.ReqConnection0 };
 
             while (threadReader.IsAlive)
             {
@@ -202,9 +199,7 @@ namespace EMI
         private void ProcessPingSender()
         {
             StopwatchPing.Start();
-            byte[] buffer;
-            BitPacketSimple bitPacket = new BitPacketSimple(PacketType.ReqPing0);
-            buffer = bitPacket.GetAllBytes();
+            byte[] buffer = { (byte)PacketType.ReqPing0 };
 
             while (IsConnect)
             {
@@ -214,7 +209,11 @@ namespace EMI
             }
         }
 
-        private static void AbortTH(Thread thread)
+        /// <summary>
+        /// Выключает поток если тот существует и запущен
+        /// </summary>
+        /// <param name="thread"></param>
+        private static void AbortThread(Thread thread)
         {
             try
             {
@@ -234,9 +233,9 @@ namespace EMI
         /// </summary>
         private void Stop()
         {
-            AbortTH(ThreadProcessPing);
-            AbortTH(ThreadProcessLocalReceive);
-            AbortTH(ThreadRequestLostPackages);
+            AbortThread(ThreadProcessPing);
+            AbortThread(ThreadProcessLocalReceive);
+            AbortThread(ThreadRequestLostPackages);
             StopwatchPing.Stop();
 
             Accepter.Stop();
@@ -247,11 +246,20 @@ namespace EMI
             CloseEvent?.Invoke(CloseReason);
         }
 
+
+        /// <summary>
+        /// отправляет причину ошибки оппоненту
+        /// </summary>
+        /// <param name="closeType">ЕГО ОШИБКА см описание кодов CloseType</param>
         private void SendErrorClose(CloseType closeType)
         {
             CloseReason = closeType - 1;
-            var bitPacketSimple = new BitPacketSimple(PacketType.SndClose, new byte[] { (byte)closeType });
-            byte[] sendBuffer = bitPacketSimple.GetAllBytes();
+            if (CloseReason == CloseType.None)
+            {
+                throw new Exception("Ошибка в коде EMI: неправильный тип <CloseType>");
+            }
+
+            byte[] sendBuffer = { (byte)PacketType.SndClose, (byte)closeType };
             Accepter.Send(sendBuffer, sendBuffer.Length);
         }
     }

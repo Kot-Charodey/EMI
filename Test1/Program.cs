@@ -10,7 +10,7 @@ namespace Test1
 {
     unsafe class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             Console.WriteLine("Пиши 1 Если не сервер");
             RPC.Global.RegisterMethod(0, 0, () =>

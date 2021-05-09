@@ -1,21 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace EMI.Lower.Package
+﻿namespace EMI.Lower.Package
 {
-    public static class BitPacketsUtilities
+    internal static class BitPacketsUtilities
     {
-        public static PacketType GetPacketType(byte[] BitBuffer)
+        public static PacketType GetPacketType(this byte[] BitBuffer)
         {
             return (PacketType)(BitBuffer[0]);
         }
-
-        //public static unsafe ushort GetRPCID(byte[] UnPuckBuffer)
-        //{
-        //    ushort id;
-        //}
     }
 }

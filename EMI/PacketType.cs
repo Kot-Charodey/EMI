@@ -1,17 +1,18 @@
 ﻿namespace EMI
 {
-    public enum PacketType:byte
+    internal enum PacketType:byte
     {
-        SndStandard,
+        SndClose,
+        SndSimple,
         SndGuaranteed,
         SndGuaranteedSegmented,
-        ReqConnection,
-        ReqConnectionGood,
-        SndClose,
-        ReqGetPkgGuaranted,
         SndGuaranteedReturned,
         SndGuaranteedSegmentedReturned,
+        SndFullyReceivedSegmentPackage,
+        ReqGetPkg,
         ReqPing0,
         ReqPing1,
+        ReqConnection0,
+        ReqConnection1,
     }
 }

@@ -11,7 +11,7 @@ namespace EMI
     /// </summary>
     internal class SendBackupBuffer
     {
-        private const int MaxBufferLength = ushort.MaxValue * 2;//128 мегобайта
+        private const int MaxBufferLength = ushort.MaxValue;//64 мегабайта
 
         private struct Data
         {

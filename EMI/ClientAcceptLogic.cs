@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
-using System.Diagnostics;
 using SpeedByteConvector;
+using SmartPackager;
 using System.Net;
 
 namespace EMI
 {
-    using Lower;
     using Lower.Package;
 
 
@@ -16,6 +15,10 @@ namespace EMI
     /// </summary>
     public partial class Client
     {
+        private static readonly Packager.M<BitPacketGuaranteedReturned, byte[]> Packager_BPGR = Packager.Create<BitPacketGuaranteedReturned, byte[]>();
+        private static readonly Packager.M<BitPacketSimple> Packager_BPS = Packager.Create<BitPacketSimple>();
+        private static readonly Packager.M<BitPacketGuaranteed> Packager_BPG = Packager.Create<BitPacketGuaranteed>();
+
         /// <summary>
         /// последний принятый ID
         /// </summary>
@@ -40,21 +43,23 @@ namespace EMI
 
         private Action[] AcceptLogicEvent;
 
+        //TODO переименовать и расположить как в enum
         private void InitAcceptLogicEvent(EndPoint point)
         {
             AcceptLogicEvent = new Action[]
             {
-                SndStandard,
+                SndClose,
+                SndSimple,
                 SndGuaranteed,
                 SndGuaranteedSegmented,
-                ReqConnection,
-                ReqConnectionGood,
-                SndClose,
-                ReqGetPkgGuaranted,
                 SndGuaranteedReturned,
                 SndGuaranteedSegmentedReturned,
+                SndFullyReceivedSegmentPackage,
+                ReqGetPkg,
                 ReqPing0,
-                ReqPing1
+                ReqPing1,
+                ReqConnection0,
+                ReqConnection1,
             };
 
             ReturnWaiter = new ReturnWaiter();
@@ -91,21 +96,10 @@ namespace EMI
             }
         }
 
-        private void SndStandard()
+        private void SndSimple()
         {
-            var bitPacket = PackConvector.UnPackJust<BitPacketSimple>(AcceptBuffer);
-            byte[] UnPackBuffer = bitPacket.GetByteData();
-
-            ThreadPool.QueueUserWorkItem((object state) =>
-            {
-                unsafe
-                {
-                    fixed (byte* buff = &UnPackBuffer[0])
-                    {
-                        RPC.Execute(LVL_Permission, buff);
-                    }
-                }
-            });
+            Packager_BPS.UnPack(AcceptBuffer, 0, out var bitPacket);
+            RPC.Execute(LVL_Permission, AcceptBuffer, bitPacket.RPCAddres, bitPacket.PacketType);
         }
 
         /// <summary>
@@ -143,30 +137,20 @@ namespace EMI
 
         private void SndGuaranteed()
         {
-            var bitPacket = PackConvector.UnPackJust<BitPacketMedium>(AcceptBuffer);
-            byte[] UnPackBuffer = bitPacket.GetByteData();
+            Packager_BPG.UnPack(AcceptBuffer, 0, out var bitPacket);
 
             if (SubGuaranteedCheck(bitPacket.ID) == false)
             {
                 return;
             }
-            ThreadPool.QueueUserWorkItem((object state) =>
-            {
-                PackageToReturnData packageToReturnData = null;
-                unsafe
-                {
-                    fixed (byte* buff = &UnPackBuffer[0])
-                    {
-                        packageToReturnData = RPC.Execute(LVL_Permission, buff);
-                    }
-                }
-                SendReturn(packageToReturnData, bitPacket.ID);
-            });
+
+            RPC.Execute(LVL_Permission, AcceptBuffer, bitPacket.RPCAddres, bitPacket.PacketType);
+            SendReturn(packageToReturnData, bitPacket.ID);
         }
 
         private void SndGuaranteedSegmented()
         {
-            var bitPacket = PackConvector.UnPackJust<BitPacketBig>(AcceptBuffer);
+            var bitPacket = PackConvector.UnPackJust<BitPacketSegmented>(AcceptBuffer);
             byte[] UnPackBuffer = bitPacket.GetByteData();
 
             if (SubGuaranteedCheck(bitPacket.ID) == false)
@@ -193,12 +177,12 @@ namespace EMI
             }
         }
 
-        private void ReqConnection()
+        private void ReqConnection0()
         {
 
         }
 
-        private void ReqConnectionGood()
+        private void ReqConnection1()
         {
 
         }
@@ -208,18 +192,14 @@ namespace EMI
         /// </summary>
         private void SndClose()
         {
-            var bitPacket = PackConvector.UnPackJust<BitPacketSimple>(AcceptBuffer);
-            unsafe
-            {
-                CloseReason = (CloseType)bitPacket.ByteData[0];
-            }
+            CloseReason = (CloseType)AcceptBuffer[1];
             Stop();
         }
 
         /// <summary>
         /// Запрос - повторить отправку - потерянный пакет
         /// </summary>
-        private unsafe void ReqGetPkgGuaranted()
+        private unsafe void ReqGetPkg()
         {
             var bitPacket = PackConvector.UnPackJust<BitPacketSimple>(AcceptBuffer);
             ReqGetPkgListID rgplID = *((ReqGetPkgListID*)bitPacket.ByteData);
@@ -244,7 +224,7 @@ namespace EMI
 
         private void SndGuaranteedReturned()
         {
-            var bitPacket = PackConvector.UnPackJust<BitPacketMedium>(AcceptBuffer);
+            var bitPacket = PackConvector.UnPackJust<BitPacketGuaranteed>(AcceptBuffer);
             byte[] UnPackBuffer = bitPacket.GetByteData();
 
             if (SubGuaranteedCheck(bitPacket.ID) == false)
@@ -270,7 +250,7 @@ namespace EMI
         private void ReqPing0()
         {
             AcceptBuffer[0] = (byte)PacketType.ReqPing1;
-            Accepter.Send(AcceptBuffer, 3);
+            Accepter.Send(AcceptBuffer, 1);
         }
 
         /// <summary>
@@ -322,7 +302,7 @@ namespace EMI
                     //если всё на месте то проверяем не потерялся ли новый пакет
                     if (LostID.Count == 0)
                     {
-                        var bitPacketSimple = new BitPacketSimple(PacketType.ReqGetPkgGuaranted, 9);
+                        var bitPacketSimple = new BitPacketSimple(PacketType.ReqGetPkg, 9);
                         ReqGetPkgListID* rgplID = (ReqGetPkgListID*)bitPacketSimple.ByteData;
                         ulong* point = (ulong*)((IntPtr)rgplID + 1);
                         *point = ReqID;
@@ -337,7 +317,7 @@ namespace EMI
                         if (LostID.Count < count)
                             count = LostID.Count;
                         
-                        var bitPacketSimple = new BitPacketSimple(PacketType.ReqGetPkgGuaranted);
+                        var bitPacketSimple = new BitPacketSimple(PacketType.ReqGetPkg);
                         ReqGetPkgListID* rgplID = (ReqGetPkgListID*)bitPacketSimple.ByteData;
 
 
@@ -362,44 +342,31 @@ namespace EMI
             }
         }
 
-        private unsafe void SendReturn(PackageToReturnData rtrd,ulong ID)
+        /// <summary>
+        /// Говорит что сегментный пакет полность доставлен
+        /// </summary>
+        private void SndFullyReceivedSegmentPackage()
         {
-            if (rtrd.NeedReturn)
+
+        }
+
+        private unsafe void SendReturn(byte[] data,ulong ID)
+        {
+            if (data!=null)
             {
-                if (rtrd.AllSize <= 1024)
+                if (data.Length <= 1024)
                 {
-                    byte[] dataM = new byte[rtrd.AllSize + BitPacketMedium.FieldOffsetData];
-                    fixed(byte* data = &dataM[0])
+                    BitPacketGuaranteedReturned bpgr = new BitPacketGuaranteedReturned()
                     {
-                        BitPacketMedium* bitPacket = (BitPacketMedium*)data;
-                        bitPacket->ID = GetID();
-                        bitPacket->PacketType = PacketType.SndGuaranteedReturned;
-                        bitPacket->ByteDataLength = rtrd.AllSize;
-
-                        PackageReturned* package = (PackageReturned*)(data+BitPacketMedium.FieldOffsetDataStart);
-                        package->ArgumentCount = (byte)rtrd.Data.Length;
-                        package->ID = ID;
-
-                        int sm = BitPacketMedium.FieldOffsetDataStart + sizeof(PackageReturned);
-                        BitArgument* argument = (BitArgument*)(data+sm);
-                        
-                        int sizeArg = sizeof(BitArgument);
-                        
-                        for (int i = 0; i < package->ArgumentCount; i++)
-                        {
-                            argument->Size = (ushort)(rtrd.Data[i].Length + sizeArg);
-                            fixed (byte* sour = &rtrd.Data[i][0]) {
-                                Buffer.MemoryCopy(sour, data + sm + sizeArg, argument->Size - 1, argument->Size - 1);
-                            }
-                            sm += argument->Size;
-                            argument = (BitArgument*)(data + sm);
-                        }
-
-                        SendBackupBuffer.Add(bitPacket->ID, dataM);
-                        Accepter.Send(dataM, dataM.Length);
-                    }
+                        PacketType = PacketType.SndGuaranteedReturned,
+                        ID = GetID(),
+                        ReturnID = ID
+                    };
+                    byte[] PackData = Packager_BPGR.PackUP(bpgr,data);
+                    SendBackupBuffer.Add(bpgr.ID, PackData);
+                    Accepter.Send(PackData, PackData.Length);
                 }
-                else
+                else //segment packet
                 {
                     throw new NotImplementedException("СЛОООЖНО, потом сделаю");
                 }
