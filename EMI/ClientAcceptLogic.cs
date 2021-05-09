@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
-using SpeedByteConvector;
-using SmartPackager;
 using System.Net;
+using SmartPackager;
 
 namespace EMI
 {
@@ -15,9 +14,14 @@ namespace EMI
     /// </summary>
     public partial class Client
     {
-        private static readonly Packager.M<BitPacketGuaranteedReturned, byte[]> Packager_BPGR = Packager.Create<BitPacketGuaranteedReturned, byte[]>();
-        private static readonly Packager.M<BitPacketSimple> Packager_BPS = Packager.Create<BitPacketSimple>();
-        private static readonly Packager.M<BitPacketGuaranteed> Packager_BPG = Packager.Create<BitPacketGuaranteed>();
+        //SmartPackager - создаёт упаковщики для дальнейшего использования
+        private static readonly Packager.M<BitPacketReqGetPkgSegmented, ushort[]> Packager_PkgSegmented = Packager.Create<BitPacketReqGetPkgSegmented, ushort[]>();
+        private static readonly Packager.M<PacketType, ulong[]> Packager_PacketGetPkg = Packager.Create<PacketType, ulong[]>();
+        private static readonly Packager.M<BitPacketSegmented, byte[]> Packager_Segmented = Packager.Create<BitPacketSegmented, byte[]>();
+        private static readonly Packager.M<BitPacketGuaranteedReturned, byte[]> Packager_GuaranteedReturned = Packager.Create<BitPacketGuaranteedReturned, byte[]>();
+        private static readonly Packager.M<BitPacketSimple> Packager_SimpleNoData = Packager.Create<BitPacketSimple>();
+        private static readonly Packager.M<BitPacketSimple, byte[]> Packager_Simple = Packager.Create<BitPacketSimple, byte[]>();
+        private static readonly Packager.M<BitPacketGuaranteed> Packager_Guaranteed = Packager.Create<BitPacketGuaranteed>();
 
         /// <summary>
         /// последний принятый ID
@@ -27,6 +31,10 @@ namespace EMI
         /// Буфер для повторной отправки
         /// </summary>
         private SendBackupBuffer SendBackupBuffer;
+        /// <summary>
+        /// Буфер для отправкпи
+        /// </summary>
+        private SendSegmentBackupBuffer SendSegmentBackupBuffer;
         /// <summary>
         /// Буфер для сборки больших пакетов
         /// </summary>
@@ -38,12 +46,12 @@ namespace EMI
         /// <summary>
         /// Список потерянных пакетов
         /// </summary>
-        private readonly List<ulong> LostID = new List<ulong>();
+        private readonly List<LostPackageInfo> LostID = new List<LostPackageInfo>();
         private Thread ThreadRequestLostPackages;
 
         private Action[] AcceptLogicEvent;
 
-        //TODO переименовать и расположить как в enum
+        //TODO переименовать и расположить как в enum (реализации функцый желательно тоже)
         private void InitAcceptLogicEvent(EndPoint point)
         {
             AcceptLogicEvent = new Action[]
@@ -55,7 +63,9 @@ namespace EMI
                 SndGuaranteedReturned,
                 SndGuaranteedSegmentedReturned,
                 SndFullyReceivedSegmentPackage,
+                ReqFullyReceivedSegmentPackage,
                 ReqGetPkg,
+                ReqGetPkgSegmented,
                 ReqPing0,
                 ReqPing1,
                 ReqConnection0,
@@ -65,6 +75,7 @@ namespace EMI
             ReturnWaiter = new ReturnWaiter();
             SendBackupBuffer = new SendBackupBuffer();
             SegmentPackagesBuffer = new SegmentPackagesBuffer();
+            SendSegmentBackupBuffer = new SendSegmentBackupBuffer();
             ThreadRequestLostPackages = new Thread(RequestLostPackages)
             {
                 Name = "EMI.Client.ThreadRequestLostPackages [" + point.ToString() + "]",
@@ -84,7 +95,7 @@ namespace EMI
             try
             {
                 AcceptBuffer = buffer;
-                packetType = BitPacketsUtilities.GetPacketType(buffer);
+                packetType = buffer.GetPacketType();
                 //выполняем обработку в соотведствии с типом
                 AcceptLogicEvent[(int)packetType].Invoke();
             }
@@ -96,14 +107,10 @@ namespace EMI
             }
         }
 
-        private void SndSimple()
-        {
-            Packager_BPS.UnPack(AcceptBuffer, 0, out var bitPacket);
-            RPC.Execute(LVL_Permission, AcceptBuffer, bitPacket.RPCAddres, bitPacket.PacketType);
-        }
-
         /// <summary>
-        /// Проверяет потерян ли пакет
+        /// Так же указывает что данный пакет доставлен
+        /// Проверяет потерян ли пакет и недоставлен ли он уже
+        /// Не подходит для сегментных пакетов
         /// </summary>
         /// <param name="ID"></param>
         /// <returns></returns>
@@ -121,12 +128,23 @@ namespace EMI
             }
             else
             {
-                //пакет устарел или пришёл потерянный
+                //пакет устарел (уже приходил) или пришёл потерянный
                 lock (LostID)
                 {
-                    if (LostID.Contains(ID))
+                    bool remove = false;
+                    int i;
+                    for(i = 0; i < LostID.Count; i++)
                     {
-                        LostID.Remove(ID);
+                        if (LostID[i].ID == ID)
+                        {
+                            remove = true;
+                            break;
+                        }
+                    }
+
+                    if (remove)
+                    {
+                        LostID.RemoveAt(i);
                         return true;
                     }
                 }
@@ -135,46 +153,95 @@ namespace EMI
             return true;
         }
 
+        /// <summary>
+        /// Указывает что данный пакет сегментный для запроса всех его частей
+        /// </summary>
+        private void CheckFinderSegment(ulong ID)
+        {
+            lock (LostID)
+            {
+                for (int j = 0; j < LostID.Count; j++)
+                {
+                    if (LostID[j].ID == ID)
+                    {
+                        LostID[j].IsSegment = true;
+                        return;
+                    }
+                }
+                LostID.Add(new LostPackageInfo(ID, true));
+            }
+        }
+
+        /// <summary>
+        /// Запрос - разрыв соединение
+        /// </summary>
+        private void SndClose()
+        {
+            CloseReason = (CloseType)AcceptBuffer[1];
+            Stop();
+        }
+
+        /// <summary>
+        /// Запрос - просто выполнить
+        /// </summary>
+        private void SndSimple()
+        {
+            Packager_SimpleNoData.UnPack(AcceptBuffer, 0, out var bitPacket);
+            RPC.Execute(LVL_Permission, AcceptBuffer, bitPacket.RPCAddres, bitPacket.PacketType);
+        }
+
         private void SndGuaranteed()
         {
-            Packager_BPG.UnPack(AcceptBuffer, 0, out var bitPacket);
+            Packager_Guaranteed.UnPack(AcceptBuffer, 0, out var bitPacket);
 
             if (SubGuaranteedCheck(bitPacket.ID) == false)
             {
                 return;
             }
 
-            RPC.Execute(LVL_Permission, AcceptBuffer, bitPacket.RPCAddres, bitPacket.PacketType);
-            SendReturn(packageToReturnData, bitPacket.ID);
+            byte[] data = RPC.Execute(LVL_Permission, AcceptBuffer, bitPacket.RPCAddres, bitPacket.PacketType);
+            SendReturn(data, bitPacket.ID);
         }
 
         private void SndGuaranteedSegmented()
         {
-            var bitPacket = PackConvector.UnPackJust<BitPacketSegmented>(AcceptBuffer);
-            byte[] UnPackBuffer = bitPacket.GetByteData();
+            Packager_Segmented.UnPack(AcceptBuffer, 0, out var bitPacket,out byte[] data);
+            var package = SegmentPackagesBuffer.AddSegment(in bitPacket, data);
+
+            //если пакет готов
+            if (package != null)
+            {
+                //удаляем его из списка запрашиваемых
+                if (SubGuaranteedCheck(bitPacket.ID) == false)
+                {
+                    return;
+                }
+
+
+                byte[] retData = RPC.Execute(LVL_Permission, package.Data, package.RPCAddres, package.PacketType);
+                SendReturn(retData, package.ID);
+            }
+            else
+            {
+                CheckFinderSegment(bitPacket.ID);
+            }
+        }
+
+        private void SndGuaranteedReturned()
+        {
+            Packager_GuaranteedReturned.UnPack(AcceptBuffer, 0, out var bitPacket,out byte[] data);
 
             if (SubGuaranteedCheck(bitPacket.ID) == false)
             {
                 return;
             }
 
-            byte[] buffer = SegmentPackagesBuffer.AddSegment(in bitPacket);
+            ReturnWaiter.AddData(bitPacket.ID, data);
+        }
 
-            if (buffer != null)
-            {
-                ThreadPool.QueueUserWorkItem((object state) =>
-                {
-                    PackageToReturnData packageToReturnData = null;
-                    unsafe
-                    {
-                        fixed (byte* buff = &buffer[0])
-                        {
-                            packageToReturnData = RPC.Execute(LVL_Permission, buff);
-                        }
-                    }
-                    SendReturn(packageToReturnData, bitPacket.MainID);
-                });
-            }
+        private void SndGuaranteedSegmentedReturned()
+        {
+
         }
 
         private void ReqConnection0()
@@ -188,28 +255,19 @@ namespace EMI
         }
 
         /// <summary>
-        /// Запрос - разрыв соединение
+        ///  Запрос - повторить отправку - потерянный пакет (так же если слишком много сегментов то изначально отправяться не все)
+        ///  упаковка: /BitPacketGetPkgSegmented/,/ushort[] список сегментов/
         /// </summary>
-        private void SndClose()
+        private void ReqGetPkgSegmented()
         {
-            CloseReason = (CloseType)AcceptBuffer[1];
-            Stop();
-        }
-
-        /// <summary>
-        /// Запрос - повторить отправку - потерянный пакет
-        /// </summary>
-        private unsafe void ReqGetPkg()
-        {
-            var bitPacket = PackConvector.UnPackJust<BitPacketSimple>(AcceptBuffer);
-            ReqGetPkgListID rgplID = *((ReqGetPkgListID*)bitPacket.ByteData);
+            Packager_PkgSegmented.UnPack(AcceptBuffer, 0, out var bitPacket, out ushort[] ID_Data);
 
             byte[] buffer;
-            for (int i = 0; i < rgplID.CountID; i++)
+            for (int i = 0; i < ID_Data.Length; i++)
             {
-                buffer = SendBackupBuffer.Get(rgplID.IDData[i]);
-                //если пакета нет и он был создан
-                if (buffer == null && rgplID.IDData[i] < SendID)
+                buffer = SendSegmentBackupBuffer.Get(bitPacket.ID, ID_Data[i]);
+                //если пакет не найден - он потерян, ошибка
+                if (buffer == null)
                 {
                     SendErrorClose(CloseType.StopPackageDestroyed);
                     Stop();
@@ -222,26 +280,37 @@ namespace EMI
             }
         }
 
-        private void SndGuaranteedReturned()
+        /// <summary>
+        /// Запрос - повторить отправку - потерянный пакет
+        /// упаковка: /BitPacketGetPkg/,/ulong[] список айди пакетов/
+        /// </summary>
+        private void ReqGetPkg()
         {
-            var bitPacket = PackConvector.UnPackJust<BitPacketGuaranteed>(AcceptBuffer);
-            byte[] UnPackBuffer = bitPacket.GetByteData();
+            Packager_PacketGetPkg.UnPack(AcceptBuffer, 0, out var bitPacket, out ulong[] ID_Data);
 
-            if (SubGuaranteedCheck(bitPacket.ID) == false)
+            byte[] buffer;
+            for (int i = 0; i < ID_Data.Length; i++)
             {
-                return;
+                buffer = SendBackupBuffer.Get(ID_Data[i]);
+                //если пакета нет и он был создан - попробуем поискать среди больших пакетов
+                if (buffer == null && ID_Data[i] < SendID)
+                {
+                    //предположим что клиент не знает о типе пакета "сегментный" поэтому отправим первый сегмент что бы он знал что запрашивать далее (через ReqGetPkgSegmented)
+                    buffer = SendSegmentBackupBuffer.Get(ID_Data[i], 0);
+                    //если пакет не найден значит он уничтожен и придёться разорвать соединение
+                    if (buffer == null)
+                    {
+                        SendErrorClose(CloseType.StopPackageDestroyed);
+                        Stop();
+                    }
+                }
+                //иначе отправим пакет повторно
+                if (buffer != null)
+                {
+                    Accepter.Send(buffer, buffer.Length);
+                }
+                //если пакет не создан то промолчим
             }
-
-            unsafe
-            {
-                PackageReturned* package = (PackageReturned*)bitPacket.ByteData;
-                ReturnWaiter.AddData(package->ID, bitPacket.GetByteData());
-            }
-        }
-
-        private void SndGuaranteedSegmentedReturned()
-        {
-
         }
 
         /// <summary>
@@ -266,7 +335,7 @@ namespace EMI
         }
 
         /// <summary>
-        /// Добавляет в список потерянные пакеты и будит поток по их поиску
+        /// Добавляет в список потерянные пакеты и будит поток по их поиску (не указывает что пакет сегментный - это должен делать SndGuaranteedSegmented и SndGuaranteedSegmentedReturned)
         /// </summary>
         /// <param name="startID"></param>
         /// <param name="endID"></param>
@@ -276,18 +345,31 @@ namespace EMI
             {
                 for (ulong i = startID; i <= endID; i++)
                 {
-                    if (!LostID.Contains(i))
+                    bool contains = false;
+                    for (int j = 0; j < LostID.Count; j++)
                     {
-                        LostID.Add(i);
+                        if (LostID[j].ID == i)
+                        {
+                            contains = true;
+                            break;
+                        }
                     }
+                    if(contains)
+                        LostID.Add(new LostPackageInfo(i, false));
                 }
             }
         }
+
         /// <summary>
         /// запрашивает потерянные пакеты
         /// </summary>
-        private unsafe void RequestLostPackages()
+        private void RequestLostPackages()
         {
+            LostPackageInfo lpi;
+            BitPacketReqGetPkgSegmented bitPacketReqGetPkgSegmented = new BitPacketReqGetPkgSegmented()
+            {
+                PacketType = PacketType.ReqGetPkgSegmented
+            };
             while (IsConnect)
             {
                 //если давно нет соединения
@@ -299,42 +381,47 @@ namespace EMI
 
                 lock (LostID)
                 {
-                    //если всё на месте то проверяем не потерялся ли новый пакет
+                    //если всё на месте то проверяем не потерялся/появился новый пакет
                     if (LostID.Count == 0)
                     {
-                        var bitPacketSimple = new BitPacketSimple(PacketType.ReqGetPkg, 9);
-                        ReqGetPkgListID* rgplID = (ReqGetPkgListID*)bitPacketSimple.ByteData;
-                        ulong* point = (ulong*)((IntPtr)rgplID + 1);
-                        *point = ReqID;
-                        
-                        byte[] sendBuffer = bitPacketSimple.GetAllBytes();
+                        byte[] sendBuffer = Packager_PacketGetPkg.PackUP(PacketType.ReqGetPkg, new ulong[1] { ReqID });
                         Accepter.Send(sendBuffer, sendBuffer.Length);
                     }
                     else
                     {
-                        //запрос на первые 100 потерявшихся
-                        int count = 100;
+                        //запрос на первые 64 потерявшихся (не все сразу что бы сильно не забить канал)
+                        int count = 64;
                         if (LostID.Count < count)
                             count = LostID.Count;
-                        
-                        var bitPacketSimple = new BitPacketSimple(PacketType.ReqGetPkg);
-                        ReqGetPkgListID* rgplID = (ReqGetPkgListID*)bitPacketSimple.ByteData;
 
-
-                        ulong* point = (ulong*)((IntPtr)rgplID + 1);
-
-                        rgplID->CountID=(byte)count;
+                        List<ulong> IDs = new List<ulong>(count);
+                        //для сегментных пакетов
+                        ulong? IDBig = null;
 
                         for (int i = 0; i < count; i++)
                         {
-                            *point = LostID[i];
-                            point++;
+                            lpi = LostID[i];
+                            if (lpi.IsSegment && IDBig == null)
+                            {
+                                IDBig = lpi.ID;
+                            }
+                            else
+                            {
+                                IDs.Add(lpi.ID);
+                            }
                         }
-                        
-                        bitPacketSimple.ByteDataLength = rgplID->GetSize();
-                        
-                        byte[] sendBuffer = bitPacketSimple.GetAllBytes();
+
+                        byte[] sendBuffer = Packager_PacketGetPkg.PackUP(PacketType.ReqGetPkg, IDs.ToArray());
                         Accepter.Send(sendBuffer, sendBuffer.Length);
+
+                        //если есть неполный сегментный пакет
+                        if (IDBig != null)
+                        {
+                            ushort[] segments = SegmentPackagesBuffer.GetDownloadList(64, IDBig.Value);
+                            bitPacketReqGetPkgSegmented.ID = IDBig.Value;
+                            sendBuffer = Packager_PkgSegmented.PackUP(bitPacketReqGetPkgSegmented, segments);
+                            Accepter.Send(sendBuffer, sendBuffer.Length);
+                        }
                     }
                 }
 
@@ -343,33 +430,53 @@ namespace EMI
         }
 
         /// <summary>
-        /// Говорит что сегментный пакет полность доставлен
+        /// Говорит о том что сегментный пакет полность доставлен
         /// </summary>
         private void SndFullyReceivedSegmentPackage()
         {
 
         }
 
-        private unsafe void SendReturn(byte[] data,ulong ID)
+        private void ReqFullyReceivedSegmentPackage()
         {
-            if (data!=null)
+
+        }
+
+        private void SendReturn(byte[] data, ulong ID)
+        {
+            if (data != null)
             {
+                //если пакет маленький то просто отправить
                 if (data.Length <= 1024)
                 {
                     BitPacketGuaranteedReturned bpgr = new BitPacketGuaranteedReturned()
                     {
                         PacketType = PacketType.SndGuaranteedReturned,
                         ID = GetID(),
-                        ReturnID = ID
+                        ReturnID = ID,
+                        ReturnNull = false
                     };
-                    byte[] PackData = Packager_BPGR.PackUP(bpgr,data);
+                    byte[] PackData = Packager_GuaranteedReturned.PackUP(bpgr, data);
                     SendBackupBuffer.Add(bpgr.ID, PackData);
                     Accepter.Send(PackData, PackData.Length);
                 }
-                else //segment packet
+                else //если пакет жирный
                 {
                     throw new NotImplementedException("СЛОООЖНО, потом сделаю");
                 }
+            }
+            else
+            {
+                BitPacketGuaranteedReturned bpgr = new BitPacketGuaranteedReturned()
+                {
+                    PacketType = PacketType.SndGuaranteedReturned,
+                    ID = GetID(),
+                    ReturnID = ID,
+                    ReturnNull = true
+                };
+                byte[] PackData = Packager_GuaranteedReturned.PackUP(bpgr, new byte[0]);
+                SendBackupBuffer.Add(bpgr.ID, PackData);
+                Accepter.Send(PackData, PackData.Length);
             }
         }
     }

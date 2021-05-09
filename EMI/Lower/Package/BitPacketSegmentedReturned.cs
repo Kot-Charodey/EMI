@@ -2,12 +2,12 @@
 
 namespace EMI.Lower.Package
 {
-    [StructLayout(LayoutKind.Explicit,Size = 21)]
+    [StructLayout(LayoutKind.Explicit,Size = 23)]
     internal struct BitPacketSegmentedReturned
     {
         [FieldOffset(0)]
         public BitPacketSegmented PacketSegmented;
-        [FieldOffset(13)]
+        [FieldOffset(15)]
         public ulong ReturnID;//айди пакета вызова
     }
 }

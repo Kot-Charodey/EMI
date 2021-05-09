@@ -22,7 +22,7 @@ namespace EMI
         /// <typeparam name="TOut"></typeparam>
         /// <param name="ID"></param>
         /// <returns></returns>
-        public unsafe TOut[] Wait<TOut>(ulong ID) where TOut : unmanaged
+        public TOut[] Wait<TOut>(ulong ID)
         {
             Waiter waiter = new Waiter()
             {

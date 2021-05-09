@@ -17,12 +17,16 @@ namespace EMI
 
         public byte[] Get(ulong ID, ushort Segment)
         {
-            return BufferPackages[ID][Segment];
+            if (BufferPackages.TryGetValue(ID, out var datas))
+                return datas[Segment];
+            else 
+                return null;
         }
 
         public void Remove(ulong ID)
         {
-            BufferPackages.Remove(ID);
+            if(BufferPackages.ContainsKey(ID))
+                BufferPackages.Remove(ID);
         }
     }
 }

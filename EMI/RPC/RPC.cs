@@ -48,6 +48,7 @@ namespace EMI
             var funsLocal= Functions[RPC_ID].ToArray();
             var funsGlobal = Global.Functions[RPC_ID].ToArray();
 
+            //если нужер вернуть результат
             if (packetType == PacketType.SndGuaranteedReturned || packetType == PacketType.SndGuaranteedSegmentedReturned)
             {
                 MyAction action;

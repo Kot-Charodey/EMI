@@ -2,7 +2,7 @@
 
 namespace EMI.Lower.Package
 {
-    [StructLayout(LayoutKind.Explicit,Size = 17)]
+    [StructLayout(LayoutKind.Explicit,Size = 18)]
     internal struct BitPacketGuaranteedReturned
     {
         [FieldOffset(0)]
@@ -11,5 +11,7 @@ namespace EMI.Lower.Package
         public ulong ID;
         [FieldOffset(9)]
         public ulong ReturnID;//айди пакета вызова
+        [FieldOffset(17)]
+        public bool ReturnNull;
     }
 }

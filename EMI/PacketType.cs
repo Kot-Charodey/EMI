@@ -8,8 +8,10 @@
         SndGuaranteedSegmented,
         SndGuaranteedReturned,
         SndGuaranteedSegmentedReturned,
-        SndFullyReceivedSegmentPackage,
+        SndFullyReceivedSegmentPackage,//пакет доставлен
+        ReqFullyReceivedSegmentPackage,
         ReqGetPkg,
+        ReqGetPkgSegmented,
         ReqPing0,
         ReqPing1,
         ReqConnection0,

@@ -17,7 +17,8 @@ namespace EMI
         {
             public PacketType PacketType;
             public ulong ID;
-            public ulong ReturnID;
+            public ulong ReturnID; 
+            public ushort RPCAddres;
             public byte[] Data;
 
             internal ConstructedPackage(Package package)
@@ -25,6 +26,7 @@ namespace EMI
                 PacketType = package.PacketType;
                 ID = package.ID;
                 ReturnID = package.ReturnID;
+                RPCAddres = package.RPCAddres;
                 Data = new byte[package.Size];
                 for(int i = 0; i < package.Data.Length; i++)
                 {
@@ -37,9 +39,11 @@ namespace EMI
         {
             public PacketType PacketType;
             public ulong ID;
-            public ulong ReturnID;
+            public ulong ReturnID; 
+            public ushort RPCAddres;
             public ushort RemainedCount;//когда 0 значит пакет собран
             public int Size;
+            public HashSet<ushort> SetSegments;//какие сегменты уже пришли
             public byte[][] Data;
 
             public Package(in BitPacketSegmentedReturned bitPacket)
@@ -47,13 +51,37 @@ namespace EMI
                 PacketType = bitPacket.PacketSegmented.PacketType;
                 ID = bitPacket.PacketSegmented.ID;
                 ReturnID = bitPacket.ReturnID;
+                RPCAddres = bitPacket.PacketSegmented.RPCAddres;
                 RemainedCount = bitPacket.PacketSegmented.SegmentCount;
+                SetSegments = new HashSet<ushort>(RemainedCount + 1);
                 Data = new byte[RemainedCount][];
             }
         }
 
         private Dictionary<ulong, Package> BufferPackages = new Dictionary<ulong, Package>();
 
+        /// <summary>
+        /// Возвращает список недостающик сегментов
+        /// </summary>
+        /// <param name="ID">Айди пакета</param>
+        /// <param name="MaxGetCount">Максимальный размер списка</param>
+        /// <returns></returns>
+        public ushort[] GetDownloadList(int MaxGetCount,ulong ID)
+        {
+            Package package = BufferPackages[ID];
+            ushort[] need = new ushort[Math.Min(MaxGetCount, package.RemainedCount)];
+            int j = 0;
+
+            for (ushort i = 0; i < package.Data.Length; i++)
+            {
+                if (!package.SetSegments.Contains(i))
+                {
+                    need[j++] = i;
+                }
+            }
+
+            return need;
+        }
 
         /// <summary>
         /// 
@@ -79,8 +107,16 @@ namespace EMI
             {
                 package = new Package(in bitPacket);
             }
+            else
+            {
+                //если данный пакет получен
+                if (package.SetSegments.Contains(bitPacket.PacketSegmented.Segment))
+                    return null;
+            }
 
+            
             package.Data[bitPacket.PacketSegmented.Segment] = data;
+            package.SetSegments.Add(bitPacket.PacketSegmented.Segment);
             package.Size += data.Length;
             package.RemainedCount--;
 

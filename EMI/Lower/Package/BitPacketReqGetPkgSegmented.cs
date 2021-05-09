@@ -3,7 +3,7 @@
 namespace EMI.Lower.Package
 {
     [StructLayout(LayoutKind.Explicit,Size = 9)]
-    internal struct BitPacketGetPkg
+    internal struct BitPacketReqGetPkgSegmented
     {
         [FieldOffset(0)]
         public PacketType PacketType;

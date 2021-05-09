@@ -27,15 +27,13 @@ namespace EMI
         /// <param name="ID">Айди вызываемой функции</param>
         public unsafe void RemoteStandardExecution(ushort ID)
         {
-            var bitPacket = new BitPacketSimple(PacketType.SndSimple, sizeof(Package));
-            Package* package = (Package*)bitPacket.ByteData;
-
-            package->RPC_ID = ID;
-            package->CameBack = PackageCameBack.No;
-            package->ArgumentCount = 0;
-
-            byte[] bufferSend = bitPacket.GetAllBytes();
-            Accepter.Send(bufferSend, bufferSend.Length);
+            BitPacketSimple bps = new BitPacketSimple()
+            {
+                PacketType = PacketType.SndSimple,
+                RPCAddres = ID,
+            };
+            byte[] data = Packager_SimpleNoData.PackUP(bps);
+            Accepter.Send(data, data.Length);
         }
         /// <summary>
         /// Выполнить RPC без гарантии доставки

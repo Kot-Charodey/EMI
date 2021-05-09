@@ -2,7 +2,7 @@
 
 namespace EMI.Lower.Package
 {
-    [StructLayout(LayoutKind.Explicit,Size = 13)]
+    [StructLayout(LayoutKind.Explicit,Size = 15)]
     internal struct BitPacketSegmented
     {
         [FieldOffset(0)]
@@ -13,5 +13,7 @@ namespace EMI.Lower.Package
         public ushort Segment;
         [FieldOffset(11)]
         public ushort SegmentCount;
+        [FieldOffset(13)]
+        public ushort RPCAddres;
     }
 }

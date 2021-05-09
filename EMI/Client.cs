@@ -260,7 +260,12 @@ namespace EMI
             }
 
             byte[] sendBuffer = { (byte)PacketType.SndClose, (byte)closeType };
-            Accepter.Send(sendBuffer, sendBuffer.Length);
+            //отправим 10 раз что бы точно дошло
+            for (int i = 0; i < 10; i++)
+            {
+                Accepter.Send(sendBuffer, sendBuffer.Length);
+                Thread.Sleep(100);
+            }
         }
     }
 }
