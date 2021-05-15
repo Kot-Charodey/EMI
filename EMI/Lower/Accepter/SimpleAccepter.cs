@@ -22,10 +22,10 @@ namespace EMI.Lower.Accepter
         private EndPoint Point = new IPEndPoint(IPAddress.Any, 1);
         private readonly byte[] tmp=new byte[1248];
 
-        public byte[] Receive()
+        public byte[] Receive(out int size)
         {
             @while:
-            Client.ReceiveFrom(tmp,ref Point);
+            size=Client.ReceiveFrom(tmp,ref Point);
 
             if (Point.Equals(EndPoint))
             {

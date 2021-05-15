@@ -19,7 +19,7 @@ namespace Test1
             });
             if (Console.ReadLine() == "1")
             {
-                Client client = Client.Connect(IPAddress.Parse("31.10.114.169"), 50000);
+                Client client = Client.Connect(IPAddress.Parse("10.20.30.50"), 30000);
                 while (true)
                 {
                     Console.ReadLine();
@@ -28,7 +28,7 @@ namespace Test1
             }
             else
             {
-                Server srv = new Server(50000);
+                Server srv = new Server(30000);
                 srv.Start((Client cc) =>
                 {
                     Console.WriteLine("Опа");

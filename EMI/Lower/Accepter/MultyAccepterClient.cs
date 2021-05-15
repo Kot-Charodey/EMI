@@ -10,9 +10,9 @@ namespace EMI.Lower.Accepter
         public bool Stopped { get; private set; } = false;
         public EndPoint EndPoint { get; private set; }
         private readonly MultiAccepter MultiAccepter;
-        public Action<byte[]> AcceptEvent;
+        public Action<byte[],int> AcceptEvent;
 
-        public MultyAccepterClient(EndPoint address,MultiAccepter multiAccepter,Action<byte[]> acceptEvent)
+        public MultyAccepterClient(EndPoint address,MultiAccepter multiAccepter,Action<byte[],int> acceptEvent)
         {
             MultiAccepter = multiAccepter;
             EndPoint = address;
@@ -24,7 +24,7 @@ namespace EMI.Lower.Accepter
             }
         }
 
-        public byte[] Receive()
+        public byte[] Receive(out int size)
         {
             throw new Exception("use Action acceptEvent");
         }

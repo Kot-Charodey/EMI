@@ -18,10 +18,12 @@ namespace EMI
         private static readonly Packager.M<BitPacketReqGetPkgSegmented, ushort[]> Packager_PkgSegmented = Packager.Create<BitPacketReqGetPkgSegmented, ushort[]>();
         private static readonly Packager.M<PacketType, ulong[]> Packager_PacketGetPkg = Packager.Create<PacketType, ulong[]>();
         private static readonly Packager.M<BitPacketSegmented, byte[]> Packager_Segmented = Packager.Create<BitPacketSegmented, byte[]>();
-        private static readonly Packager.M<BitPacketGuaranteedReturned, byte[]> Packager_GuaranteedReturned = Packager.Create<BitPacketGuaranteedReturned, byte[]>();
         private static readonly Packager.M<BitPacketSimple> Packager_SimpleNoData = Packager.Create<BitPacketSimple>();
         private static readonly Packager.M<BitPacketSimple, byte[]> Packager_Simple = Packager.Create<BitPacketSimple, byte[]>();
-        private static readonly Packager.M<BitPacketGuaranteed> Packager_Guaranteed = Packager.Create<BitPacketGuaranteed>();
+        private static readonly Packager.M<BitPacketGuaranteed> Packager_GuaranteedNoData = Packager.Create<BitPacketGuaranteed>();
+        private static readonly Packager.M<BitPacketGuaranteed, byte[]> Packager_Guaranteed = Packager.Create<BitPacketGuaranteed, byte[]>();
+        private static readonly Packager.M<BitPacketGuaranteedReturned> Packager_GuaranteedReturnedNoData = Packager.Create<BitPacketGuaranteedReturned>();
+        private static readonly Packager.M<BitPacketGuaranteedReturned, byte[]> Packager_GuaranteedReturned = Packager.Create<BitPacketGuaranteedReturned, byte[]>();
 
         /// <summary>
         /// последний принятый ID
@@ -59,7 +61,9 @@ namespace EMI
                 SndClose,
                 SndSimple,
                 SndGuaranteed,
+                SndGuaranteedRtr,
                 SndGuaranteedSegmented,
+                SndGuaranteedRtrSegmented,
                 SndGuaranteedReturned,
                 SndGuaranteedSegmentedReturned,
                 SndFullyReceivedSegmentPackage,
@@ -85,16 +89,19 @@ namespace EMI
 
         private PacketType packetType;
         private byte[] AcceptBuffer;
+        private int SizeAcceptBuffer;
 
         /// <summary>
         /// если пришёл пакет
         /// </summary>
-        /// <param name="buffer"></param>
-        private void ProcessAccept(byte[] buffer)
+        /// <param name="buffer">пакет</param>
+        /// <param name="size">размер пакета</param>
+        private void ProcessAccept(byte[] buffer,int size)
         {
             try
             {
                 AcceptBuffer = buffer;
+                SizeAcceptBuffer = size;
                 packetType = buffer.GetPacketType();
                 //выполняем обработку в соотведствии с типом
                 AcceptLogicEvent[(int)packetType].Invoke();
@@ -184,42 +191,98 @@ namespace EMI
         /// <summary>
         /// Запрос - просто выполнить
         /// </summary>
-        private void SndSimple()
+        private unsafe void SndSimple()
         {
-            Packager_SimpleNoData.UnPack(AcceptBuffer, 0, out var bitPacket);
-            RPC.Execute(LVL_Permission, AcceptBuffer, bitPacket.RPCAddres, bitPacket.PacketType);
-        }
+            BitPacketSimple bitPacket;
+            byte[] data = null;
 
-        private void SndGuaranteed()
-        {
-            Packager_Guaranteed.UnPack(AcceptBuffer, 0, out var bitPacket);
-
-            if (SubGuaranteedCheck(bitPacket.ID) == false)
+            if (SizeAcceptBuffer > sizeof(BitPacketSimple))
             {
-                return;
+                Packager_Simple.UnPack(AcceptBuffer, 0, out bitPacket, out data);
+            }
+            else
+            {
+                Packager_SimpleNoData.UnPack(AcceptBuffer, 0, out bitPacket);
             }
 
-            byte[] data = RPC.Execute(LVL_Permission, AcceptBuffer, bitPacket.RPCAddres, bitPacket.PacketType);
-            SendReturn(data, bitPacket.ID);
+            RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, false);
+        }
+
+        private unsafe void SndGuaranteed()
+        {
+            BitPacketGuaranteed bitPacket;
+            byte[] data = null;
+
+            if (SizeAcceptBuffer > sizeof(BitPacketGuaranteed))
+            {
+                Packager_Guaranteed.UnPack(AcceptBuffer, 0, out bitPacket, out data);
+            }
+            else
+            {
+                Packager_GuaranteedNoData.UnPack(AcceptBuffer, 0, out bitPacket);
+            }
+
+            if (SubGuaranteedCheck(bitPacket.ID) == false)
+                return;
+
+            RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, false);
+        }
+
+        private unsafe void SndGuaranteedRtr()
+        {
+            BitPacketGuaranteed bitPacket;
+            byte[] data = null;
+
+            if (SizeAcceptBuffer > sizeof(BitPacketGuaranteed))
+            {
+                Packager_Guaranteed.UnPack(AcceptBuffer, 0, out bitPacket, out data);
+            }
+            else
+            {
+                Packager_GuaranteedNoData.UnPack(AcceptBuffer, 0, out bitPacket);
+            }
+
+            if (SubGuaranteedCheck(bitPacket.ID) == false)
+                return;
+
+            SendReturn(RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, true), bitPacket.ID);
         }
 
         private void SndGuaranteedSegmented()
         {
-            Packager_Segmented.UnPack(AcceptBuffer, 0, out var bitPacket,out byte[] data);
+            Packager_Segmented.UnPack(AcceptBuffer, 0, out var bitPacket, out byte[] data);
             var package = SegmentPackagesBuffer.AddSegment(in bitPacket, data);
 
             //если пакет готов
             if (package != null)
             {
-                //удаляем его из списка запрашиваемых
+                //TODO проверить
+                //удаляем его из списка запрашиваемых (работает но это не точно (лень проверять (потом проверю)))
                 if (SubGuaranteedCheck(bitPacket.ID) == false)
-                {
                     return;
-                }
+
+                RPC.Execute(LVL_Permission, package.Data, package.RPCAddres, false);
+            }
+            else
+            {
+                CheckFinderSegment(bitPacket.ID);
+            }
+        }
 
 
-                byte[] retData = RPC.Execute(LVL_Permission, package.Data, package.RPCAddres, package.PacketType);
-                SendReturn(retData, package.ID);
+        private void SndGuaranteedRtrSegmented()
+        {
+            Packager_Segmented.UnPack(AcceptBuffer, 0, out var bitPacket, out byte[] data);
+            var package = SegmentPackagesBuffer.AddSegment(in bitPacket, data);
+
+            //если пакет готов
+            if (package != null)
+            {
+                //удаляем его из списка запрашиваемых (работает но это не точно (лень проверять (потом проверю)))
+                if (SubGuaranteedCheck(bitPacket.ID) == false)
+                    return;
+
+                SendReturn(RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, true), package.ID);
             }
             else
             {
@@ -229,6 +292,7 @@ namespace EMI
 
         private void SndGuaranteedReturned()
         {
+            //TODO ОШИБКА
             Packager_GuaranteedReturned.UnPack(AcceptBuffer, 0, out var bitPacket,out byte[] data);
 
             if (SubGuaranteedCheck(bitPacket.ID) == false)
@@ -286,7 +350,7 @@ namespace EMI
         /// </summary>
         private void ReqGetPkg()
         {
-            Packager_PacketGetPkg.UnPack(AcceptBuffer, 0, out var bitPacket, out ulong[] ID_Data);
+            Packager_PacketGetPkg.UnPack(AcceptBuffer, 0, out _, out ulong[] ID_Data);
 
             byte[] buffer;
             for (int i = 0; i < ID_Data.Length; i++)

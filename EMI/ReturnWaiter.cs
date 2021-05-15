@@ -4,6 +4,7 @@ using System.Threading;
 namespace EMI
 {
     using Lower.Package;
+    using SmartPackager;
 
     internal class ReturnWaiter
     {
@@ -22,8 +23,11 @@ namespace EMI
         /// <typeparam name="TOut"></typeparam>
         /// <param name="ID"></param>
         /// <returns></returns>
-        public TOut[] Wait<TOut>(ulong ID)
+        public TOut Wait<TOut>(ulong ID)
         {
+            var pack = Packager.Create<TOut>();
+
+            //оставим запрос и идём спать - когда прийдёт наш пакет то поток разбудят
             Waiter waiter = new Waiter()
             {
                 Thread = Thread.CurrentThread
@@ -43,23 +47,8 @@ namespace EMI
                 throw new ClientOutException();
             }
 
-            TOut[] datas = null;
-            fixed (byte* bytes = &waiter.Data[0])
-            {
-                PackageReturned* package = (PackageReturned*)bytes;
-                int sm = sizeof(PackageReturned);
-                int sizeArg = sizeof(BitArgument);
-                BitArgument* argument = (BitArgument*)(bytes + sm);
-
-                datas = new TOut[package->ArgumentCount];
-                for (int i = 0; i < datas.Length; i++)
-                {
-                    datas[i] = *((TOut*)(bytes + sm + sizeArg));
-                    sm += argument->Size;
-                    argument = (BitArgument*)(bytes + sm);
-                }
-            }
-            return datas;
+            pack.UnPack(waiter.Data, 0, out TOut ret);
+            return ret;
         }
 
         /// <summary>

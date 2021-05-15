@@ -48,17 +48,26 @@ namespace EMI
 
             public Package(in BitPacketSegmentedReturned bitPacket)
             {
-                PacketType = bitPacket.PacketSegmented.PacketType;
-                ID = bitPacket.PacketSegmented.ID;
+                PacketType = bitPacket.PacketType;
+                ID = bitPacket.ID;
                 ReturnID = bitPacket.ReturnID;
-                RPCAddres = bitPacket.PacketSegmented.RPCAddres;
-                RemainedCount = bitPacket.PacketSegmented.SegmentCount;
+                RemainedCount = bitPacket.SegmentCount;
+                SetSegments = new HashSet<ushort>(RemainedCount + 1);
+                Data = new byte[RemainedCount][];
+            }
+
+            public Package(in BitPacketSegmented bitPacket)
+            {
+                PacketType = bitPacket.PacketType;
+                ID = bitPacket.ID;
+                RPCAddres = bitPacket.RPCAddres;
+                RemainedCount = bitPacket.SegmentCount;
                 SetSegments = new HashSet<ushort>(RemainedCount + 1);
                 Data = new byte[RemainedCount][];
             }
         }
 
-        private Dictionary<ulong, Package> BufferPackages = new Dictionary<ulong, Package>();
+        private readonly Dictionary<ulong, Package> BufferPackages = new Dictionary<ulong, Package>();
 
         /// <summary>
         /// Возвращает список недостающик сегментов
@@ -89,11 +98,29 @@ namespace EMI
         /// <returns>если null то пакет ещё не готов</returns>
         public ConstructedPackage AddSegment(in BitPacketSegmented bitPacket, byte[] data)
         {
-            BitPacketSegmentedReturned bitPacketR = new BitPacketSegmentedReturned()
+            if (!BufferPackages.TryGetValue(bitPacket.ID, out Package package))
             {
-                PacketSegmented = bitPacket,
-            };
-            return AddSegment(in bitPacketR, data);
+                package = new Package(in bitPacket);
+            }
+            else
+            {
+                //если данный пакет получен
+                if (package.SetSegments.Contains(bitPacket.Segment))
+                    return null;
+            }
+
+
+            package.Data[bitPacket.Segment] = data;
+            package.SetSegments.Add(bitPacket.Segment);
+            package.Size += data.Length;
+            package.RemainedCount--;
+
+            if (package.RemainedCount == 0)
+            {
+                BufferPackages.Remove(package.ID);
+                return new ConstructedPackage(package);
+            }
+            return null;
         }
 
         /// <summary>
@@ -102,21 +129,20 @@ namespace EMI
         /// <returns>если null то пакет ещё не готов</returns>
         public ConstructedPackage AddSegment(in BitPacketSegmentedReturned bitPacket, byte[] data)
         {
-            Package package;
-            if(!BufferPackages.TryGetValue(bitPacket.PacketSegmented.ID,out package))
+            if (!BufferPackages.TryGetValue(bitPacket.ID, out Package package))
             {
                 package = new Package(in bitPacket);
             }
             else
             {
                 //если данный пакет получен
-                if (package.SetSegments.Contains(bitPacket.PacketSegmented.Segment))
+                if (package.SetSegments.Contains(bitPacket.Segment))
                     return null;
             }
 
-            
-            package.Data[bitPacket.PacketSegmented.Segment] = data;
-            package.SetSegments.Add(bitPacket.PacketSegmented.Segment);
+
+            package.Data[bitPacket.Segment] = data;
+            package.SetSegments.Add(bitPacket.Segment);
             package.Size += data.Length;
             package.RemainedCount--;
 

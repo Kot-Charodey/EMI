@@ -7,6 +7,8 @@ using System.Threading;
 
 namespace EMI.Lower.Accepter
 {
+    using Package;
+
     internal class MultiAccepter
     {
         public Socket Client;
@@ -59,7 +61,7 @@ namespace EMI.Lower.Accepter
             try
             {
                 Buffer = new byte[BufferSize];
-                Client.ReceiveFrom(Buffer, ref Point);
+                int size = Client.ReceiveFrom(Buffer, ref Point);
 
                 lock (ReceiveClients)
                 {
@@ -77,17 +79,16 @@ namespace EMI.Lower.Accepter
 
                     if (TryGetValue(out MultyAccepterClient mac))
                     {
-                        mac.AcceptEvent.Invoke(Buffer);
+                        mac.AcceptEvent.Invoke(Buffer, size);
                     }
                     else
                     {
                         try
                         {
-                            if (Package.BitPacketsUtilities.GetPacketType(Buffer) == PacketType.ReqConnection0)
+                            if (BitPacketsUtilities.GetPacketType(Buffer) == PacketType.ReqConnection0)
                             {
-                                BitPacketSimple bitPacket = new BitPacketSimple(PacketType.ReqConnection1);
-                                byte[] sendBuffer = new byte[bitPacket.GetSizeOf()];
-                                PackConvector.PackUP(sendBuffer, bitPacket);
+                                byte[] sendBuffer = new byte[sizeof(PacketType)];
+                                PackConvector.PackUP(sendBuffer, PacketType.ReqConnection1);
 
                                 for (int i = 0; i < 5; i++)
                                 {
@@ -97,9 +98,9 @@ namespace EMI.Lower.Accepter
 
                                 Client client = new Client(Point, this);
                                 Thread invoker = new Thread(() =>
-                                  {
-                                      AcceptEvent.Invoke(client);
-                                  })
+                                {
+                                    AcceptEvent.Invoke(client);
+                                })
                                 {
                                     IsBackground = true,
                                     Name = "EMI.Client [" + Point.ToString() + "]"

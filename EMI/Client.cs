@@ -138,7 +138,7 @@ namespace EMI
 
             Thread threadReader = new Thread(() =>
             {
-                if (Accepter.Receive().GetPacketType() == PacketType.ReqConnection1)
+                if (Accepter.Receive(out int size).GetPacketType() == PacketType.ReqConnection1)
                 {
                     
                 }
@@ -182,7 +182,8 @@ namespace EMI
         {
             while (IsConnect)
             {
-                ProcessAccept(Accepter.Receive());
+                var buffer = Accepter.Receive(out int size);
+                ProcessAccept(buffer, size);
             }
         }
 

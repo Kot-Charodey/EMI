@@ -9,7 +9,7 @@ namespace EMI
 
     public partial class RPC
     {
-        internal delegate byte[] RPCMicroFunct(byte[] arrayData, int startIndexIN);
+        internal delegate byte[] RPCMicroFunct(byte[] arrayData);
 
         internal class MyAction
         {
@@ -111,11 +111,11 @@ namespace EMI
             Type[] TypeList = { };
             CanAddFunction(Address, false, TypeList);
 
-            RPCMicroFunct MicroFunct = (byte[] arrayData, int startIndex) =>
+            byte[] MicroFunct(byte[] arrayData)
             {
                 Funct();
                 return null;
-            };
+            }
             MyAction action = new MyAction(LVL_Permission, MicroFunct, false, Funct.Target, TypeList);
 
             Functions[Address].Add(action);
@@ -139,12 +139,12 @@ namespace EMI
 
             var packagerIN = Packager.Create<T1>();
 
-            RPCMicroFunct MicroFunct = (byte[] arrayData, int startIndex) =>
+            byte[] MicroFunct(byte[] arrayData)
             {
-                packagerIN.UnPack(arrayData, startIndex, out T1 t1);
+                packagerIN.UnPack(arrayData, 0, out T1 t1);
                 Funct(t1);
                 return null;
-            };
+            }
             MyAction action = new MyAction(LVL_Permission, MicroFunct, false, Funct.Target, TypeList);
 
             Functions[Address].Add(action);
@@ -170,11 +170,11 @@ namespace EMI
 
             var packagerOUT = Packager.Create<TOut>();
 
-            RPCMicroFunct MicroFunct = (byte[] arrayData, int startIndex) =>
+            byte[] MicroFunct(byte[] arrayData)
             {
                 var data = Funct();
                 return packagerOUT.PackUP(data);
-            };
+            }
             MyAction action = new MyAction(LVL_Permission, MicroFunct, false, Funct.Target, TypeList);
 
             Functions[Address].Add(action);
@@ -192,7 +192,7 @@ namespace EMI
         /// <param name="LVL_Permission">Уровень прав которыми должен обладать пользователь чтобы запустить</param>           
         /// <param name="Funct">Функция</param>                                                                               
         /// <returns>Ссылка на функцию</returns>                                                                                
-        public unsafe Handle RegisterMethod<TOut, T1>(ushort Address, byte LVL_Permission, RPCfunctOut<TOut, T1> Funct)
+        public Handle RegisterMethod<TOut, T1>(ushort Address, byte LVL_Permission, RPCfunctOut<TOut, T1> Funct)
         {
             Type[] TypeList = { typeof(TOut), typeof(T1) };
             CanAddFunction(Address, true, TypeList);
@@ -200,12 +200,12 @@ namespace EMI
             var packagerIN = Packager.Create<T1>();
             var packagerOUT = Packager.Create<TOut>();
 
-            RPCMicroFunct MicroFunct = (byte[] arrayData, int startIndex) =>
+            byte[] MicroFunct(byte[] arrayData)
             {
-                packagerIN.UnPack(arrayData, startIndex, out T1 t1);
+                packagerIN.UnPack(arrayData, 0, out T1 t1);
                 var data = Funct(t1);
                 return packagerOUT.PackUP(data);
-            };
+            }
             MyAction action = new MyAction(LVL_Permission, MicroFunct, false, Funct.Target, TypeList);
 
             Functions[Address].Add(action);

@@ -26,30 +26,13 @@ namespace EMI
             }
         }
 
-        internal unsafe byte[] Execute(byte LVL_Permission, byte[] bufferData, ushort RPC_ID, PacketType packetType)
+        internal unsafe byte[] Execute(byte LVL_Permission, byte[] bufferData, ushort RPC_ID, bool NeedReturn)
         {
-            int startIndex;
-
-            switch (packetType)
-            {
-                case PacketType.SndSimple:
-                    startIndex = sizeof(BitPacketSimple);
-                    break;
-                case PacketType.SndGuaranteed:
-                    startIndex = sizeof(BitPacketGuaranteed);
-                    break;
-                case PacketType.SndGuaranteedSegmented: //так как пакет будет собираться то он не будет лежать в структуре
-                    startIndex = 0;
-                    break;
-                default:
-                    throw new Exception("Execute -> packetType error!");
-            }
-
             var funsLocal= Functions[RPC_ID].ToArray();
             var funsGlobal = Global.Functions[RPC_ID].ToArray();
 
             //если нужер вернуть результат
-            if (packetType == PacketType.SndGuaranteedReturned || packetType == PacketType.SndGuaranteedSegmentedReturned)
+            if (NeedReturn)
             {
                 MyAction action;
 
@@ -72,7 +55,7 @@ namespace EMI
 
                 if(action.LVL_Permission <= LVL_Permission)
                 {
-                    return action.MicroFunct(bufferData, startIndex);
+                    return action.MicroFunct(bufferData);
                 }
             }
             else //если надо просто выполнить (не надо отправлять результат)
@@ -81,7 +64,7 @@ namespace EMI
                 {
                     if (funsLocal[i].LVL_Permission <= LVL_Permission)
                     {
-                        funsLocal[i].MicroFunct(bufferData, startIndex);
+                        funsLocal[i].MicroFunct(bufferData);
                     }
                 }
 
@@ -89,7 +72,7 @@ namespace EMI
                 {
                     if (funsGlobal[i].LVL_Permission <= LVL_Permission)
                     {
-                        funsLocal[i].MicroFunct(bufferData, startIndex);
+                        funsGlobal[i].MicroFunct(bufferData);
                     }
                 }
             }

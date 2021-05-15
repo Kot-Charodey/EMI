@@ -2,8 +2,8 @@
 
 namespace EMI
 {
-    using Lower;
     using Lower.Package;
+    using SmartPackager;
 
     public partial class Client
     {
@@ -24,13 +24,13 @@ namespace EMI
         /// <summary>
         /// Выполнить RPC без гарантии доставки
         /// </summary>
-        /// <param name="ID">Айди вызываемой функции</param>
-        public unsafe void RemoteStandardExecution(ushort ID)
+        /// <param name="Address">Айди вызываемой функции</param>
+        public void RemoteStandardExecution(ushort Address)
         {
             BitPacketSimple bps = new BitPacketSimple()
             {
                 PacketType = PacketType.SndSimple,
-                RPCAddres = ID,
+                RPCAddres = Address,
             };
             byte[] data = Packager_SimpleNoData.PackUP(bps);
             Accepter.Send(data, data.Length);
@@ -39,197 +39,88 @@ namespace EMI
         /// Выполнить RPC без гарантии доставки
         /// </summary>
         /// <typeparam name="T1">тип аргумента</typeparam>
-        /// <param name="ID">Айди вызываемой функции</param>
+        /// <param name="Address">Айди вызываемой функции</param>
         /// <param name="t1">аргумент</param>
-        public unsafe void RemoteStandardExecution<T1>(ushort ID, T1 t1) where T1 : unmanaged
+        public void RemoteStandardExecution<T1>(ushort Address, T1 t1)
         {
-            var bitPacket = new BitPacketSimple(PacketType.SndSimple);
-            Package* package = (Package*)bitPacket.ByteData;
-
-            int argSize = sizeof(BitArgument);
-            int AllSize = sizeof(Package) + argSize + sizeof(T1);
-
-            if (AllSize > 1024)
+            BitPacketSimple bps = new BitPacketSimple()
             {
-                throw new InsufficientMemoryException("Size>1024");
-            }
+                PacketType = PacketType.SndSimple,
+                RPCAddres = Address,
+            };
+            var pac = Packager.Create<T1>();
 
-            BitArgument* point = (BitArgument*)((IntPtr)package + sizeof(Package));
-
-            package->RPC_ID = ID;
-            package->CameBack = PackageCameBack.No;
-            package->ArgumentCount = 1;
-
-            //упаковка аргументов
-            point->Size = (ushort)(sizeof(T1) + argSize);
-            T1* arg = (T1*)((IntPtr)point + argSize);
-            *arg = t1;
-            point = (BitArgument*)((long)point + point->Size);
-            //======
-
-            bitPacket.ByteDataLength = (ushort)AllSize;
-
-
-
-            byte[] bufferSend = bitPacket.GetAllBytes();
-            Accepter.Send(bufferSend, bufferSend.Length);
-        }
-
-        /// <summary>
-        /// Выполнить RPC без гарантии доставки
-        /// </summary>
-        /// <typeparam name="T1">тип аргумента</typeparam>
-        /// <param name="ID">Айди вызываемой функции</param>
-        /// <param name="t1">аргумент (Массив)</param>
-        public unsafe void RemoteStandardExecution<T1>(ushort ID, T1[] t1) where T1 : unmanaged
-        {
-            var bitPacket = new BitPacketSimple(PacketType.SndSimple);
-            Package* package = (Package*)bitPacket.ByteData;
-
-            int argSize = sizeof(BitArgument);
-            int AllSize = sizeof(Package) + argSize + sizeof(int) + argSize +  sizeof(T1);
-
-            if (AllSize > 1024)
-            {
-                throw new InsufficientMemoryException("Size>1024");
-            }
-
-            BitArgument* point = (BitArgument*)((IntPtr)package + sizeof(Package));
-
-            package->RPC_ID = ID;
-            package->CameBack = PackageCameBack.No;
-            package->ArgumentCount = 1;
-
-            //упаковка аргументов
-            point->Size = (ushort)(sizeof(int) + argSize);
-            int* arg1 = (int*)((IntPtr)point + argSize);
-            *arg1 = t1.Length;
-            point = (BitArgument*)((long)point + point->Size);
-            
-            point->Size = (ushort)(sizeof(T1) + argSize);
-            T1* arg2 = (T1*)((IntPtr)point + argSize);
-            int arrT1Size = t1.Length * sizeof(T1);
-            fixed (T1* arr1 = &t1[0])
-                Buffer.MemoryCopy(arr1, arg2, arrT1Size, arrT1Size);
-            //======
-
-            bitPacket.ByteDataLength = (ushort)AllSize;
-
-
-
-            byte[] bufferSend = bitPacket.GetAllBytes();
-            Accepter.Send(bufferSend, bufferSend.Length);
+            byte[] data = Packager_Simple.PackUP(bps, pac.PackUP(t1));
+            Accepter.Send(data, data.Length);
         }
         #endregion
         #region Guaranteed 
         /// <summary>
         /// Выполнить RPC с гарантией доставки (последовательность вызовов не гарантируется)
         /// </summary>
-        /// <param name="ID">Айди вызываемой функции</param>
-        public unsafe void RemoteGuaranteedExecution(ushort ID)
+        /// <param name="Address">Айди вызываемой функции</param>
+        public void RemoteGuaranteedExecution(ushort Address)
         {
             ulong id = GetID();
-
-            var bitPacket = new BitPacketMedium(PacketType.SndGuaranteed, id, sizeof(Package));
-            Package* package = (Package*)bitPacket.ByteData;
-
-            package->RPC_ID = ID;
-            package->CameBack = PackageCameBack.No;
-            package->ArgumentCount = 0;
-
-            byte[] bufferSend = bitPacket.GetAllBytes();
-            SendBackupBuffer.Add(id, bufferSend);
-            Accepter.Send(bufferSend, bufferSend.Length);
+            BitPacketGuaranteed bp = new BitPacketGuaranteed()
+            {
+                PacketType = PacketType.SndGuaranteed,
+                RPCAddres = Address,
+                ID = id
+            };
+            byte[] data = Packager_GuaranteedNoData.PackUP(bp);
+            SendBackupBuffer.Add(id, data);
+            Accepter.Send(data, data.Length);
         }
         /// <summary>
         /// Выполнить RPC с гарантией доставки (последовательность вызовов не гарантируется)
         /// </summary>
         /// <typeparam name="T1">тип аргумента</typeparam>
-        /// <param name="ID">Айди вызываемой функции</param>
+        /// <param name="Address">Айди вызываемой функции</param>
         /// <param name="t1">Aргумент</param>
-        public unsafe void RemoteGuaranteedExecution<T1>(ushort ID, T1 t1) where T1 : unmanaged
+        public void RemoteGuaranteedExecution<T1>(ushort Address, T1 t1)
         {
-            ulong LowID = GetID();
-
-            int argSize = sizeof(BitArgument);
-            int AllSize = sizeof(Package) + argSize + sizeof(T1);
-
-            if (AllSize <= 1024)
+            ulong id = GetID();
+            var pac = Packager.Create<T1>();
+            long size = pac.CalcNeedSize(t1);
+            byte[] data, buffer;
+            if (size <= 1024)
             {
-                var BitPacketMedium = new BitPacketMedium(PacketType.SndGuaranteed, LowID, sizeof(Package));
-                Package* package = (Package*)BitPacketMedium.ByteData;
-
-                BitArgument* point = (BitArgument*)((IntPtr)package + sizeof(Package));
-
-                package->RPC_ID = ID;
-                package->ArgumentCount = 1;
-                package->CameBack = PackageCameBack.No;
-
-                //упаковка аргументов
-                point->Size = (ushort)(sizeof(T1) + argSize);
-                AllSize += point->Size;
-                T1* arg = (T1*)((IntPtr)point + argSize);
-                *arg = t1;
-                point = (BitArgument*)((long)point + point->Size);
-                //===================
-
-                BitPacketMedium.ByteDataLength = (ushort)AllSize;
-                byte[] bufferSend = BitPacketMedium.GetAllBytes();
-                SendBackupBuffer.Add(LowID, bufferSend);
-                Accepter.Send(bufferSend, bufferSend.Length);
-            }
-            else if (AllSize <= ushort.MaxValue)
-            {
-                byte[] buffer = new byte[AllSize];
-                fixed (byte* bp = &buffer[0])
+                BitPacketGuaranteed bp = new BitPacketGuaranteed()
                 {
-                    Package* package = (Package*)bp;
-                    BitArgument* point = (BitArgument*)((IntPtr)package + sizeof(Package));
+                    PacketType = PacketType.SndGuaranteed,
+                    RPCAddres = Address,
+                    ID = id
+                };
+                buffer = new byte[size];
+                pac.PackUP(buffer, 0, t1);
+                data = Packager_Guaranteed.PackUP(bp, pac.PackUP(t1));
+                SendBackupBuffer.Add(id, data);
+                Accepter.Send(data, data.Length);
+            }
+            else if (size <= 67107840) //(64 MB)
+            {
+                buffer = new byte[size];
+                pac.PackUP(buffer, 0, t1);
 
-                    package->RPC_ID = ID;
-                    package->ArgumentCount = 1;
-                    package->CameBack = PackageCameBack.No;
+                SendSegmentBackupBuffer.Add(id, buffer);
+                byte[] sndBuffer = new byte[1024];
+                Array.Copy(buffer, sndBuffer, 1024);
 
-                    //упаковка аргументов
-                    point->Size = (ushort)(sizeof(T1) + argSize);
-                    AllSize += point->Size;
-                    T1* arg = (T1*)((IntPtr)point + argSize);
-                    *arg = t1;
-                    point = (BitArgument*)((long)point + point->Size);
-                    //===================
-
-
-                    BitPacketSegmented bitPacket;
-                    int count;
-                    int segmentCount = buffer.Length / 1024;
-                    if (segmentCount < buffer.Length / 1024f)
-                    {
-                        segmentCount++;
-                    }
-
-                    byte[] buffer2 = null;
-                    ulong Main = LowID;
-                    ushort pch = 0;
-                    for (int i = 0; i < buffer.Length; i += 1024)
-                    {
-                        count = buffer.Length - i;
-                        if (count > 1024) count = 1024;
-                        bitPacket = new BitPacketBig(PacketType.SndGuaranteedSegmented, LowID, Main, bp, i, count, pch++, (ushort)segmentCount);
-                        if (buffer2 == null || buffer2.Length != bitPacket.GetSizeOf())
-                        {
-                            buffer2 = new byte[bitPacket.GetSizeOf()];
-                        }
-                        bitPacket.GetAllBytes(buffer2);
-                        SendBackupBuffer.Add(LowID, buffer2);
-                        Accepter.Send(buffer2, buffer2.Length);
-
-                        LowID = GetID();
-                    }
-                }
+                BitPacketSegmented bp = new BitPacketSegmented()
+                {
+                    PacketType = PacketType.SndGuaranteedSegmented,
+                    RPCAddres = Address,
+                    ID = id,
+                    Segment = 0,
+                    SegmentCount = (ushort)(size / ushort.MaxValue)
+                };
+                data = Packager_Segmented.PackUP(bp, sndBuffer);
+                Accepter.Send(data, data.Length);
             }
             else
             {
-                throw new InsufficientMemoryException("Size>65535");
+                throw new InsufficientMemoryException("Size > 67107840 bytes (64 MB)");
             }
         }
         #endregion
@@ -238,78 +129,22 @@ namespace EMI
         /// Выполнить RPC с возвратом результата (поток блокируется на время ожидания результата)с гарантией доставки (последовательность вызовов не гарантируется)
         /// </summary>
         /// <typeparam name="TOut">Тип возвращающегося результата</typeparam>
-        /// <param name="ID">Айди вызываемой функции</param>
+        /// <param name="Address">Айди вызываемой функции</param>
         /// <returns>Массив результата от выполнения всех функций (количество зависит от выполненных функций)</returns>
-        public unsafe TOut[] RemoteGuaranteedExecution<TOut>(ushort ID)
-            where TOut : unmanaged
+        public TOut RemoteGuaranteedExecution<TOut>(ushort Address)
         {
-            ulong LowID = GetID();
-
-            int argSize = sizeof(BitArgument);
-            int AllSize = sizeof(Package) + argSize;
-
-            if (AllSize <= 1024)
+            ulong id = GetID();
+            BitPacketGuaranteed bp = new BitPacketGuaranteed()
             {
-                var BitPacketMedium = new BitPacketMedium(PacketType.SndGuaranteed, LowID, sizeof(Package));
-                Package* package = (Package*)BitPacketMedium.ByteData;
+                PacketType = PacketType.SndGuaranteedRtr,
+                RPCAddres = Address,
+                ID = id
+            };
+            byte[] data = Packager_GuaranteedNoData.PackUP(bp);
+            SendBackupBuffer.Add(id, data);
+            Accepter.Send(data, data.Length);
 
-                package->RPC_ID = ID;
-                package->ArgumentCount = 0;
-                package->CameBack = PackageCameBack.NeedCameBack;
-
-                BitPacketMedium.ByteDataLength = (ushort)AllSize;
-                byte[] bufferSend = BitPacketMedium.GetAllBytes();
-                SendBackupBuffer.Add(LowID, bufferSend);
-                Accepter.Send(bufferSend, bufferSend.Length);
-
-                return ReturnWaiter.Wait<TOut>(LowID);
-            }
-            else if (AllSize <= ushort.MaxValue)
-            {
-                ulong Main = LowID;
-                byte[] buffer = new byte[AllSize];
-                fixed (byte* bp = &buffer[0])
-                {
-                    Package* package = (Package*)bp;
-
-                    package->RPC_ID = ID;
-                    package->ArgumentCount = 0;
-                    package->CameBack = PackageCameBack.NeedCameBack;
-
-
-                    BitPacketSegmented bitPacket;
-                    int count;
-                    int segmentCount = buffer.Length / 1024;
-                    if (segmentCount < buffer.Length / 1024f)
-                    {
-                        segmentCount++;
-                    }
-
-                    byte[] buffer2 = null;
-                    ushort pch = 0;
-                    for (int i = 0; i < buffer.Length; i += 1024)
-                    {
-                        count = buffer.Length - i;
-                        if (count > 1024) count = 1024;
-                        bitPacket = new BitPacketBig(PacketType.SndGuaranteedSegmented, LowID, Main, bp, i, count, pch++, (ushort)segmentCount);
-                        if (buffer2 == null || buffer2.Length != bitPacket.GetSizeOf())
-                        {
-                            buffer2 = new byte[bitPacket.GetSizeOf()];
-                        }
-                        bitPacket.GetAllBytes(buffer2);
-                        SendBackupBuffer.Add(LowID, buffer2);
-                        Accepter.Send(buffer2, buffer2.Length);
-
-                        LowID = GetID();
-                    }
-                }
-
-                return ReturnWaiter.Wait<TOut>(Main);
-            }
-            else
-            {
-                throw new InsufficientMemoryException("Size>65535");
-            }
+            return ReturnWaiter.Wait<TOut>(id);
         }
 
         /// <summary>
@@ -317,99 +152,55 @@ namespace EMI
         /// </summary>
         /// <typeparam name="TOut">Тип возвращающегося результата</typeparam>
         /// <typeparam name="T1">тип аргумента</typeparam>
-        /// <param name="ID">Айди вызываемой функции</param>
+        /// <param name="Address">Айди вызываемой функции</param>
         /// <param name="t1">Aргумент</param>
         /// <returns>Массив результата от выполнения всех функций (количество зависит от выполненных функций)</returns>
-        public unsafe TOut[] RemoteGuaranteedExecution<TOut,T1>(ushort ID, T1 t1) 
-            where TOut : unmanaged
-            where T1 : unmanaged
+        public TOut RemoteGuaranteedExecution<TOut, T1>(ushort Address, T1 t1)
         {
-            ulong LowID = GetID();
-
-            int argSize = sizeof(BitArgument);
-            int AllSize = sizeof(Package) + argSize + sizeof(T1);
-
-            if (AllSize <= 1024)
+            ulong id = GetID();
+            var pac = Packager.Create<T1>();
+            long size = pac.CalcNeedSize(t1);
+            byte[] data, buffer;
+            if (size <= 1024)
             {
-                var BitPacketMedium = new BitPacketMedium(PacketType.SndGuaranteed, LowID, sizeof(Package));
-                Package* package = (Package*)BitPacketMedium.ByteData;
-
-                BitArgument* point = (BitArgument*)((IntPtr)package + sizeof(Package));
-
-                package->RPC_ID = ID;
-                package->ArgumentCount = 1;
-                package->CameBack = PackageCameBack.NeedCameBack;
-
-                //упаковка аргументов
-                point->Size = (ushort)(sizeof(T1) + argSize);
-                AllSize += point->Size;
-                T1* arg = (T1*)((IntPtr)point + argSize);
-                *arg = t1;
-                point = (BitArgument*)((long)point + point->Size);
-                //===================
-
-                BitPacketMedium.ByteDataLength = (ushort)AllSize;
-                byte[] bufferSend = BitPacketMedium.GetAllBytes();
-                SendBackupBuffer.Add(LowID, bufferSend);
-                Accepter.Send(bufferSend, bufferSend.Length);
-
-                return ReturnWaiter.Wait<TOut>(LowID);
-            }
-            else if (AllSize <= ushort.MaxValue)
-            {
-                ulong Main = LowID;
-                byte[] buffer = new byte[AllSize];
-                fixed (byte* bp = &buffer[0])
+                BitPacketGuaranteed bp = new BitPacketGuaranteed()
                 {
-                    Package* package = (Package*)bp;
-                    BitArgument* point = (BitArgument*)((IntPtr)package + sizeof(Package));
+                    PacketType = PacketType.SndGuaranteedRtr,
+                    RPCAddres = Address,
+                    ID = id
+                };
+                buffer = new byte[size];
+                pac.PackUP(buffer, 0, t1);
+                data = Packager_Guaranteed.PackUP(bp, pac.PackUP(t1));
+                SendBackupBuffer.Add(id, data);
+                Accepter.Send(data, data.Length);
+            }
+            else if (size <= 67107840) //(64 MB)
+            {
+                buffer = new byte[size];
+                pac.PackUP(buffer, 0, t1);
 
-                    package->RPC_ID = ID;
-                    package->ArgumentCount = 1;
-                    package->CameBack = PackageCameBack.NeedCameBack;
+                SendSegmentBackupBuffer.Add(id, buffer);
+                byte[] sndBuffer = new byte[1024];
+                Array.Copy(buffer, sndBuffer, 1024);
 
-                    //упаковка аргументов
-                    point->Size = (ushort)(sizeof(T1) + argSize);
-                    AllSize += point->Size;
-                    T1* arg = (T1*)((IntPtr)point + argSize);
-                    *arg = t1;
-                    point = (BitArgument*)((long)point + point->Size);
-                    //===================
-
-
-                    BitPacketSegmented bitPacket;
-                    int count;
-                    int segmentCount = buffer.Length / 1024;
-                    if (segmentCount < buffer.Length / 1024f)
-                    {
-                        segmentCount++;
-                    }
-
-                    byte[] buffer2 = null;
-                    ushort pch = 0;
-                    for (int i = 0; i < buffer.Length; i += 1024)
-                    {
-                        count = buffer.Length - i;
-                        if (count > 1024) count = 1024;
-                        bitPacket = new BitPacketBig(PacketType.SndGuaranteedSegmented, LowID, Main, bp, i, count, pch++, (ushort)segmentCount);
-                        if (buffer2 == null || buffer2.Length != bitPacket.GetSizeOf())
-                        {
-                            buffer2 = new byte[bitPacket.GetSizeOf()];
-                        }
-                        bitPacket.GetAllBytes(buffer2);
-                        SendBackupBuffer.Add(LowID, buffer2);
-                        Accepter.Send(buffer2, buffer2.Length);
-
-                        LowID = GetID();
-                    }
-                }
-
-                return ReturnWaiter.Wait<TOut>(Main);
+                BitPacketSegmented bp = new BitPacketSegmented()
+                {
+                    PacketType = PacketType.SndGuaranteedRtrSegmented,
+                    RPCAddres = Address,
+                    ID = id,
+                    Segment = 0,
+                    SegmentCount = (ushort)(size / ushort.MaxValue)
+                };
+                data = Packager_Segmented.PackUP(bp, sndBuffer);
+                Accepter.Send(data, data.Length);
             }
             else
             {
-                throw new InsufficientMemoryException("Size>65535");
+                throw new InsufficientMemoryException("Size > 67107840 bytes (64 MB)");
             }
+
+            return ReturnWaiter.Wait<TOut>(id);
         }
         #endregion
     }
