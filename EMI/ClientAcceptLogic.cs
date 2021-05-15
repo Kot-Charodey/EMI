@@ -18,12 +18,14 @@ namespace EMI
         private static readonly Packager.M<BitPacketReqGetPkgSegmented, ushort[]> Packager_PkgSegmented = Packager.Create<BitPacketReqGetPkgSegmented, ushort[]>();
         private static readonly Packager.M<PacketType, ulong[]> Packager_PacketGetPkg = Packager.Create<PacketType, ulong[]>();
         private static readonly Packager.M<BitPacketSegmented, byte[]> Packager_Segmented = Packager.Create<BitPacketSegmented, byte[]>();
+        private static readonly Packager.M<BitPacketSegmentedReturned, byte[]> Packager_SegmentedReturned = Packager.Create<BitPacketSegmentedReturned, byte[]>();
         private static readonly Packager.M<BitPacketSimple> Packager_SimpleNoData = Packager.Create<BitPacketSimple>();
         private static readonly Packager.M<BitPacketSimple, byte[]> Packager_Simple = Packager.Create<BitPacketSimple, byte[]>();
         private static readonly Packager.M<BitPacketGuaranteed> Packager_GuaranteedNoData = Packager.Create<BitPacketGuaranteed>();
         private static readonly Packager.M<BitPacketGuaranteed, byte[]> Packager_Guaranteed = Packager.Create<BitPacketGuaranteed, byte[]>();
         private static readonly Packager.M<BitPacketGuaranteedReturned> Packager_GuaranteedReturnedNoData = Packager.Create<BitPacketGuaranteedReturned>();
         private static readonly Packager.M<BitPacketGuaranteedReturned, byte[]> Packager_GuaranteedReturned = Packager.Create<BitPacketGuaranteedReturned, byte[]>();
+        private static readonly Packager.M<BitPacketSndFullyReceivedSegmentPackage> Packager_SndFullyReceivedSegmentPackage = Packager.Create<BitPacketSndFullyReceivedSegmentPackage>();
 
         /// <summary>
         /// последний принятый ID
@@ -58,7 +60,7 @@ namespace EMI
         {
             AcceptLogicEvent = new Action[]
             {
-                SndClose,
+                SndClose,                   
                 SndSimple,
                 SndGuaranteed,
                 SndGuaranteedRtr,
@@ -67,7 +69,6 @@ namespace EMI
                 SndGuaranteedReturned,
                 SndGuaranteedSegmentedReturned,
                 SndFullyReceivedSegmentPackage,
-                ReqFullyReceivedSegmentPackage,
                 ReqGetPkg,
                 ReqGetPkgSegmented,
                 ReqPing0,
@@ -94,9 +95,9 @@ namespace EMI
         /// <summary>
         /// если пришёл пакет
         /// </summary>
-        /// <param name="buffer">пакет</param>
+        /// <param name="buffer"></param>
         /// <param name="size">размер пакета</param>
-        private void ProcessAccept(byte[] buffer,int size)
+        private void ProcessAccept(byte[] buffer, int size)
         {
             try
             {
@@ -106,12 +107,17 @@ namespace EMI
                 //выполняем обработку в соотведствии с типом
                 AcceptLogicEvent[(int)packetType].Invoke();
             }
-            catch (Exception e)
+            catch (ThreadAbortException)
             {
-                SendErrorClose(CloseType.StopPackageBad);
-                IsConnect = false;
-                throw e;
+                return;
             }
+            //catch (Exception e)
+            //{
+            //    SendErrorClose(CloseType.StopPackageBad);
+            //    IsConnect = false;
+            //    Console.WriteLine("THROW ERROR -> " + e.ToString());
+            //    throw e;
+            //}
         }
 
         /// <summary>
@@ -205,7 +211,11 @@ namespace EMI
                 Packager_SimpleNoData.UnPack(AcceptBuffer, 0, out bitPacket);
             }
 
-            RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, false);
+            ThreadPool.QueueUserWorkItem((object stateInfo) =>
+            {
+                RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, false);
+            });
+            
         }
 
         private unsafe void SndGuaranteed()
@@ -225,7 +235,11 @@ namespace EMI
             if (SubGuaranteedCheck(bitPacket.ID) == false)
                 return;
 
-            RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, false);
+            ThreadPool.QueueUserWorkItem((object stateInfo) =>
+            {
+                RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, false);
+            });
+            
         }
 
         private unsafe void SndGuaranteedRtr()
@@ -245,7 +259,11 @@ namespace EMI
             if (SubGuaranteedCheck(bitPacket.ID) == false)
                 return;
 
-            SendReturn(RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, true), bitPacket.ID);
+            ThreadPool.QueueUserWorkItem((object stateInfo) =>
+            {
+                SendReturn(RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, true), bitPacket.ID);
+            });
+            
         }
 
         private void SndGuaranteedSegmented()
@@ -261,7 +279,11 @@ namespace EMI
                 if (SubGuaranteedCheck(bitPacket.ID) == false)
                     return;
 
-                RPC.Execute(LVL_Permission, package.Data, package.RPCAddres, false);
+                ThreadPool.QueueUserWorkItem((object stateInfo) =>
+                {
+                    RPC.Execute(LVL_Permission, package.Data, package.RPCAddres, false);
+                });
+                
             }
             else
             {
@@ -282,7 +304,11 @@ namespace EMI
                 if (SubGuaranteedCheck(bitPacket.ID) == false)
                     return;
 
-                SendReturn(RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, true), package.ID);
+                ThreadPool.QueueUserWorkItem((object stateInfo) =>
+                {
+                    SendReturn(RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, true), package.ID);
+                });
+                
             }
             else
             {
@@ -290,15 +316,22 @@ namespace EMI
             }
         }
 
-        private void SndGuaranteedReturned()
+        private unsafe void SndGuaranteedReturned()
         {
-            //TODO ОШИБКА
-            Packager_GuaranteedReturned.UnPack(AcceptBuffer, 0, out var bitPacket,out byte[] data);
+            BitPacketGuaranteedReturned bitPacket;
+            byte[] data = null;
+
+            if (SizeAcceptBuffer > sizeof(BitPacketGuaranteedReturned))
+            {
+                Packager_GuaranteedReturned.UnPack(AcceptBuffer, 0, out bitPacket, out data);
+            }
+            else
+            {
+                Packager_GuaranteedReturnedNoData.UnPack(AcceptBuffer, 0, out bitPacket);
+            }
 
             if (SubGuaranteedCheck(bitPacket.ID) == false)
-            {
                 return;
-            }
 
             ReturnWaiter.AddData(bitPacket.ID, data);
         }
@@ -308,11 +341,13 @@ namespace EMI
 
         }
 
+        //nope
         private void ReqConnection0()
         {
 
         }
 
+        //nope
         private void ReqConnection1()
         {
 
@@ -498,12 +533,12 @@ namespace EMI
         /// </summary>
         private void SndFullyReceivedSegmentPackage()
         {
+            Packager_SndFullyReceivedSegmentPackage.UnPack(AcceptBuffer, 0, out var bitPacket);
 
-        }
+            if (SubGuaranteedCheck(bitPacket.ID) == false)
+                return;
 
-        private void ReqFullyReceivedSegmentPackage()
-        {
-
+            SendSegmentBackupBuffer.Remove(bitPacket.FullID);
         }
 
         private void SendReturn(byte[] data, ulong ID)
@@ -524,9 +559,33 @@ namespace EMI
                     SendBackupBuffer.Add(bpgr.ID, PackData);
                     Accepter.Send(PackData, PackData.Length);
                 }
-                else //если пакет жирный
+                else if(data.Length<=67107840) //если пакет жирный (64 MB)
                 {
-                    throw new NotImplementedException("СЛОООЖНО, потом сделаю");
+                    ulong id = GetID();
+                    //весь пакет целиком в буффер
+                    SendSegmentBackupBuffer.Add(id, data);
+
+                    //отправим 1 пакет что бы клиент попросил новые
+                    BitPacketSegmentedReturned bpgr = new BitPacketSegmentedReturned()
+                    {
+                        PacketType = PacketType.SndGuaranteedReturned,
+                        ID = id,
+                        ReturnID = ID,
+                        
+                    };
+
+                    byte[] sndBuffer = new byte[1024];
+                    Array.Copy(data, sndBuffer, 1024);
+
+                    byte[] PackData = Packager_SegmentedReturned.PackUP(bpgr, sndBuffer);
+                    Accepter.Send(PackData, PackData.Length);
+
+
+                    //throw new NotImplementedException("СЛОООЖНО, потом сделаю");
+                }
+                else //если пакет ОЧЕНЬ ЖИРНЫЙ
+                {
+                    throw new InsufficientMemoryException("SendReturn() -> Size > 67107840 bytes (64 MB)");
                 }
             }
             else
@@ -538,7 +597,8 @@ namespace EMI
                     ReturnID = ID,
                     ReturnNull = true
                 };
-                byte[] PackData = Packager_GuaranteedReturned.PackUP(bpgr, new byte[0]);
+
+                byte[] PackData = Packager_GuaranteedReturnedNoData.PackUP(bpgr);
                 SendBackupBuffer.Add(bpgr.ID, PackData);
                 Accepter.Send(PackData, PackData.Length);
             }

@@ -27,7 +27,7 @@ namespace EMI
                 LVL_Permission = lVL_Permission;
                 MicroFunct = microFunct ?? throw new ArgumentNullException(nameof(microFunct));
                 CanReturnValue = canReturnValue;
-                Context = context ?? throw new ArgumentNullException(nameof(context));
+                Context = context;
                 TypeList = typeList ?? throw new ArgumentNullException(nameof(typeList));
             }
         }

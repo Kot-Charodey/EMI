@@ -31,8 +31,9 @@ namespace EMI
 
         public void Remove(ulong ID)
         {
-            if(BufferPackages.ContainsKey(ID))
-                BufferPackages.Remove(ID);
+            //без защиты так как запрос гарантированно не дублируемый
+            //if(BufferPackages.ContainsKey(ID))
+            BufferPackages.Remove(ID);
         }
     }
 }

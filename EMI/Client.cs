@@ -254,6 +254,7 @@ namespace EMI
         /// <param name="closeType">ЕГО ОШИБКА см описание кодов CloseType</param>
         private void SendErrorClose(CloseType closeType)
         {
+            Console.WriteLine("SendErrorClose -> " + closeType);
             CloseReason = closeType - 1;
             if (CloseReason == CloseType.None)
             {

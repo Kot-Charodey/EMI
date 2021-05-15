@@ -57,6 +57,7 @@
     <Compile Include="Lower\Accepter\MultiAccepter.cs" />
     <Compile Include="Lower\Accepter\MultyAccepterClient.cs" />
     <Compile Include="Lower\Accepter\SimpleAccepter.cs" />
+    <Compile Include="Lower\Package\BitPacketSndFullyReceivedSegmentPackage.cs" />
     <Compile Include="Lower\Package\BitPacketReqGetPkgSegmented.cs" />
     <Compile Include="Lower\Package\BitPacketSimple.cs" />
     <Compile Include="Lower\Package\BitPacketGuaranteedReturned.cs" />

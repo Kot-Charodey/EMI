@@ -120,7 +120,7 @@ namespace EMI
             }
             else
             {
-                throw new InsufficientMemoryException("Size > 67107840 bytes (64 MB)");
+                throw new InsufficientMemoryException("Execution -> Size > 67107840 bytes (64 MB)");
             }
         }
         #endregion
@@ -197,7 +197,7 @@ namespace EMI
             }
             else
             {
-                throw new InsufficientMemoryException("Size > 67107840 bytes (64 MB)");
+                throw new InsufficientMemoryException("Execution -> Size > 67107840 bytes (64 MB)");
             }
 
             return ReturnWaiter.Wait<TOut>(id);
