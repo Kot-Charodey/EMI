@@ -213,7 +213,7 @@ namespace EMI
 
             ThreadPool.QueueUserWorkItem((object stateInfo) =>
             {
-                RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, false);
+                RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, false, false);
             });
             
         }
@@ -237,7 +237,7 @@ namespace EMI
 
             ThreadPool.QueueUserWorkItem((object stateInfo) =>
             {
-                RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, false);
+                RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, false, true);
             });
             
         }
@@ -261,7 +261,7 @@ namespace EMI
 
             ThreadPool.QueueUserWorkItem((object stateInfo) =>
             {
-                SendReturn(RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, true), bitPacket.ID);
+                SendReturn(RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, true, true), bitPacket.ID);
             });
             
         }
@@ -281,7 +281,7 @@ namespace EMI
 
                 ThreadPool.QueueUserWorkItem((object stateInfo) =>
                 {
-                    RPC.Execute(LVL_Permission, package.Data, package.RPCAddres, false);
+                    RPC.Execute(LVL_Permission, package.Data, package.RPCAddres, false, true);
                 });
                 
             }
@@ -306,7 +306,7 @@ namespace EMI
 
                 ThreadPool.QueueUserWorkItem((object stateInfo) =>
                 {
-                    SendReturn(RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, true), package.ID);
+                    SendReturn(RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, true, true), package.ID);
                 });
                 
             }

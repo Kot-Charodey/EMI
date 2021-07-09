@@ -20,6 +20,113 @@ namespace EMI
             }
         }
 
+        #region Forwarding
+        /// <summary>
+        /// Для пересылки сообщений
+        /// </summary>
+        /// <param name="Address">Айди вызываемой функции</param>
+        /// <param name="sndData">Данные в запакованном ввиде</param>
+        /// <param name="guaranteed">гарантийная доставка?</param>
+        internal void RemoteForwardingExecution(ushort Address,byte[] sndData,bool guaranteed)
+        {
+            //если гарантия доставки
+            if (guaranteed)
+            {
+                if (sndData == null)//если просто вызов без данных
+                {
+                    ForwardingGuaranteedNormal(Address);
+                }
+                else//если вызов с данными
+                {
+                    if (sndData.Length <= 1024)
+                    {
+                        ForwardingGuaranteedNormal(Address,sndData);
+                    }
+                    else if (sndData.Length <= 67107840)
+                    {
+                        ForwardingGuaranteedBig(Address, sndData);
+                    }
+                    else
+                    {
+                        throw new InsufficientMemoryException("Execution -> Size > 67107840 bytes (64 MB)");
+                    }
+                }
+                
+            }
+            else//если просто отправить
+            {
+                ForwardingStandard(Address, sndData);
+            }
+        }
+
+        private void ForwardingStandard(ushort Address, byte[] sndData)
+        {
+            BitPacketSimple bps = new BitPacketSimple()
+            {
+                PacketType = PacketType.SndSimple,
+                RPCAddres = Address,
+            };
+            byte[] data;
+
+
+            if (sndData == null)//если просто вызов без данных
+            {
+                data = Packager_SimpleNoData.PackUP(bps);
+            }
+            else//если вызов с данными
+            {
+                data = Packager_Simple.PackUP(bps, sndData);
+            }
+            Accepter.Send(data, data.Length);
+        }
+
+        private void ForwardingGuaranteedNormal(ushort Address)
+        {
+            ulong id = GetID();
+            BitPacketGuaranteed bpg = new BitPacketGuaranteed()
+            {
+                PacketType = PacketType.SndGuaranteed,
+                RPCAddres = Address,
+                ID = id
+            };
+            byte[] data = Packager_GuaranteedNoData.PackUP(bpg);
+            Accepter.Send(data, data.Length);
+        }
+
+        private void ForwardingGuaranteedNormal(ushort Address, byte[] sndData)
+        {
+            ulong id = GetID();
+            BitPacketGuaranteed bpg = new BitPacketGuaranteed()
+            {
+                PacketType = PacketType.SndGuaranteed,
+                RPCAddres = Address,
+                ID = id
+            };
+            byte[] data = Packager_Guaranteed.PackUP(bpg,sndData);
+            Accepter.Send(data, data.Length);
+        }
+
+        private void ForwardingGuaranteedBig(ushort Address, byte[] sndData)
+        {
+            ulong id = GetID();
+            SendSegmentBackupBuffer.Add(id, sndData);
+            byte[] sndBuffer = new byte[1024];
+            Array.Copy(sndData, sndBuffer, 1024);
+
+            BitPacketSegmented bp = new BitPacketSegmented()
+            {
+                PacketType = PacketType.SndGuaranteedSegmented,
+                RPCAddres = Address,
+                ID = id,
+                Segment = 0,
+                SegmentCount = (ushort)(sndData.Length / ushort.MaxValue)
+            };
+            byte[] data = Packager_Segmented.PackUP(bp, sndBuffer);
+            Accepter.Send(data, data.Length);
+        }
+
+        #endregion
+
         #region Standard
         /// <summary>
         /// Выполнить RPC без гарантии доставки

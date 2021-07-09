@@ -15,20 +15,21 @@ namespace EMI
         /// <summary>
         /// глобальный список вызываймых методов
         /// </summary>
-        public static RPC Global { get; private set; } = new RPC();
+        public static RPC Global { get; private set; } = new RPC() { IsGlobal = true };
         private readonly HashSet<MyAction>[] Functions = new HashSet<MyAction>[ushort.MaxValue];
+        private bool IsGlobal=false;
 
         internal RPC()
         {
-            for(int i = 0; i < ushort.MaxValue; i++)
+            for (int i = 0; i < ushort.MaxValue; i++)
             {
                 Functions[i] = new HashSet<MyAction>();
             }
         }
 
-        internal unsafe byte[] Execute(byte LVL_Permission, byte[] bufferData, ushort RPC_ID, bool NeedReturn)
+        internal unsafe byte[] Execute(byte LVL_Permission, byte[] bufferData, ushort RPC_ID, bool NeedReturn, bool guaranteed)
         {
-            var funsLocal= Functions[RPC_ID].ToArray();
+            var funsLocal = Functions[RPC_ID].ToArray();
             var funsGlobal = Global.Functions[RPC_ID].ToArray();
 
             //если нужер вернуть результат
@@ -40,39 +41,46 @@ namespace EMI
                 {
                     action = funsLocal[0];
                 }
-                else if(funsGlobal.Length == 1)
+                else if (funsGlobal.Length == 1)
                 {
                     action = funsGlobal[0];
                 }
                 else //либо функции нет либо мы пропустили несколько функций с возвратом значений
                 {
-                    if (funsGlobal.Length>1 || funsLocal.Length > 1)
+                    if (funsGlobal.Length > 1 || funsLocal.Length > 1)
                     {
                         throw new Exception("Адрес может содержать несколько функций, только если они все с одинаковым набором аргументов и не возвращают значение!");
                     }
                     return null;
                 }
 
-                if(action.LVL_Permission <= LVL_Permission)
+                if (action.LVL_Permission <= LVL_Permission)
                 {
-                    return action.MicroFunct(bufferData);
+                    return action.MicroFunct(bufferData, guaranteed);
                 }
             }
             else //если надо просто выполнить (не надо отправлять результат)
             {
-                for (int i = 0; i < funsLocal.Length; i++)
+                if (funsGlobal.Length == 1 && funsGlobal[0].Forwarding)//если это пересылка
                 {
-                    if (funsLocal[i].LVL_Permission <= LVL_Permission)
-                    {
-                        funsLocal[i].MicroFunct(bufferData);
-                    }
+                    funsGlobal[0].MicroFunct(bufferData, guaranteed);
                 }
-
-                for (int i = 0; i < funsGlobal.Length; i++)
+                else
                 {
-                    if (funsGlobal[i].LVL_Permission <= LVL_Permission)
+                    for (int i = 0; i < funsLocal.Length; i++)
                     {
-                        funsGlobal[i].MicroFunct(bufferData);
+                        if (funsLocal[i].LVL_Permission <= LVL_Permission)
+                        {
+                            funsLocal[i].MicroFunct(bufferData, guaranteed);
+                        }
+                    }
+
+                    for (int i = 0; i < funsGlobal.Length; i++)
+                    {
+                        if (funsGlobal[i].LVL_Permission <= LVL_Permission)
+                        {
+                            funsGlobal[i].MicroFunct(bufferData, guaranteed);
+                        }
                     }
                 }
             }

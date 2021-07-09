@@ -9,13 +9,14 @@ namespace EMI
 
     public partial class RPC
     {
-        internal delegate byte[] RPCMicroFunct(byte[] arrayData);
+        internal delegate byte[] RPCMicroFunct(byte[] arrayData, bool guaranteed);
 
         internal class MyAction
         {
             public byte LVL_Permission;
             public RPCMicroFunct MicroFunct;
             public bool CanReturnValue;
+            public bool Forwarding = false;
             public object Context;
             /// <summary>
             /// для CanAddFunction - проверяет все ли функции с одиновым набором аргументов
@@ -69,6 +70,11 @@ namespace EMI
             bool error = false;
             foreach (MyAction action in Functions[address])
             {
+                if (action.Forwarding)
+                {
+                    throw new Exception("Разрешается только 1 метод для адреса! (данный адрес занят методом пересылки)");
+                }
+
                 if (action.CanReturnValue != thisCanReturn || action.TypeList.Length != TypeList.Length)
                 {
                     error = true;
@@ -98,6 +104,44 @@ namespace EMI
             }
         }
 
+
+        #region forwarding
+        /// <summary>
+        /// Регистрирует метод для пересылки сообщения выбранным клиентам (не поддерживает возврат сообщения) (только 1 метод на адресс) (только global RPC) (только для сервера)
+        /// </summary>
+        /// <param name="Address">Адресс функции</param>
+        /// <param name="LVL_Permission">Уровень прав которыми должен обладать пользователь чтобы переслать сообщение</param>
+        /// <param name="Method">Функция выполняющия пересылку</param>
+        /// <returns></returns>
+        public Handle RegisterForwardingMethod(ushort Address, byte LVL_Permission, ForwardingMethod Method)
+        {
+            if (Functions[Address].Count > 0)
+                throw new Exception("Разрешается только 1 метод для адреса!");
+            if (!IsGlobal)
+                throw new Exception("Разрешается регистрация только в global RPC!");
+
+            byte[] MicroFunct(byte[] arrayData, bool guaranteed)
+            {
+                Client[] clients = Method();
+                if (guaranteed)
+                {
+                    for (int i = 0; i < clients.Length; i++)
+                    {
+                        clients[i].RemoteForwardingExecution(Address, arrayData, guaranteed);
+                    }
+                }
+                return null;
+            }
+            MyAction action = new MyAction(LVL_Permission, MicroFunct, false, null, null)
+            {
+                Forwarding = true
+            };
+            Functions[Address].Add(action);
+            Handle handle = new Handle(this, action, Address);
+            return handle;
+        }
+        #endregion
+
         #region In
         /// <summary>
         /// Регистрирует метод для последующего вызова по сети
@@ -111,7 +155,7 @@ namespace EMI
             Type[] TypeList = { };
             CanAddFunction(Address, false, TypeList);
 
-            byte[] MicroFunct(byte[] arrayData)
+            byte[] MicroFunct(byte[] arrayData, bool guaranteed)
             {
                 Funct();
                 return null;
@@ -139,7 +183,7 @@ namespace EMI
 
             var packagerIN = Packager.Create<T1>();
 
-            byte[] MicroFunct(byte[] arrayData)
+            byte[] MicroFunct(byte[] arrayData, bool guaranteed)
             {
                 packagerIN.UnPack(arrayData, 0, out T1 t1);
                 Funct(t1);
@@ -170,7 +214,7 @@ namespace EMI
 
             var packagerOUT = Packager.Create<TOut>();
 
-            byte[] MicroFunct(byte[] arrayData)
+            byte[] MicroFunct(byte[] arrayData, bool guaranteed)
             {
                 var data = Funct();
                 return packagerOUT.PackUP(data);
@@ -200,7 +244,7 @@ namespace EMI
             var packagerIN = Packager.Create<T1>();
             var packagerOUT = Packager.Create<TOut>();
 
-            byte[] MicroFunct(byte[] arrayData)
+            byte[] MicroFunct(byte[] arrayData, bool guaranteed)
             {
                 packagerIN.UnPack(arrayData, 0, out T1 t1);
                 var data = Funct(t1);
