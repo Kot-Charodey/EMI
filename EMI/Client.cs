@@ -252,24 +252,28 @@ namespace EMI
                 {
                     ISStopInvoke.Value = true;
 
-                    try
+                    //запускаем в новом потоке что бы мы нечайно не завершили самих себя
+                    new Thread(() =>
                     {
-                        AbortThread(ThreadProcessPing);
-                        AbortThread(ThreadProcessLocalReceive);
-                        AbortThread(ThreadRequestLostPackages);
-                        StopwatchPing.Stop();
+                        try
+                        {
+                            AbortThread(ThreadProcessPing);
+                            AbortThread(ThreadProcessLocalReceive);
+                            AbortThread(ThreadRequestLostPackages);
+                            StopwatchPing.Stop();
 
-                        Accepter.Stop();
-                        IsConnect = false;
+                            Accepter.Stop();
+                            IsConnect = false;
 
-                        ReturnWaiter.ErrorStop();
+                            ReturnWaiter.ErrorStop();
 
-                        CloseEvent?.Invoke(CloseReason);
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine("Ошибка в коде EMI: Client->Stop:\n" + e);
-                    }
+                            CloseEvent?.Invoke(CloseReason);
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine("Ошибка в коде EMI: Client->Stop:\n" + e);
+                        }
+                    }).Start();
                 }
             }
         }
@@ -281,8 +285,8 @@ namespace EMI
         /// <param name="closeType">ЕГО ОШИБКА см описание кодов CloseType</param>
         private void SendErrorClose(CloseType closeType)
         {
-            Console.WriteLine("SendErrorClose -> " + closeType);
             CloseReason = closeType - 1;
+            Console.WriteLine("SendErrorClose -> " + closeType);
             if (CloseReason == CloseType.None)
             {
                 throw new Exception("Ошибка в коде EMI: неправильный тип <CloseType>");

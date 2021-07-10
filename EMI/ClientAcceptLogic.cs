@@ -122,7 +122,7 @@ namespace EMI
             {
                 SendErrorClose(CloseType.StopPackageBad);
                 IsConnect = false;
-                Console.WriteLine("THROW ERROR -> " + e.ToString());
+                Console.WriteLine("ProcessAccept -> " + e.ToString());
                 throw e;
             }
 #endif
@@ -407,6 +407,7 @@ namespace EMI
                     //если пакет не найден значит он уничтожен и придёться разорвать соединение
                     if (buffer == null)
                     {
+                        Console.WriteLine("ТУТ БАГ");
                         SendErrorClose(CloseType.StopPackageDestroyed);
                         Stop();
                     }
