@@ -51,8 +51,14 @@ namespace EMI
         /// Список потерянных пакетов
         /// </summary>
         private readonly List<LostPackageInfo> LostID = new List<LostPackageInfo>();
+        /// <summary>
+        /// Процесс запросса потерянных пакетов
+        /// </summary>
         private Thread ThreadRequestLostPackages;
 
+        /// <summary>
+        /// Содержит список функций которые вызываються по packetType
+        /// </summary>
         private Action[] AcceptLogicEvent;
 
         //TODO переименовать и расположить как в enum (реализации функцый желательно тоже)
@@ -111,13 +117,15 @@ namespace EMI
             {
                 return;
             }
-            //catch (Exception e)
-            //{
-            //    SendErrorClose(CloseType.StopPackageBad);
-            //    IsConnect = false;
-            //    Console.WriteLine("THROW ERROR -> " + e.ToString());
-            //    throw e;
-            //}
+#if DEBUG
+            catch (Exception e)
+            {
+                SendErrorClose(CloseType.StopPackageBad);
+                IsConnect = false;
+                Console.WriteLine("THROW ERROR -> " + e.ToString());
+                throw e;
+            }
+#endif
         }
 
         /// <summary>
@@ -333,12 +341,12 @@ namespace EMI
             if (SubGuaranteedCheck(bitPacket.ID) == false)
                 return;
 
-            ReturnWaiter.AddData(bitPacket.ID, data);
+            ReturnWaiter.AddData(bitPacket.ReturnID, data);
         }
 
         private void SndGuaranteedSegmentedReturned()
         {
-
+            throw new NotImplementedException();
         }
 
         //nope

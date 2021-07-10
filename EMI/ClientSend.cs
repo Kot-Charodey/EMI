@@ -249,9 +249,8 @@ namespace EMI
             };
             byte[] data = Packager_GuaranteedNoData.PackUP(bp);
             SendBackupBuffer.Add(id, data);
-            Accepter.Send(data, data.Length);
 
-            return ReturnWaiter.Wait<TOut>(id);
+            return ReturnWaiter.Wait<TOut>(id, () => Accepter.Send(data, data.Length));
         }
 
         /// <summary>
@@ -280,7 +279,6 @@ namespace EMI
                 pac.PackUP(buffer, 0, t1);
                 data = Packager_Guaranteed.PackUP(bp, pac.PackUP(t1));
                 SendBackupBuffer.Add(id, data);
-                Accepter.Send(data, data.Length);
             }
             else if (size <= 67107840) //(64 MB)
             {
@@ -300,14 +298,13 @@ namespace EMI
                     SegmentCount = (ushort)(size / ushort.MaxValue)
                 };
                 data = Packager_Segmented.PackUP(bp, sndBuffer);
-                Accepter.Send(data, data.Length);
             }
             else
             {
                 throw new InsufficientMemoryException("Execution -> Size > 67107840 bytes (64 MB)");
             }
 
-            return ReturnWaiter.Wait<TOut>(id);
+            return ReturnWaiter.Wait<TOut>(id,()=> Accepter.Send(data, data.Length));
         }
         #endregion
     }

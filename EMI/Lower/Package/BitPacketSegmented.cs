@@ -2,7 +2,7 @@
 
 namespace EMI.Lower.Package
 {
-    [StructLayout(LayoutKind.Explicit,Size = 15)]
+    [StructLayout(LayoutKind.Explicit,Size = 16)] //15
     internal struct BitPacketSegmented
     {
         [FieldOffset(0)]

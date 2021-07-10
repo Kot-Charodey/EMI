@@ -2,7 +2,7 @@
 
 namespace EMI.Lower.Package
 {
-    [StructLayout(LayoutKind.Explicit,Size = 18)]
+    [StructLayout(LayoutKind.Explicit,Size = 24)] //18
     internal struct BitPacketGuaranteedReturned
     {
         [FieldOffset(0)]

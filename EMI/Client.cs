@@ -20,15 +20,23 @@ namespace EMI
         /// Уровень привилегий (влиет на возможность выполнить RPC запрос)
         /// </summary>
         public byte LVL_Permission;
-
+        /// <summary>
+        /// Слушает и отправляет данные
+        /// </summary>
         private IMyAccepter Accepter;
+        /// <summary>
+        /// Процесс отвечающий за ожидание и обработку входящих пакетов для клиента (не на сервере - там 1 общий)
+        /// </summary>
         private Thread ThreadProcessLocalReceive;
+        /// <summary>
+        /// Измеряет пинг
+        /// </summary>
         private Thread ThreadProcessPing;
         private readonly Stopwatch StopwatchPing = new Stopwatch();
         /// <summary>
         /// После ожидания произойдёт отключение
         /// </summary>
-        internal const int TimeOutPing = 15000;
+        internal const int TimeOutPing = 5000;
 
         /// <summary>
         /// Существует ли подключение между клиентами
@@ -230,21 +238,40 @@ namespace EMI
         }
 
         /// <summary>
+        /// что бы Stop не запустися несколько раз подряд
+        /// </summary>
+        private Lower.RefBool ISStopInvoke = new Lower.RefBool(false);
+        /// <summary>
         /// Завершает подключение
         /// </summary>
         private void Stop()
         {
-            AbortThread(ThreadProcessPing);
-            AbortThread(ThreadProcessLocalReceive);
-            AbortThread(ThreadRequestLostPackages);
-            StopwatchPing.Stop();
+            lock (ISStopInvoke)
+            {
+                if (ISStopInvoke.Value == false)
+                {
+                    ISStopInvoke.Value = true;
 
-            Accepter.Stop();
-            IsConnect = false;
+                    try
+                    {
+                        AbortThread(ThreadProcessPing);
+                        AbortThread(ThreadProcessLocalReceive);
+                        AbortThread(ThreadRequestLostPackages);
+                        StopwatchPing.Stop();
 
-            ReturnWaiter.ErrorStop();
+                        Accepter.Stop();
+                        IsConnect = false;
 
-            CloseEvent?.Invoke(CloseReason);
+                        ReturnWaiter.ErrorStop();
+
+                        CloseEvent?.Invoke(CloseReason);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("Ошибка в коде EMI: Client->Stop:\n" + e);
+                    }
+                }
+            }
         }
 
 

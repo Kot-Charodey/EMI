@@ -22,8 +22,9 @@ namespace EMI
         /// </summary>
         /// <typeparam name="TOut"></typeparam>
         /// <param name="ID"></param>
+        /// <param name="send"></param>
         /// <returns></returns>
-        public TOut Wait<TOut>(ulong ID)
+        public TOut Wait<TOut>(ulong ID, RPCfunct send)
         {
             var pack = Packager.Create<TOut>();
 
@@ -36,6 +37,7 @@ namespace EMI
             {
                 list.Add(ID, waiter);
             }
+            send.Invoke();
             try
             {
                 Thread.Sleep(Timeout.Infinite);
