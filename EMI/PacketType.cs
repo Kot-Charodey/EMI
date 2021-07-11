@@ -5,7 +5,7 @@
         SndClose,
         SndSimple,
         SndGuaranteed,
-        SndGuaranteedRtr,//требует вернуть результат
+        SndGuaranteedRtr,//результат данного пакета следует вернуть
         SndGuaranteedSegmented,
         SndGuaranteedRtrSegmented,//требует вернуть результат
         SndGuaranteedReturned,

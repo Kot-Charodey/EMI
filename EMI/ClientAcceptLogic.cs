@@ -121,7 +121,7 @@ namespace EMI
             catch (Exception e)
             {
                 SendErrorClose(CloseType.StopPackageBad);
-                IsConnect = false;
+                Stop();
                 Console.WriteLine("ProcessAccept -> " + e.ToString());
                 throw e;
             }
@@ -341,6 +341,8 @@ namespace EMI
             if (SubGuaranteedCheck(bitPacket.ID) == false)
                 return;
 
+            Console.WriteLine("SndGuaranteedReturned -> bitPacket.ReturnID " + bitPacket.ReturnID);
+
             ReturnWaiter.AddData(bitPacket.ReturnID, data);
         }
 
@@ -396,18 +398,21 @@ namespace EMI
             Packager_PacketGetPkg.UnPack(AcceptBuffer, 0, out _, out ulong[] ID_Data);
 
             byte[] buffer;
+            ulong id = SendID.GetID();
             for (int i = 0; i < ID_Data.Length; i++)
             {
+
                 buffer = SendBackupBuffer.Get(ID_Data[i]);
                 //если пакета нет и он был создан - попробуем поискать среди больших пакетов
-                if (buffer == null && ID_Data[i] < SendID)
+                if (buffer == null && ID_Data[i] < id)
                 {
                     //предположим что клиент не знает о типе пакета "сегментный" поэтому отправим первый сегмент что бы он знал что запрашивать далее (через ReqGetPkgSegmented)
                     buffer = SendSegmentBackupBuffer.Get(ID_Data[i], 0);
                     //если пакет не найден значит он уничтожен и придёться разорвать соединение
                     if (buffer == null)
                     {
-                        Console.WriteLine("ТУТ БАГ");
+                        //TODO REMOVE
+                        Console.WriteLine("ТУТ БАГ - не найден пакет - " + ID_Data[i]);
                         SendErrorClose(CloseType.StopPackageDestroyed);
                         Stop();
                     }
@@ -552,6 +557,9 @@ namespace EMI
 
         private void SendReturn(byte[] data, ulong ID)
         {
+            //TODO REMOVE
+            Console.WriteLine("SendReturn -> ReturnID " + ID);
+
             if (data != null)
             {
                 //если пакет маленький то просто отправить
@@ -560,19 +568,23 @@ namespace EMI
                     BitPacketGuaranteedReturned bpgr = new BitPacketGuaranteedReturned()
                     {
                         PacketType = PacketType.SndGuaranteedReturned,
-                        ID = GetID(),
+                        ID = SendID.GetNewIDAndLock(),
                         ReturnID = ID,
                         ReturnNull = false
                     };
+                    //TODO REMOVE
+                    Console.WriteLine("SendReturn ->  ID snd " + bpgr.ID);
                     byte[] PackData = Packager_GuaranteedReturned.PackUP(bpgr, data);
                     SendBackupBuffer.Add(bpgr.ID, PackData);
+                    SendID.UnlockID();
                     Accepter.Send(PackData, PackData.Length);
                 }
                 else if(data.Length<=67107840) //если пакет жирный (64 MB)
                 {
-                    ulong id = GetID();
+                    ulong id = SendID.GetNewIDAndLock();
                     //весь пакет целиком в буффер
                     SendSegmentBackupBuffer.Add(id, data);
+                    SendID.UnlockID();
 
                     //отправим 1 пакет что бы клиент попросил новые
                     BitPacketSegmentedReturned bpgr = new BitPacketSegmentedReturned()
@@ -602,13 +614,14 @@ namespace EMI
                 BitPacketGuaranteedReturned bpgr = new BitPacketGuaranteedReturned()
                 {
                     PacketType = PacketType.SndGuaranteedReturned,
-                    ID = GetID(),
+                    ID = SendID.GetNewIDAndLock(),
                     ReturnID = ID,
                     ReturnNull = true
                 };
 
                 byte[] PackData = Packager_GuaranteedReturnedNoData.PackUP(bpgr);
                 SendBackupBuffer.Add(bpgr.ID, PackData);
+                SendID.UnlockID();
                 Accepter.Send(PackData, PackData.Length);
             }
         }
