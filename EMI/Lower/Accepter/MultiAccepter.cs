@@ -37,7 +37,7 @@ namespace EMI.Lower.Accepter
         }
 
         private EndPoint Point = new IPEndPoint(IPAddress.Any, 1);
-        private const int BufferSize = 1248;
+        private const int BufferSize = 1248;//максимальный размер MPU
         private byte[] Buffer;
 
         private bool TryGetValue(out MultyAccepterClient mac)
@@ -71,7 +71,9 @@ namespace EMI.Lower.Accepter
                     {
                         if (ReceiveClients[i].Stopped)
                         {
-                            Console.WriteLine("Что то удалилось");
+#if DEBUG
+                            Console.WriteLine($"Client removed [{ReceiveClients[i].EndPoint}]");
+#endif
                             ReceiveClients.RemoveAt(i);
                             i--;
                         }

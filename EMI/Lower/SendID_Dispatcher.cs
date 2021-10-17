@@ -7,7 +7,7 @@ namespace EMI.Lower
     /// </summary>
     internal class SendID_Dispatcher
     {
-        private SemaphoreSlim IDReturnLock = new SemaphoreSlim(1, 1);
+        private Semaphore IDReturnLock = new Semaphore(1, 1);
         private ulong ID;
 
         /// <summary>
@@ -16,7 +16,7 @@ namespace EMI.Lower
         /// <returns></returns>
         public ulong GetNewIDAndLock()
         {
-            IDReturnLock.Wait();
+            IDReturnLock.WaitOne();
             return ID++;
         }
 
@@ -34,17 +34,17 @@ namespace EMI.Lower
         /// <param name="ID"></param>
         public void SetID(ulong ID)
         {
-            IDReturnLock.Wait();
+            IDReturnLock.WaitOne();
             this.ID = ID;
             IDReturnLock.Release();
         }
 
         /// <summary>
-        /// Безопасно получить новый ID
+        /// Безопасно получить текущий ID
         /// </summary>
         public ulong GetID()
         {
-            IDReturnLock.Wait();
+            IDReturnLock.WaitOne();
             ulong gid = ID;
             IDReturnLock.Release();
             return gid;

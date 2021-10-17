@@ -6,6 +6,7 @@ using System.Net;
 
 namespace EMI
 {
+    using Lower;
     using Lower.Accepter;
     using Lower.Package;
 
@@ -15,7 +16,7 @@ namespace EMI
         /// <summary>
         /// Локальный список вызываймых методов
         /// </summary>
-        public RPC RPC { get; private set; } = new RPC();
+        public RPC RPC { get; private set; }
         /// <summary>
         /// Уровень привилегий (влиет на возможность выполнить RPC запрос)
         /// </summary>
@@ -66,10 +67,13 @@ namespace EMI
 
         private Client()
         {
+            RPC = new RPC(this);
         }
 
         internal Client(EndPoint endPoint, MultiAccepter accepter)
         {
+            RPC = new RPC(this);
+
             IsConnect = true;
             InitAcceptLogicEvent(endPoint);
 
@@ -240,7 +244,7 @@ namespace EMI
         /// <summary>
         /// что бы Stop не запустися несколько раз подряд
         /// </summary>
-        private Lower.RefBool ISStopInvoke = new Lower.RefBool(false);
+        private RefVarible<bool> ISStopInvoke = new RefVarible<bool>(false);
         /// <summary>
         /// Завершает подключение
         /// </summary>
@@ -286,7 +290,9 @@ namespace EMI
         private void SendErrorClose(CloseType closeType)
         {
             CloseReason = closeType - 1;
+#if DEBUG
             Console.WriteLine("SendErrorClose -> " + closeType);
+#endif
             if (CloseReason == CloseType.None)
             {
                 throw new Exception("Ошибка в коде EMI: неправильный тип <CloseType>");

@@ -17,7 +17,7 @@ namespace EMI
         {
             public PacketType PacketType;
             public ulong ID;
-            public ulong ReturnID; 
+            public ulong ReturnID;
             public ushort RPCAddres;
             public byte[] Data;
 
@@ -28,9 +28,9 @@ namespace EMI
                 ReturnID = package.ReturnID;
                 RPCAddres = package.RPCAddres;
                 Data = new byte[package.Size];
-                for(int i = 0; i < package.Data.Length; i++)
+                for (int i = 0; i < package.Data.Length; i++)
                 {
-                    Array.Copy(package.Data[i], Data, package.Data[i].Length);
+                    Array.Copy(package.Data[i], 0, Data, i * 1024, package.Data[i].Length);
                 }
             }
         }
@@ -39,7 +39,7 @@ namespace EMI
         {
             public PacketType PacketType;
             public ulong ID;
-            public ulong ReturnID; 
+            public ulong ReturnID;
             public ushort RPCAddres;
             public ushort RemainedCount;//когда 0 значит пакет собран
             public int Size;
@@ -75,21 +75,27 @@ namespace EMI
         /// <param name="ID">Айди пакета</param>
         /// <param name="MaxGetCount">Максимальный размер списка</param>
         /// <returns></returns>
-        public ushort[] GetDownloadList(int MaxGetCount,ulong ID)
+        public ushort[] GetDownloadList(int MaxGetCount, ulong ID)
         {
-            Package package = BufferPackages[ID];
-            ushort[] need = new ushort[Math.Min(MaxGetCount, package.RemainedCount)];
-            int j = 0;
-
-            for (ushort i = 0; i < package.Data.Length; i++)
+            lock (BufferPackages)
             {
-                if (!package.SetSegments.Contains(i))
+                if (BufferPackages.TryGetValue(ID, out Package package))
                 {
-                    need[j++] = i;
-                }
-            }
+                    ushort[] need = new ushort[Math.Min(MaxGetCount, package.RemainedCount)];
+                    int j = 0;
 
-            return need;
+                    for (ushort i = 0; i < package.Data.Length; i++)
+                    {
+                        if (!package.SetSegments.Contains(i))
+                        {
+                            need[j++] = i;
+                        }
+                    }
+
+                    return need;
+                }
+                return null;
+            }
         }
 
         /// <summary>
@@ -98,27 +104,30 @@ namespace EMI
         /// <returns>если null то пакет ещё не готов</returns>
         public ConstructedPackage AddSegment(in BitPacketSegmented bitPacket, byte[] data)
         {
-            if (!BufferPackages.TryGetValue(bitPacket.ID, out Package package))
+            lock (BufferPackages)
             {
-                package = new Package(in bitPacket);
-            }
-            else
-            {
-                //если данный пакет получен
-                if (package.SetSegments.Contains(bitPacket.Segment))
-                    return null;
-            }
+                if (!BufferPackages.TryGetValue(bitPacket.ID, out Package package))
+                {
+                    package = new Package(in bitPacket);
+                    BufferPackages.Add(bitPacket.ID, package);
+                }
+                else
+                {
+                    //если данный пакет получен
+                    if (package.SetSegments.Contains(bitPacket.Segment))
+                        return null;
+                }
 
+                package.Data[bitPacket.Segment] = data;
+                package.SetSegments.Add(bitPacket.Segment);
+                package.Size += data.Length;
+                package.RemainedCount--;
 
-            package.Data[bitPacket.Segment] = data;
-            package.SetSegments.Add(bitPacket.Segment);
-            package.Size += data.Length;
-            package.RemainedCount--;
-
-            if (package.RemainedCount == 0)
-            {
-                BufferPackages.Remove(package.ID);
-                return new ConstructedPackage(package);
+                if (package.RemainedCount == 0)
+                {
+                    BufferPackages.Remove(package.ID);
+                    return new ConstructedPackage(package);
+                }
             }
             return null;
         }
@@ -129,27 +138,31 @@ namespace EMI
         /// <returns>если null то пакет ещё не готов</returns>
         public ConstructedPackage AddSegment(in BitPacketSegmentedReturned bitPacket, byte[] data)
         {
-            if (!BufferPackages.TryGetValue(bitPacket.ID, out Package package))
+            lock (BufferPackages)
             {
-                package = new Package(in bitPacket);
-            }
-            else
-            {
-                //если данный пакет получен
-                if (package.SetSegments.Contains(bitPacket.Segment))
-                    return null;
-            }
+                if (!BufferPackages.TryGetValue(bitPacket.ID, out Package package))
+                {
+                    package = new Package(in bitPacket);
+                    BufferPackages.Add(bitPacket.ID, package);
+                }
+                else
+                {
+                    //если данный пакет получен
+                    if (package.SetSegments.Contains(bitPacket.Segment))
+                        return null;
+                }
 
 
-            package.Data[bitPacket.Segment] = data;
-            package.SetSegments.Add(bitPacket.Segment);
-            package.Size += data.Length;
-            package.RemainedCount--;
+                package.Data[bitPacket.Segment] = data;
+                package.SetSegments.Add(bitPacket.Segment);
+                package.Size += data.Length;
+                package.RemainedCount--;
 
-            if (package.RemainedCount == 0)
-            {
-                BufferPackages.Remove(package.ID);
-                return new ConstructedPackage(package);
+                if (package.RemainedCount == 0)
+                {
+                    BufferPackages.Remove(package.ID);
+                    return new ConstructedPackage(package);
+                }
             }
             return null;
         }

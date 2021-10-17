@@ -7,13 +7,13 @@ using System.Threading.Tasks;
 namespace EMI.Lower
 {
     /// <summary>
-    /// Ссылочный bool
+    /// Обёртка для не ссылочных типов, что бы использовать lock
     /// </summary>
-    internal class RefBool
+    internal class RefVarible<T>
     {
-        public bool Value = false;
+        public T Value;
 
-        public RefBool(bool value)
+        public RefVarible(T value)
         {
             Value = value;
         }

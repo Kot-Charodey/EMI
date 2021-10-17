@@ -25,20 +25,20 @@ namespace Test1
             if (com == "1")
             {
                 string b = "31.10.114.169";
-                Client client = Client.Connect(IPAddress.Parse(b), 30000);
+                Client client = Client.Connect(IPAddress.Parse(b), 25600);
                 Console.WriteLine("Опа");
                 TestCom(client);
             }
             else if(com == "2")
             {
                 string a = "10.20.30.50";
-                Client client = Client.Connect(IPAddress.Parse(a), 30000);
+                Client client = Client.Connect(IPAddress.Parse(a), 25600);
                 Console.WriteLine("Опа");
                 TestCom(client);
             }
             else
             {
-                Server srv = new Server(30000);
+                Server srv = new Server(25600);
                 srv.Start(Proc);
             }
             while (true)

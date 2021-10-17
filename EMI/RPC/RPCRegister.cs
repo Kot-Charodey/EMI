@@ -10,6 +10,10 @@ namespace EMI
     public partial class RPC
     {
         internal delegate byte[] RPCMicroFunct(byte[] arrayData, bool guaranteed);
+        /// <summary>
+        /// Для не global RPC для Forwarding
+        /// </summary>
+        internal Client Owner;
 
         internal class MyAction
         {
@@ -29,7 +33,7 @@ namespace EMI
                 MicroFunct = microFunct ?? throw new ArgumentNullException(nameof(microFunct));
                 CanReturnValue = canReturnValue;
                 Context = context;
-                TypeList = typeList ?? throw new ArgumentNullException(nameof(typeList));
+                TypeList = typeList;
             }
         }
 
@@ -107,7 +111,7 @@ namespace EMI
 
         #region forwarding
         /// <summary>
-        /// Регистрирует метод для пересылки сообщения выбранным клиентам (не поддерживает возврат сообщения) (только 1 метод на адресс) (только global RPC) (только для сервера)
+        /// Регистрирует метод для пересылки сообщения выбранным клиентам (не поддерживает возврат сообщения) (только 1 метод на адресс) (только не global RPC) (только для сервера)
         /// </summary>
         /// <param name="Address">Адресс функции</param>
         /// <param name="LVL_Permission">Уровень прав которыми должен обладать пользователь чтобы переслать сообщение</param>
@@ -117,18 +121,15 @@ namespace EMI
         {
             if (Functions[Address].Count > 0)
                 throw new Exception("Разрешается только 1 метод для адреса!");
-            if (!IsGlobal)
-                throw new Exception("Разрешается регистрация только в global RPC!");
+            if (IsGlobal)
+                throw new Exception("Разрешается регистрация только не global RPC!");
 
             byte[] MicroFunct(byte[] arrayData, bool guaranteed)
             {
-                Client[] clients = Method();
-                if (guaranteed)
+                Client[] clients = Method(Owner);
+                for (int i = 0; i < clients.Length; i++)
                 {
-                    for (int i = 0; i < clients.Length; i++)
-                    {
-                        clients[i].RemoteForwardingExecution(Address, arrayData, guaranteed);
-                    }
+                    clients[i].RemoteForwardingExecution(Address, arrayData, guaranteed);
                 }
                 return null;
             }
@@ -217,7 +218,7 @@ namespace EMI
             byte[] MicroFunct(byte[] arrayData, bool guaranteed)
             {
                 var data = Funct();
-                return packagerOUT.PackUP(data);
+                 return packagerOUT.PackUP(data);
             }
             MyAction action = new MyAction(LVL_Permission, MicroFunct, false, Funct.Target, TypeList);
 

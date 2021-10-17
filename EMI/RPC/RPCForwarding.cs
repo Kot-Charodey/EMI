@@ -9,5 +9,7 @@ namespace EMI
     /// <summary>
     /// Метод вызываемый когда нужно переслать сообщения (возвращает указать кому требуется переслать сообщение)
     /// </summary>
-    public delegate Client[] ForwardingMethod();
+    /// <param name="owner">Владелец сообщения</param>
+    /// <returns></returns>
+    public delegate Client[] ForwardingMethod(Client owner);
 }

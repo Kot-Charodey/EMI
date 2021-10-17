@@ -15,7 +15,7 @@ namespace EMI
 
         #region Forwarding
         /// <summary>
-        /// Для пересылки сообщений
+        /// Для пересылки сообщений (адресс должен быть 1 и тот же и на сервере и на клиенте)
         /// </summary>
         /// <param name="Address">Айди вызываемой функции</param>
         /// <param name="sndData">Данные в запакованном ввиде</param>
@@ -106,8 +106,6 @@ namespace EMI
         private void ForwardingGuaranteedBig(ushort Address, byte[] sndData)
         {
             ulong id = SendID.GetNewIDAndLock();
-            SendSegmentBackupBuffer.Add(id, sndData);
-            SendID.UnlockID();
             byte[] sndBuffer = new byte[1024];
             Array.Copy(sndData, sndBuffer, 1024);
 
@@ -117,8 +115,13 @@ namespace EMI
                 RPCAddres = Address,
                 ID = id,
                 Segment = 0,
-                SegmentCount = (ushort)(sndData.Length / ushort.MaxValue)
+                SegmentCount = BitPacketsUtilities.CalcSegmentCount(sndData.Length)
             };
+
+
+            SendSegmentBackupBuffer.Add(id, sndData, bp);
+            SendID.UnlockID();
+
             byte[] data = Packager_Segmented.PackUP(bp, sndBuffer);
             Accepter.Send(data, data.Length);
         }
@@ -210,7 +213,6 @@ namespace EMI
                 buffer = new byte[size];
                 pac.PackUP(buffer, 0, t1);
 
-                SendSegmentBackupBuffer.Add(id, buffer);
                 byte[] sndBuffer = new byte[1024];
                 Array.Copy(buffer, sndBuffer, 1024);
 
@@ -220,8 +222,12 @@ namespace EMI
                     RPCAddres = Address,
                     ID = id,
                     Segment = 0,
-                    SegmentCount = (ushort)(size / ushort.MaxValue)
+                    SegmentCount = BitPacketsUtilities.CalcSegmentCount(size)
                 };
+
+                SendSegmentBackupBuffer.Add(id, buffer, bp);
+                SendID.UnlockID();
+
                 data = Packager_Segmented.PackUP(bp, sndBuffer);
                 Accepter.Send(data, data.Length);
             }
@@ -286,8 +292,6 @@ namespace EMI
                 buffer = new byte[size];
                 pac.PackUP(buffer, 0, t1);
 
-                SendSegmentBackupBuffer.Add(id, buffer);
-                SendID.UnlockID();
                 byte[] sndBuffer = new byte[1024];
                 Array.Copy(buffer, sndBuffer, 1024);
 
@@ -297,8 +301,12 @@ namespace EMI
                     RPCAddres = Address,
                     ID = id,
                     Segment = 0,
-                    SegmentCount = (ushort)(size / ushort.MaxValue)
+                    SegmentCount = BitPacketsUtilities.CalcSegmentCount(size)
                 };
+
+                SendSegmentBackupBuffer.Add(id, buffer, bp);
+                SendID.UnlockID();
+
                 data = Packager_Segmented.PackUP(bp, sndBuffer);
             }
             else

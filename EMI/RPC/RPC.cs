@@ -19,8 +19,17 @@ namespace EMI
         private readonly HashSet<MyAction>[] Functions = new HashSet<MyAction>[ushort.MaxValue];
         private bool IsGlobal=false;
 
-        internal RPC()
+        private RPC()
         {
+            for (int i = 0; i < ushort.MaxValue; i++)
+            {
+                Functions[i] = new HashSet<MyAction>();
+            }
+        }
+
+        internal RPC(Client owner)
+        {
+            Owner = owner;
             for (int i = 0; i < ushort.MaxValue; i++)
             {
                 Functions[i] = new HashSet<MyAction>();

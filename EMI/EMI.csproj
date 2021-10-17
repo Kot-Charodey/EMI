@@ -18,7 +18,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -66,7 +66,7 @@
     <Compile Include="Lower\Package\BitPacketSegmented.cs" />
     <Compile Include="Lower\Package\BitPacketGuaranteed.cs" />
     <Compile Include="Lower\Package\BitPacketsUtilities.cs" />
-    <Compile Include="Lower\RefBool.cs" />
+    <Compile Include="Lower\RefVarible.cs" />
     <Compile Include="Lower\SendID_Dispatcher.cs" />
     <Compile Include="PacketType.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -86,6 +86,9 @@
       <Project>{7bb03a3c-b5ed-474d-89b0-c457630c5cfe}</Project>
       <Name>SmartPackager</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Info.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
