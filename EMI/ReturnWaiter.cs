@@ -12,7 +12,7 @@ namespace EMI
         private class Waiter
         {
             public bool ClientOut = false;
-            public Thread Thread;
+            public CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
             public byte[] Data;
         }
 
@@ -25,15 +25,12 @@ namespace EMI
         /// <param name="ID"></param>
         /// <param name="send"></param>
         /// <returns></returns>
-        public TOut Wait<TOut>(ulong ID, RPCfunct send)
+        public async Task<TOut> Wait<TOut>(ulong ID, RPCfunct send)
         {
             var pack = Packager.Create<TOut>();
 
             //оставим запрос и идём спать - когда прийдёт наш пакет то поток разбудят
-            Waiter waiter = new Waiter()
-            {
-                Thread = Thread.CurrentThread
-            };
+            Waiter waiter = new Waiter();
             lock (list)
             {
                 list.Add(ID, waiter);
@@ -41,7 +38,8 @@ namespace EMI
             send.Invoke();
             try
             {
-                Thread.Sleep(Timeout.Infinite);
+                //ждём пока прийдёт ответ....
+                await Task.Delay(-1, waiter.CancellationTokenSource.Token);
             }
             catch { }
 
@@ -66,7 +64,7 @@ namespace EMI
                 var wait = list[ID];
                 list.Remove(ID);
                 wait.Data = data;
-                wait.Thread.Interrupt();
+                wait.CancellationTokenSource.Cancel();
             }
         }
 
@@ -80,7 +78,7 @@ namespace EMI
                 foreach (Waiter waiter in list.Values)
                 {
                     waiter.ClientOut = true;
-                    waiter.Thread.Interrupt();
+                    waiter.CancellationTokenSource.Cancel(true);
                 }
             }
         }

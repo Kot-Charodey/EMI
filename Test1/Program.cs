@@ -90,7 +90,7 @@ namespace Test1
                     case "gi":
                         new Thread(() =>
                         {
-                            System.Windows.Forms.MessageBox.Show(cc.RemoteGuaranteedExecution<string>(3), "gi");
+                            System.Windows.Forms.MessageBox.Show(cc.RemoteGuaranteedExecution<string>(3).Result, "gi");
                         }).Start();
                         break;
                     case "at":

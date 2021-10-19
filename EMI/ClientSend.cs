@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace EMI
 {
@@ -238,13 +239,14 @@ namespace EMI
         }
         #endregion
         #region Returned
+
         /// <summary>
-        /// Выполнить RPC с возвратом результата (поток блокируется на время ожидания результата)с гарантией доставки (последовательность вызовов не гарантируется)
+        /// Выполнить RPC с возвратом результата с гарантией доставки (последовательность вызовов не гарантируется)
         /// </summary>
         /// <typeparam name="TOut">Тип возвращающегося результата</typeparam>
         /// <param name="Address">Айди вызываемой функции</param>
         /// <returns>Массив результата от выполнения всех функций (количество зависит от выполненных функций)</returns>
-        public TOut RemoteGuaranteedExecution<TOut>(ushort Address)
+        public async Task<TOut> RemoteGuaranteedExecution<TOut>(ushort Address)
         {
             ulong id = SendID.GetNewIDAndLock();
             BitPacketGuaranteed bp = new BitPacketGuaranteed()
@@ -256,18 +258,18 @@ namespace EMI
             byte[] data = Packager_GuaranteedNoData.PackUP(bp);
             SendBackupBuffer.Add(id, data);
             SendID.UnlockID();
-            return ReturnWaiter.Wait<TOut>(id, () => Accepter.Send(data, data.Length));
+            return await ReturnWaiter.Wait<TOut>(id, () => Accepter.Send(data, data.Length)); ;
         }
 
         /// <summary>
-        /// Выполнить RPC с возвратом результата (поток блокируется на время ожидания результата)с гарантией доставки (последовательность вызовов не гарантируется)
+        /// Выполнить RPC с возвратом результата с гарантией доставки (последовательность вызовов не гарантируется)
         /// </summary>
         /// <typeparam name="TOut">Тип возвращающегося результата</typeparam>
         /// <typeparam name="T1">тип аргумента</typeparam>
         /// <param name="Address">Айди вызываемой функции</param>
         /// <param name="t1">Aргумент</param>
         /// <returns>Массив результата от выполнения всех функций (количество зависит от выполненных функций)</returns>
-        public TOut RemoteGuaranteedExecution<TOut, T1>(ushort Address, T1 t1)
+        public async Task<TOut> RemoteGuaranteedExecution<TOut, T1>(ushort Address, T1 t1)
         {
             ulong id = SendID.GetNewIDAndLock();
             var pac = Packager.Create<T1>();
@@ -314,7 +316,7 @@ namespace EMI
                 throw new InsufficientMemoryException("Execution -> Size > 67107840 bytes (64 MB)");
             }
 
-            return ReturnWaiter.Wait<TOut>(id,()=> Accepter.Send(data, data.Length));
+            return await ReturnWaiter.Wait<TOut>(id, () => Accepter.Send(data, data.Length));
         }
         #endregion
     }
