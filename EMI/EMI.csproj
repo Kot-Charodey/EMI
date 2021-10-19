@@ -76,6 +76,7 @@
     <Compile Include="RPC\RPCFunctDelegate.cs" />
     <Compile Include="RPC\RPCMethodAttribute.cs" />
     <Compile Include="RPC\RPCRegister.cs" />
+    <Compile Include="RPC\RPCAddressTable.cs" />
     <Compile Include="SendSegmentBackupBuffer.cs" />
     <Compile Include="SegmentPackagesBuffer.cs" />
     <Compile Include="SendBackupBuffer.cs" />

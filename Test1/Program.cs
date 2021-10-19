@@ -11,14 +11,22 @@ namespace Test1
 {
     unsafe class Program
     {
+        static RPCAddressTable table = new RPCAddressTable();
+        static RPCAddress               BuxA = new RPCAddress(table);
+        static RPCAddress<string>       MSGA = new RPCAddress<string>(table);
+        static RPCAddress               BeepA = new RPCAddress(table);
+        static RPCAddressOut<string>    GetInputA = new RPCAddressOut<string>(table);
+        static RPCAddress<int[]>        TestArrayA = new RPCAddress<int[]>(table);
+
         static void Main()
         {
             Console.WriteLine("Пиши 1 Если ты человек\nПиши 2 Если ты Паша\nЖми Enter если ты сервер");
-            RPC.Global.RegisterMethod(0, 0, Bux);
-            RPC.Global.RegisterMethod<string>(1, 0, MSG);
-            RPC.Global.RegisterMethod(2, 0, Console.Beep);
-            RPC.Global.RegisterMethod(3, 0, GetInput);
-            RPC.Global.RegisterMethod<int[]>(4, 0, TestArray);
+
+            RPC.Global.RegisterMethod(BuxA, 0, Bux);
+            RPC.Global.RegisterMethod(MSGA, 0, MSG);
+            RPC.Global.RegisterMethod(BeepA, 0, Console.Beep);
+            RPC.Global.RegisterMethod(GetInputA, 0, GetInput);
+            RPC.Global.RegisterMethod(TestArrayA, 0, TestArray);
 
             string com = Console.ReadLine();
 
@@ -82,15 +90,15 @@ namespace Test1
                 switch (Console.ReadLine().ToLower())
                 {
                     case "msg":
-                        cc.RemoteStandardExecution(1, Microsoft.VisualBasic.Interaction.InputBox("Введите сообщение", "MSG"));
+                        cc.RemoteStandardExecution(MSGA.ID, Microsoft.VisualBasic.Interaction.InputBox("Введите сообщение", "MSG"));
                         break;
                     case "beep":
-                        cc.RemoteStandardExecution(2);
+                        cc.RemoteStandardExecution(BeepA.ID);
                         break;
                     case "gi":
                         new Thread(() =>
                         {
-                            System.Windows.Forms.MessageBox.Show(cc.RemoteGuaranteedExecution<string>(3).Result, "gi");
+                            System.Windows.Forms.MessageBox.Show(cc.RemoteGuaranteedExecution<string>(GetInputA.ID).Result, "gi");
                         }).Start();
                         break;
                     case "at":
@@ -99,10 +107,10 @@ namespace Test1
                         {
                             b[i] = i;
                         }
-                        cc.RemoteGuaranteedExecution(4,b);
+                        cc.RemoteGuaranteedExecution(TestArrayA.ID,b);
                         break;
                     default:
-                        cc.RemoteStandardExecution(0);
+                        cc.RemoteStandardExecution(BuxA.ID);
                         break;
                 }
         }
