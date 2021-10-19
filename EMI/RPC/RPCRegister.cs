@@ -151,10 +151,10 @@ namespace EMI
         /// <param name="LVL_Permission">Уровень прав которыми должен обладать пользователь чтобы запустить</param>
         /// <param name="Funct">Функция</param>
         /// <returns>Ссылка на функцию</returns>
-        public Handle RegisterMethod(ushort Address, byte LVL_Permission, RPCfunct Funct)
+        public Handle RegisterMethod(RPCAddress Address, byte LVL_Permission, RPCfunct Funct)
         {
             Type[] TypeList = { };
-            CanAddFunction(Address, false, TypeList);
+            CanAddFunction(Address.ID, false, TypeList);
 
             byte[] MicroFunct(byte[] arrayData, bool guaranteed)
             {
@@ -163,8 +163,8 @@ namespace EMI
             }
             MyAction action = new MyAction(LVL_Permission, MicroFunct, false, Funct.Target, TypeList);
 
-            Functions[Address].Add(action);
-            Handle handle = new Handle(this, action, Address);
+            Functions[Address.ID].Add(action);
+            Handle handle = new Handle(this, action, Address.ID);
 
             return handle;
         }
@@ -177,10 +177,10 @@ namespace EMI
         /// <param name="LVL_Permission">Уровень прав которыми должен обладать пользователь чтобы запустить</param>           
         /// <param name="Funct">Функция</param>                                                                                
         /// <returns>Ссылка на функцию</returns>                                                                                
-        public unsafe Handle RegisterMethod<T1>(ushort Address, byte LVL_Permission, RPCfunct<T1> Funct)
+        public unsafe Handle RegisterMethod<T1>(RPCAddress<T1> Address, byte LVL_Permission, RPCfunct<T1> Funct)
         {
             Type[] TypeList = { typeof(T1) };
-            CanAddFunction(Address, false, TypeList);
+            CanAddFunction(Address.ID, false, TypeList);
 
             var packagerIN = Packager.Create<T1>();
 
@@ -192,8 +192,8 @@ namespace EMI
             }
             MyAction action = new MyAction(LVL_Permission, MicroFunct, false, Funct.Target, TypeList);
 
-            Functions[Address].Add(action);
-            Handle handle = new Handle(this, action, Address);
+            Functions[Address.ID].Add(action);
+            Handle handle = new Handle(this, action, Address.ID);
 
             return handle;
         }
@@ -208,10 +208,10 @@ namespace EMI
         /// <param name="LVL_Permission">Уровень прав которыми должен обладать пользователь чтобы запустить</param>
         /// <param name="Funct">Функция</param>
         /// <returns>Ссылка на функцию</returns>
-        public unsafe Handle RegisterMethod<TOut>(ushort Address, byte LVL_Permission, RPCfunctOut<TOut> Funct)
+        public unsafe Handle RegisterMethod<TOut>(RPCAddressOut<TOut> Address, byte LVL_Permission, RPCfunctOut<TOut> Funct)
         {
             Type[] TypeList = { typeof(TOut) };
-            CanAddFunction(Address, true, TypeList);
+            CanAddFunction(Address.ID, true, TypeList);
 
             var packagerOUT = Packager.Create<TOut>();
 
@@ -222,8 +222,8 @@ namespace EMI
             }
             MyAction action = new MyAction(LVL_Permission, MicroFunct, false, Funct.Target, TypeList);
 
-            Functions[Address].Add(action);
-            Handle handle = new Handle(this, action, Address);
+            Functions[Address.ID].Add(action);
+            Handle handle = new Handle(this, action, Address.ID);
 
             return handle;
         }
@@ -237,10 +237,10 @@ namespace EMI
         /// <param name="LVL_Permission">Уровень прав которыми должен обладать пользователь чтобы запустить</param>           
         /// <param name="Funct">Функция</param>                                                                               
         /// <returns>Ссылка на функцию</returns>                                                                                
-        public Handle RegisterMethod<TOut, T1>(ushort Address, byte LVL_Permission, RPCfunctOut<TOut, T1> Funct)
+        public Handle RegisterMethod<TOut, T1>(RPCAddressOut<TOut,T1> Address, byte LVL_Permission, RPCfunctOut<TOut, T1> Funct)
         {
             Type[] TypeList = { typeof(TOut), typeof(T1) };
-            CanAddFunction(Address, true, TypeList);
+            CanAddFunction(Address.ID, true, TypeList);
 
             var packagerIN = Packager.Create<T1>();
             var packagerOUT = Packager.Create<TOut>();
@@ -253,8 +253,8 @@ namespace EMI
             }
             MyAction action = new MyAction(LVL_Permission, MicroFunct, false, Funct.Target, TypeList);
 
-            Functions[Address].Add(action);
-            Handle handle = new Handle(this, action, Address);
+            Functions[Address.ID].Add(action);
+            Handle handle = new Handle(this, action, Address.ID);
 
             return handle;
         }
