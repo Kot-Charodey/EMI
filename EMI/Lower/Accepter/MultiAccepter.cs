@@ -4,155 +4,136 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace EMI.Lower.Accepter
 {
     using Package;
+    using System.Linq;
 
+    /// <summary>
+    /// Принимает и обрабатывает запросы на стороне сервера
+    /// </summary>
     internal class MultiAccepter
     {
-        public Socket Client;
-        public List<MultyAccepterClient> ReceiveClients = new List<MultyAccepterClient>();
-        public Thread Thread;
+
+        public Socket Socket;
+        public Dictionary<EndPoint, MultyAccepterClient> ReceiveClients = new Dictionary<EndPoint, MultyAccepterClient>();
+        public Dictionary<EndPoint, DateTime> RegisteringСlients = new Dictionary<EndPoint, DateTime>();
+        public CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
         private Action<Client> AcceptEvent;
 
         public MultiAccepter(int port)
         {
-            Client = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp)
+            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp)
             {
                 ExclusiveAddressUse = false
             };
-            Client.Bind(new IPEndPoint(IPAddress.Any, port));
+            Socket.Bind(new IPEndPoint(IPAddress.Any, port));
         }
 
         public void StartProcessReceive(Action<Client> acceptEvent)
         {
             AcceptEvent = acceptEvent;
-            Thread = new Thread(ProcessReceive)
-            {
-                IsBackground = true,
-                Name = "EMI.ProcessReceive"
-            };
-            Thread.Start();
+            Task.Factory.StartNew(()=>ProcessReceive(CancellationTokenSource.Token), CancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
 
-        private EndPoint Point = new IPEndPoint(IPAddress.Any, 1);
         private const int BufferSize = 1248;//максимальный размер MPU
         private byte[] Buffer;
 
-        private bool TryGetValue(out MultyAccepterClient mac)
+        /// <summary>
+        /// Входная точка обработки и запуска RPC на сервере
+        /// </summary>
+        public void ProcessReceive(CancellationToken cancellationToken)
         {
-            for (int i = 0; i < ReceiveClients.Count; i++)
+            Buffer = new byte[BufferSize];
+            EndPoint receivePoint = new IPEndPoint(IPAddress.Any, 1);
+            while (!CancellationTokenSource.IsCancellationRequested)
             {
-                if (ReceiveClients[i].EndPoint.Equals(Point))
+                try
                 {
-                    mac = ReceiveClients[i];
-                    return true;
-                }
-            }
+                    int size = Socket.ReceiveFrom(Buffer, ref receivePoint);
 
-            mac = null;
-            return false;
-        }
-
-        public void ProcessReceive()
-        {
-            @while:
-            try
-            {
-                Buffer = new byte[BufferSize];
-                int size = Client.ReceiveFrom(Buffer, ref Point);
-
-                lock (ReceiveClients)
-                {
-                    //убирает отключённых клиентов
-
-                    for (int i = 0; i < ReceiveClients.Count; i++)
+                    DateTime nowTime = DateTime.Now;
+                    var removingTimeOut = from point in RegisteringСlients where (nowTime - point.Value).Seconds > 15 select point.Key;
+                    foreach(var key in removingTimeOut)
                     {
-                        if (ReceiveClients[i].Stopped)
+                        RegisteringСlients.Remove(key);
+                    }
+
+                    lock (ReceiveClients) {
+                        if (ReceiveClients.TryGetValue(receivePoint, out MultyAccepterClient client))
                         {
-#if DEBUG
-                            Console.WriteLine($"Client removed [{ReceiveClients[i].EndPoint}]");
-#endif
-                            ReceiveClients.RemoveAt(i);
-                            i--;
+                            //RPC
+                            client.AcceptEvent.Invoke(Buffer, size);
                         }
-                    }
-
-                    if (TryGetValue(out MultyAccepterClient mac))
-                    {
-                        mac.AcceptEvent.Invoke(Buffer, size);
-                    }
-                    else
-                    {
-                        try
+                        else
                         {
-                            if (BitPacketsUtilities.GetPacketType(Buffer) == PacketType.ReqConnection0)
+                            PacketType packetType = Buffer.GetPacketType();
+
+                            //Если игрок хочет подключиться
+                            if (packetType == PacketType.ReqConnection0 || packetType == PacketType.ReqConnection2)
                             {
-                                byte[] sendBuffer = new byte[sizeof(PacketType)];
-                                PackConvector.PackUP(sendBuffer, PacketType.ReqConnection1);
-
-                                for (int i = 0; i < 5; i++)
+                                if (RegisteringСlients.TryGetValue(receivePoint, out DateTime time))
                                 {
-                                    Client.SendTo(sendBuffer, Point);
-                                    Thread.Sleep(20);
+                                    //ждём ответа в виде хэш кода который мы отсылаем
+                                    if (packetType == PacketType.ReqConnection2 && size == sizeof(PacketType) + sizeof(int))
+                                    {
+                                        PackConvector.UnPack<PacketType, int>(Buffer, out _, out int hash);
+                                        if(hash == receivePoint.GetHashCode())
+                                        {
+                                            RegisteringСlients.Remove(receivePoint);
+                                            Task.Run(()=>
+                                            {
+                                                Client cc = new Client(receivePoint, this);
+                                                AcceptEvent.Invoke(cc);
+                                            });
+                                            continue;
+                                        }
+                                    }
                                 }
-
-                                Client client = new Client(Point, this);
-                                Thread invoker = new Thread(() =>
+                                else
                                 {
-                                    AcceptEvent.Invoke(client);
-                                })
-                                {
-                                    IsBackground = true,
-                                    Name = "EMI.Client [" + Point.ToString() + "]"
-                                };
-                                invoker.Start();
+                                    RegisteringСlients.Add(receivePoint, DateTime.Now);
 
+                                    byte[] sendBuffer = new byte[sizeof(PacketType) + sizeof(int)];
+                                    PackConvector.PackUP(sendBuffer, PacketType.ReqConnection1, receivePoint.GetHashCode());
+                                    Socket.SendTo(sendBuffer, receivePoint);
+                                }
                             }
                         }
-                        catch
-                        {
-
-                        }
                     }
                 }
+                catch 
+                {
+                    //если задача отменена
+                    if (CancellationTokenSource.IsCancellationRequested)
+                        return;
+                }
             }
-            catch
-            {
-
-            }
-            goto @while;
         }
 
+
+        /// <summary>
+        /// Отключает всех клиентов
+        /// </summary>
         public void Stop()
         {
-            for (int i = 0; i < ReceiveClients.Count; i++)
-            {
-                lock (ReceiveClients)
-                {
-                    if (ReceiveClients[i].Stopped == false)
-                    {
-                        try
-                        {
-                            ReceiveClients[i].Stop();
-                        }
-                        catch
-                        {
+            //TODO
+            //for (int i = 0; i < ReceiveClients.Count; i++)
+            //{
+            //    lock (ReceiveClients)
+            //    {
+            //        if (ReceiveClients[i].Stopped == false)
+            //        {
+            //            ReceiveClients[i].Client.Close();
+            //        }
+            //    }
+            //}
 
-                        }
-                    }
-                }
-            }
-
-            try
-            {
-                Thread.Abort();
-            }
-            catch
-            {
-            }
-            Client.Dispose();
+            //завершает потоки обработки
+            CancellationTokenSource.Cancel();
+            Socket.Close();
         }
     }
 }

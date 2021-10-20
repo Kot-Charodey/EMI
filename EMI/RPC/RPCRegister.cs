@@ -117,9 +117,9 @@ namespace EMI
         /// <param name="LVL_Permission">Уровень прав которыми должен обладать пользователь чтобы переслать сообщение</param>
         /// <param name="Method">Функция выполняющия пересылку</param>
         /// <returns></returns>
-        public Handle RegisterForwardingMethod(ushort Address, byte LVL_Permission, ForwardingMethod Method)
+        public Handle RegisterForwardingMethod(RPCAddress Address, byte LVL_Permission, ForwardingMethod Method)
         {
-            if (Functions[Address].Count > 0)
+            if (Functions[Address.ID].Count > 0)
                 throw new Exception("Разрешается только 1 метод для адреса!");
             if (IsGlobal)
                 throw new Exception("Разрешается регистрация только не global RPC!");
@@ -129,7 +129,7 @@ namespace EMI
                 Client[] clients = Method(Owner);
                 for (int i = 0; i < clients.Length; i++)
                 {
-                    clients[i].RemoteForwardingExecution(Address, arrayData, guaranteed);
+                    clients[i].RemoteForwardingExecution(Address.ID, arrayData, guaranteed);
                 }
                 return null;
             }
@@ -137,8 +137,8 @@ namespace EMI
             {
                 Forwarding = true
             };
-            Functions[Address].Add(action);
-            Handle handle = new Handle(this, action, Address);
+            Functions[Address.ID].Add(action);
+            Handle handle = new Handle(this, action, Address.ID);
             return handle;
         }
         #endregion
