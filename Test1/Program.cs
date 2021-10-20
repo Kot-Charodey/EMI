@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Net;
 using EMI;
 
@@ -11,12 +12,17 @@ namespace Test1
 {
     unsafe class Program
     {
-        static RPCAddressTable table = new RPCAddressTable();
-        static RPCAddress               BuxA = new RPCAddress(table);
-        static RPCAddress<string>       MSGA = new RPCAddress<string>(table);
-        static RPCAddress               BeepA = new RPCAddress(table);
-        static RPCAddressOut<string>    GetInputA = new RPCAddressOut<string>(table);
-        static RPCAddress<int[]>        TestArrayA = new RPCAddress<int[]>(table);
+        private static readonly RPCAddressTable table = new RPCAddressTable();
+
+        public static readonly RPCAddress               BuxA         = new RPCAddress(table);
+        public static readonly RPCAddress<string>       MSGA         = new RPCAddress<string>(table);
+        public static readonly RPCAddress               BeepA        = new RPCAddress(table);
+        public static readonly RPCAddressOut<string>    GetInputA    = new RPCAddressOut<string>(table);
+        public static readonly RPCAddress<int[]>        TestArrayA   = new RPCAddress<int[]>(table);
+
+        static readonly CancellationTokenSource CancellationTokenSource=new CancellationTokenSource();
+
+        static Server srv;
 
         static void Main()
         {
@@ -29,30 +35,40 @@ namespace Test1
             RPC.Global.RegisterMethod(TestArrayA, 0, TestArray);
 
             string com = Console.ReadLine();
+            try
+            {
+                if (com == "1")
+                {
+                    string b = "31.10.114.169";
+                    Client client = Client.Connect(IPAddress.Parse(b), 25600);
+                    client.CloseEvent += Client_CloseEvent;
+                    Console.WriteLine("Опа");
+                    TestCom(client);
+                }
+                else if (com == "2")
+                {
+                    string a = "10.20.30.50";
+                    Client client = Client.Connect(IPAddress.Parse(a), 25600);
+                    client.CloseEvent += Client_CloseEvent;
+                    Console.WriteLine("Опа");
+                    TestCom(client);
+                }
+                else
+                {
+                    srv = new Server(25600);
+                    srv.Start(Proc);
+                }
 
-            if (com == "1")
-            {
-                string b = "31.10.114.169";
-                Client client = Client.Connect(IPAddress.Parse(b), 25600);
-                Console.WriteLine("Опа");
-                TestCom(client);
+                Task.Delay(-1, CancellationTokenSource.Token).Wait();
             }
-            else if(com == "2")
-            {
-                string a = "10.20.30.50";
-                Client client = Client.Connect(IPAddress.Parse(a), 25600);
-                Console.WriteLine("Опа");
-                TestCom(client);
-            }
-            else
-            {
-                Server srv = new Server(25600);
-                srv.Start(Proc);
-            }
-            while (true)
-            {
+            catch { }
 
-            }
+            Console.ReadLine();
+        }
+
+        private static void Client_CloseEvent(CloseType obj)
+        {
+            CancellationTokenSource.Cancel();
         }
 
         private static void TestArray(int[] p1)
@@ -71,8 +87,10 @@ namespace Test1
         static void Proc(Client cc)
         {
             Console.WriteLine("Опа");
+            cc.CloseEvent += Client_CloseEvent;
             TestCom(cc);
         }
+
 
         static void Bux()
         {
@@ -90,15 +108,15 @@ namespace Test1
                 switch (Console.ReadLine().ToLower())
                 {
                     case "msg":
-                        cc.RemoteStandardExecution(MSGA.ID, Microsoft.VisualBasic.Interaction.InputBox("Введите сообщение", "MSG"));
+                        cc.RemoteStandardExecution(MSGA, Microsoft.VisualBasic.Interaction.InputBox("Введите сообщение", "MSG"));
                         break;
                     case "beep":
-                        cc.RemoteStandardExecution(BeepA.ID);
+                        cc.RemoteStandardExecution(BeepA);
                         break;
                     case "gi":
                         new Thread(() =>
                         {
-                            System.Windows.Forms.MessageBox.Show(cc.RemoteGuaranteedExecution<string>(GetInputA.ID).Result, "gi");
+                            System.Windows.Forms.MessageBox.Show(cc.RemoteGuaranteedExecution(GetInputA).Result, "gi");
                         }).Start();
                         break;
                     case "at":
@@ -107,10 +125,10 @@ namespace Test1
                         {
                             b[i] = i;
                         }
-                        cc.RemoteGuaranteedExecution(TestArrayA.ID,b);
+                        cc.RemoteGuaranteedExecution(TestArrayA,b);
                         break;
                     default:
-                        cc.RemoteStandardExecution(BuxA.ID);
+                        cc.RemoteStandardExecution(BuxA);
                         break;
                 }
         }

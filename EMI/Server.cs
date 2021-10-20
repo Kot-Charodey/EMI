@@ -10,14 +10,14 @@ namespace EMI
     public class Server
     {
         private MultiAccepter MultiAccepter;
-
+        private readonly ushort Port;
         /// <summary>
         /// 
         /// </summary>
         /// <param name="port"></param>
         public Server(ushort port)
         {
-            MultiAccepter = new MultiAccepter(port);
+            Port = port;
         }
 
         /// <summary>
@@ -26,11 +26,12 @@ namespace EMI
         /// <param name="accepterEvent">Событие подключения нового пользователя [создаёт новый поток]</param>
         public void Start(Action<Client> accepterEvent)
         {
+            MultiAccepter = new MultiAccepter(Port);
             MultiAccepter.StartProcessReceive(accepterEvent);
         }
 
         /// <summary>
-        /// Завершает работу сервера и отсоединяет всех клиентов [для повторного запуска следует создать новую копию класса]
+        /// Завершает работу сервера и отсоединяет всех клиентов
         /// </summary>
         public void Stop()
         {

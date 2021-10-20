@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Diagnostics;
 using SpeedByteConvector;
 using System.Net;
@@ -77,7 +78,7 @@ namespace EMI
             IsConnect = true;
             InitAcceptLogicEvent(endPoint);
 
-            MultyAccepterClient multyAccepterClient = new MultyAccepterClient(endPoint, accepter, ProcessAccept);
+            MultyAccepterClient multyAccepterClient = new MultyAccepterClient(endPoint, accepter, this, ProcessAccept);
             Accepter = multyAccepterClient;
             ThreadRequestLostPackages.Start();
             ProcessPingSenderStart();
@@ -91,11 +92,12 @@ namespace EMI
         /// <returns></returns>
         public static Client Connect(IPAddress IP, ushort port)
         {
+            //TODO кажется тут слишком много потоков [Thread->Task]
             Client client = new Client();
             var EndPoint = new IPEndPoint(IP, port);
             client.Accepter = new SimpleAccepter(EndPoint);
 
-            const double timeOut = 30;
+            const double timeOut = 15;
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
             Thread thread = new Thread(client.ConnectProcess)
@@ -141,6 +143,8 @@ namespace EMI
             Stop();
         }
 
+        //TODO написанно плохо - переделать 
+
         /// <summary>
         /// Попытка подключиться к серверу
         /// </summary>
@@ -152,7 +156,15 @@ namespace EMI
             {
                 if (Accepter.Receive(out int size).GetPacketType() == PacketType.ReqConnection1)
                 {
-                    
+                    Task.Run(() =>
+                    {
+                        byte[] sendBuffer2 = { (byte)PacketType.ReqConnection2 };
+                        for (int i = 0; i < 50; i++)
+                        {
+                            Accepter.Send(sendBuffer2, sendBuffer2.Length);
+                            Thread.Sleep(10 + i * 5);
+                        }
+                    }).Wait();
                 }
                 else
                 {
@@ -169,7 +181,7 @@ namespace EMI
             while (threadReader.IsAlive)
             {
                 Accepter.Send(sendBuffer, sendBuffer.Length);
-                Thread.Sleep(50);
+                Thread.Sleep(150);
             }
 
             if (Fail)
@@ -244,7 +256,7 @@ namespace EMI
         /// <summary>
         /// что бы Stop не запустися несколько раз подряд
         /// </summary>
-        private RefVarible<bool> ISStopInvoke = new RefVarible<bool>(false);
+        private readonly RefVarible<bool> ISStopInvoke = new RefVarible<bool>(false);
         /// <summary>
         /// Завершает подключение
         /// </summary>
@@ -299,11 +311,14 @@ namespace EMI
             }
 
             byte[] sendBuffer = { (byte)PacketType.SndClose, (byte)closeType };
-            //отправим 10 раз что бы точно дошло
-            for (int i = 0; i < 10; i++)
+
+            try
             {
                 Accepter.Send(sendBuffer, sendBuffer.Length);
-                Thread.Sleep(100);
+            }
+            catch
+            {
+
             }
         }
     }

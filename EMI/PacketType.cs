@@ -15,7 +15,8 @@
         ReqGetPkgSegmented,
         ReqPing0,
         ReqPing1,
-        ReqConnection0,
-        ReqConnection1,
+        ReqConnection0,//client -> server #1
+        ReqConnection1,//server -> client #2
+        ReqConnection2,//client -> server #3
     }
 }

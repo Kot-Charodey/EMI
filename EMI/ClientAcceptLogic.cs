@@ -84,6 +84,7 @@ namespace EMI
                 ReqPing1,
                 ReqConnection0,
                 ReqConnection1,
+                ReqConnection2,
             };
 
             ThreadRequestLostPackages = new Thread(RequestLostPackages)
@@ -109,12 +110,17 @@ namespace EMI
                 AcceptBuffer = buffer;
                 SizeAcceptBuffer = size;
                 packetType = buffer.GetPacketType();
+
+                if(packetType!=PacketType.ReqGetPkg && packetType!=PacketType.ReqPing0 && packetType != PacketType.ReqPing1)
+                Console.WriteLine(packetType);
                 //выполняем обработку в соотведствии с типом
                 AcceptLogicEvent[(int)packetType].Invoke();
             }
-            catch (ThreadAbortException)
+            catch (OperationCanceledException)
             {
-                return;
+                SendErrorClose(CloseType.NormalStop);
+                Stop();
+                throw new OperationCanceledException();
             }
             catch (Exception e)
             {
@@ -286,8 +292,8 @@ namespace EMI
         private void SndGuaranteedSegmented()
         {
             Packager_Segmented.UnPack(AcceptBuffer, 0, out var bitPacket, out byte[] data);
+            Console.WriteLine("segment -> " + bitPacket.Segment + " " + bitPacket.SegmentCount + " " + bitPacket.ID);
             var package = SegmentPackagesBuffer.AddSegment(in bitPacket, data);
-
             //если пакет готов
             if (package != null)
             {
@@ -392,6 +398,12 @@ namespace EMI
 
         }
 
+        //nope
+        private void ReqConnection2()
+        {
+
+        }
+
         /// <summary>
         ///  Запрос - повторить отправку - потерянный сегментированный пакет (так же если слишком много сегментов то изначально отправяться не все)
         ///  упаковка: /BitPacketGetPkgSegmented/,/ushort[] список сегментов/
@@ -400,10 +412,9 @@ namespace EMI
         {
             Packager_PkgSegmented.UnPack(AcceptBuffer, 0, out var bitPacket, out ushort[] ID_Data);
 
-            byte[] buffer;
             for (int i = 0; i < ID_Data.Length; i++)
             {
-                var info = SendSegmentBackupBuffer.Get(bitPacket.ID, ID_Data[i],out buffer);
+                var info = SendSegmentBackupBuffer.Get(bitPacket.ID, ID_Data[i], out byte[] buffer);
                 //если пакет не найден - он потерян, ошибка
                 if (buffer == null)
                 {

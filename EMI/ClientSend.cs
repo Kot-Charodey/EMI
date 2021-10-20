@@ -134,12 +134,12 @@ namespace EMI
         /// Выполнить RPC без гарантии доставки
         /// </summary>
         /// <param name="Address">Айди вызываемой функции</param>
-        public void RemoteStandardExecution(ushort Address)
+        public void RemoteStandardExecution(RPCAddress Address)
         {
             BitPacketSimple bps = new BitPacketSimple()
             {
                 PacketType = PacketType.SndSimple,
-                RPCAddres = Address,
+                RPCAddres = Address.ID,
             };
             byte[] data = Packager_SimpleNoData.PackUP(bps);
             Accepter.Send(data, data.Length);
@@ -150,12 +150,12 @@ namespace EMI
         /// <typeparam name="T1">тип аргумента</typeparam>
         /// <param name="Address">Айди вызываемой функции</param>
         /// <param name="t1">аргумент</param>
-        public void RemoteStandardExecution<T1>(ushort Address, T1 t1)
+        public void RemoteStandardExecution<T1>(RPCAddress<T1> Address, T1 t1)
         {
             BitPacketSimple bps = new BitPacketSimple()
             {
                 PacketType = PacketType.SndSimple,
-                RPCAddres = Address,
+                RPCAddres = Address.ID,
             };
             var pac = Packager.Create<T1>();
 
@@ -168,13 +168,13 @@ namespace EMI
         /// Выполнить RPC с гарантией доставки (последовательность вызовов не гарантируется)
         /// </summary>
         /// <param name="Address">Айди вызываемой функции</param>
-        public void RemoteGuaranteedExecution(ushort Address)
+        public void RemoteGuaranteedExecution(RPCAddress Address)
         {
             ulong id = SendID.GetNewIDAndLock();
             BitPacketGuaranteed bp = new BitPacketGuaranteed()
             {
                 PacketType = PacketType.SndGuaranteed,
-                RPCAddres = Address,
+                RPCAddres = Address.ID,
                 ID = id
             };
             byte[] data = Packager_GuaranteedNoData.PackUP(bp);
@@ -188,7 +188,7 @@ namespace EMI
         /// <typeparam name="T1">тип аргумента</typeparam>
         /// <param name="Address">Айди вызываемой функции</param>
         /// <param name="t1">Aргумент</param>
-        public void RemoteGuaranteedExecution<T1>(ushort Address, T1 t1)
+        public void RemoteGuaranteedExecution<T1>(RPCAddress<T1> Address, T1 t1)
         {
             ulong id = SendID.GetNewIDAndLock();
             var pac = Packager.Create<T1>();
@@ -199,7 +199,7 @@ namespace EMI
                 BitPacketGuaranteed bp = new BitPacketGuaranteed()
                 {
                     PacketType = PacketType.SndGuaranteed,
-                    RPCAddres = Address,
+                    RPCAddres = Address.ID,
                     ID = id
                 };
                 buffer = new byte[size];
@@ -220,7 +220,7 @@ namespace EMI
                 BitPacketSegmented bp = new BitPacketSegmented()
                 {
                     PacketType = PacketType.SndGuaranteedSegmented,
-                    RPCAddres = Address,
+                    RPCAddres = Address.ID,
                     ID = id,
                     Segment = 0,
                     SegmentCount = BitPacketsUtilities.CalcSegmentCount(size)
@@ -246,13 +246,13 @@ namespace EMI
         /// <typeparam name="TOut">Тип возвращающегося результата</typeparam>
         /// <param name="Address">Айди вызываемой функции</param>
         /// <returns>Массив результата от выполнения всех функций (количество зависит от выполненных функций)</returns>
-        public async Task<TOut> RemoteGuaranteedExecution<TOut>(ushort Address)
+        public async Task<TOut> RemoteGuaranteedExecution<TOut>(RPCAddressOut<TOut> Address)
         {
             ulong id = SendID.GetNewIDAndLock();
             BitPacketGuaranteed bp = new BitPacketGuaranteed()
             {
                 PacketType = PacketType.SndGuaranteedRtr,
-                RPCAddres = Address,
+                RPCAddres = Address.ID,
                 ID = id
             };
             byte[] data = Packager_GuaranteedNoData.PackUP(bp);
@@ -269,7 +269,7 @@ namespace EMI
         /// <param name="Address">Айди вызываемой функции</param>
         /// <param name="t1">Aргумент</param>
         /// <returns>Массив результата от выполнения всех функций (количество зависит от выполненных функций)</returns>
-        public async Task<TOut> RemoteGuaranteedExecution<TOut, T1>(ushort Address, T1 t1)
+        public async Task<TOut> RemoteGuaranteedExecution<TOut, T1>(RPCAddressOut<TOut,T1> Address, T1 t1)
         {
             ulong id = SendID.GetNewIDAndLock();
             var pac = Packager.Create<T1>();
@@ -280,7 +280,7 @@ namespace EMI
                 BitPacketGuaranteed bp = new BitPacketGuaranteed()
                 {
                     PacketType = PacketType.SndGuaranteedRtr,
-                    RPCAddres = Address,
+                    RPCAddres = Address.ID,
                     ID = id
                 };
                 buffer = new byte[size];
@@ -300,7 +300,7 @@ namespace EMI
                 BitPacketSegmented bp = new BitPacketSegmented()
                 {
                     PacketType = PacketType.SndGuaranteedRtrSegmented,
-                    RPCAddres = Address,
+                    RPCAddres = Address.ID,
                     ID = id,
                     Segment = 0,
                     SegmentCount = BitPacketsUtilities.CalcSegmentCount(size)
