@@ -38,8 +38,11 @@ namespace EMI
         /// <summary>
         /// После ожидания произойдёт отключение
         /// </summary>
-        internal const int TimeOutPing = 5000;
-
+        internal const int TimeOutPing = 6000;
+        /// <summary>
+        /// Чатота опроса ping
+        /// </summary>
+        public RequestRatePing RequestRatePing = RequestRatePing.ms1000;
         /// <summary>
         /// Существует ли подключение между клиентами
         /// </summary>
@@ -136,7 +139,7 @@ namespace EMI
             byte[] buffer = null;
             int size;
 
-            CancellationToken cancellation = new CancellationTokenSource(15000).Token;
+            CancellationToken cancellation = new CancellationTokenSource(30000).Token;
 
             while (!cancellation.IsCancellationRequested) {
                 Accepter.Send(snd1, snd1.Length);
@@ -161,7 +164,7 @@ namespace EMI
                                 break;
                             }
                         }
-                    }, new CancellationTokenSource(500));
+                    }, new CancellationTokenSource(4000));
 
                     if (accept2)
                         return true;
@@ -204,16 +207,17 @@ namespace EMI
             ThreadProcessPing.Start();
         }
 
+        
         private void ProcessPingSender()
         {
             StopwatchPing.Start();
             byte[] buffer = { (byte)PacketType.ReqPing0 };
-
+            int[] delay = { 10, 100, 1000, 2000 };
             while (IsConnect)
             {
                 Accepter.Send(buffer, buffer.Length);
 
-                Thread.Sleep(100);
+                Thread.Sleep(delay[(int)RequestRatePing]);
             }
         }
 
