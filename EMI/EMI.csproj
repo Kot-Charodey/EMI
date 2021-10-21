@@ -82,6 +82,7 @@
     <Compile Include="SegmentPackagesBuffer.cs" />
     <Compile Include="SendBackupBuffer.cs" />
     <Compile Include="Server.cs" />
+    <Compile Include="RequestRatePing.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\SmartPackager\SmartPackager\SmartPackager.csproj">
