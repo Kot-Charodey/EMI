@@ -1,21 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-#pragma warning disable CS1591 // Отсутствует комментарий XML для открытого видимого типа или члена
-namespace EMI
+﻿namespace EMI
 {
+    /// <summary>
+    /// Необходим при инициализации RPCAdress требуется 1 для клиента и 1 для сервера
+    /// </summary>
     public class RPCAddressTable
     {
-        public ushort ID;
+       internal ushort ID;
     }
 
+    /// <summary>
+    /// Адресс для вызова и регистрации функций
+    /// </summary>
     public class RPCAddress
     {
-        public ushort ID;
+        internal ushort ID;
 
+        /// <summary>
+        /// Инициализирует адресс
+        /// </summary>
         public RPCAddress(RPCAddressTable table)
         {
             lock (table)
@@ -25,10 +27,16 @@ namespace EMI
         }
     }
 
+    /// <summary>
+    /// Адресс для вызова и регистрации функций
+    /// </summary>
     public class RPCAddress<T1>
     {
-        public ushort ID;
+        internal ushort ID;
 
+        /// <summary>
+        /// Инициализирует адресс
+        /// </summary>
         public RPCAddress(RPCAddressTable table)
         {
             lock (table)
@@ -38,10 +46,16 @@ namespace EMI
         }
     }
 
+    /// <summary>
+    /// Адресс для вызова и регистрации функций
+    /// </summary>
     public class RPCAddressOut<TOut>
     {
-        public ushort ID;
+        internal ushort ID;
 
+        /// <summary>
+        /// Инициализирует адресс
+        /// </summary>
         public RPCAddressOut(RPCAddressTable table)
         {
             lock (table)
@@ -51,10 +65,16 @@ namespace EMI
         }
     }
 
+    /// <summary>
+    /// Адресс для вызова и регистрации функций
+    /// </summary>
     public class RPCAddressOut<TOut, T1>
     {
-        public ushort ID;
+        internal ushort ID;
 
+        /// <summary>
+        /// Инициализирует адресс
+        /// </summary>
         public RPCAddressOut(RPCAddressTable table)
         {
             lock (table)
@@ -64,5 +84,3 @@ namespace EMI
         }
     }
 }
-
-#pragma warning restore CS1591 // Отсутствует комментарий XML для открытого видимого типа или члена

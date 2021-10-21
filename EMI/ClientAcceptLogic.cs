@@ -111,8 +111,8 @@ namespace EMI
                 SizeAcceptBuffer = size;
                 packetType = buffer.GetPacketType();
 
-                if(packetType!=PacketType.ReqGetPkg && packetType!=PacketType.ReqPing0 && packetType != PacketType.ReqPing1)
-                Console.WriteLine(packetType);
+                //if(packetType!=PacketType.ReqGetPkg && packetType!=PacketType.ReqPing0 && packetType != PacketType.ReqPing1)
+                //Console.WriteLine(packetType);
                 //выполняем обработку в соотведствии с типом
                 AcceptLogicEvent[(int)packetType].Invoke();
             }
@@ -138,14 +138,28 @@ namespace EMI
         /// Так же указывает что данный пакет доставлен
         /// </summary>
         /// <param name="ID"></param>
+        /// <param name="SegmentPacket">Если пакет сегментированный он оставляет запрос в LostID даже когда считается не потерянным</param>
         /// <returns></returns>
-        private bool SubGuaranteedCheck(ulong ID)
+        private bool SubGuaranteedCheck(ulong ID, bool SegmentPacket)
         {
             lock (ReqID)
             {
                 if (ID == ReqID.Value)
                 {
                     ReqID.Value++;
+
+                    if (SegmentPacket)
+                        lock (LostID)
+                        {
+                            for (int i = 0; i < LostID.Count; i++)
+                            {
+                                if (LostID[i].ID == ID)
+                                {
+                                    LostID.RemoveAt(i);
+                                    break;
+                                }
+                            }
+                        }
                 }
                 else if (ID > ReqID.Value)
                 {
@@ -248,7 +262,7 @@ namespace EMI
                 Packager_GuaranteedNoData.UnPack(AcceptBuffer, 0, out bitPacket);
             }
 
-            if (SubGuaranteedCheck(bitPacket.ID) == false)
+            if (SubGuaranteedCheck(bitPacket.ID,false) == false)
                 return;
 
             ThreadPool.QueueUserWorkItem((object stateInfo) =>
@@ -279,7 +293,7 @@ namespace EMI
                 Packager_GuaranteedNoData.UnPack(AcceptBuffer, 0, out bitPacket);
             }
 
-            if (SubGuaranteedCheck(bitPacket.ID) == false)
+            if (SubGuaranteedCheck(bitPacket.ID,false) == false)
                 return;
 
             ThreadPool.QueueUserWorkItem((object stateInfo) =>
@@ -292,14 +306,13 @@ namespace EMI
         private void SndGuaranteedSegmented()
         {
             Packager_Segmented.UnPack(AcceptBuffer, 0, out var bitPacket, out byte[] data);
-            Console.WriteLine("segment -> " + bitPacket.Segment + " " + bitPacket.SegmentCount + " " + bitPacket.ID);
             var package = SegmentPackagesBuffer.AddSegment(in bitPacket, data);
             //если пакет готов
             if (package != null)
             {
                 //TODO проверить
                 //удаляем его из списка запрашиваемых (работает но это не точно (лень проверять (потом проверю)))
-                if (SubGuaranteedCheck(bitPacket.ID) == false)
+                if (SubGuaranteedCheck(bitPacket.ID,true) == false)
                     return;
 
                 ThreadPool.QueueUserWorkItem((object stateInfo) =>
@@ -331,7 +344,7 @@ namespace EMI
             if (package != null)
             {
                 //удаляем его из списка запрашиваемых (работает но это не точно (лень проверять (потом проверю)))
-                if (SubGuaranteedCheck(bitPacket.ID) == false)
+                if (SubGuaranteedCheck(bitPacket.ID,true) == false)
                     return;
 
                 ThreadPool.QueueUserWorkItem((object stateInfo) =>
@@ -360,7 +373,7 @@ namespace EMI
                 Packager_GuaranteedReturnedNoData.UnPack(AcceptBuffer, 0, out bitPacket);
             }
 
-            if (SubGuaranteedCheck(bitPacket.ID) == false)
+            if (SubGuaranteedCheck(bitPacket.ID,false) == false)
                 return;
 
             ReturnWaiter.AddData(bitPacket.ReturnID, data);
@@ -375,7 +388,7 @@ namespace EMI
             if (package != null)
             {
                 //удаляем его из списка запрашиваемых (работает но это не точно (лень проверять (потом проверю)))
-                if (SubGuaranteedCheck(bitPacket.ID) == false)
+                if (SubGuaranteedCheck(bitPacket.ID,true) == false)
                     return;
 
                 ReturnWaiter.AddData(bitPacket.ReturnID, data);
@@ -567,7 +580,6 @@ namespace EMI
                         //если всё на месте то проверяем не потерялся/появился новый пакет
                         if (LostID.Count == 0)
                         {
-
                             byte[] sendBuffer = Packager_PacketGetPkg.PackUP(PacketType.ReqGetPkg, new ulong[1] { ReqID.Value });
                             Accepter.Send(sendBuffer, sendBuffer.Length);
                         }
@@ -577,6 +589,8 @@ namespace EMI
                             int count = 64;
                             if (LostID.Count < count)
                                 count = LostID.Count;
+
+                            //TODO БАГ если потерялось несколько сегментированных пакетов второй 3 и тд пакеты просит только сегмент №0 см условие в цикле
 
                             List<ulong> IDs = new List<ulong>(count);
                             //для сегментных пакетов
@@ -626,7 +640,7 @@ namespace EMI
         {
             Packager_SndFullyReceivedSegmentPackage.UnPack(AcceptBuffer, 0, out var bitPacket);
 
-            if (SubGuaranteedCheck(bitPacket.ID) == false)
+            if (SubGuaranteedCheck(bitPacket.ID,false) == false)
                 return;
 
             SendSegmentBackupBuffer.Remove(bitPacket.FullID);

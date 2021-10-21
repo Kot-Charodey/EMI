@@ -12,6 +12,9 @@ namespace Test1
 {
     unsafe class Program
     {
+        //TODO не чиститься память у отправителя сегментированных пакетов
+        //Проверить производительность передачи данных
+
         private static readonly RPCAddressTable table = new RPCAddressTable();
 
         public static readonly RPCAddress               BuxA         = new RPCAddress(table);
@@ -40,7 +43,7 @@ namespace Test1
                 if (com == "1")
                 {
                     string b = "31.10.114.169";
-                    Client client = Client.Connect(IPAddress.Parse(b), 25600);
+                    Client client = Client.Connect(IPAddress.Parse(b), 25600).Result;
                     client.CloseEvent += Client_CloseEvent;
                     Console.WriteLine("Опа");
                     TestCom(client);
@@ -48,7 +51,7 @@ namespace Test1
                 else if (com == "2")
                 {
                     string a = "10.20.30.50";
-                    Client client = Client.Connect(IPAddress.Parse(a), 25600);
+                    Client client = Client.Connect(IPAddress.Parse(a), 25600).Result;
                     client.CloseEvent += Client_CloseEvent;
                     Console.WriteLine("Опа");
                     TestCom(client);

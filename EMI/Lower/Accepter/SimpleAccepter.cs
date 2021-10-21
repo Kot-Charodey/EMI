@@ -6,7 +6,7 @@ namespace EMI.Lower.Accepter
 {
     internal class SimpleAccepter : IMyAccepter
     {
-        private readonly Socket Client;
+        public Socket Client { get; private set; }
         public EndPoint EndPoint { get; private set; }
 
         public SimpleAccepter(IPEndPoint address)
