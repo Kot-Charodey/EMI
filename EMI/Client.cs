@@ -90,47 +90,30 @@ namespace EMI
         /// <param name="IP"></param>
         /// <param name="port"></param>
         /// <returns></returns>
-        public static Client Connect(IPAddress IP, ushort port)
+        public static async Task<Client> Connect(IPAddress IP, ushort port)
         {
-            //TODO кажется тут слишком много потоков [Thread->Task]
             Client client = new Client();
             var EndPoint = new IPEndPoint(IP, port);
             client.Accepter = new SimpleAccepter(EndPoint);
 
-            const double timeOut = 15;
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
-            Thread thread = new Thread(client.ConnectProcess)
-            {
-                IsBackground = true,
-                Name = "EMI.ConnectProcess"
-            };
-            thread.Start();
+            bool good = await client.ConnectProcess();
 
-            while (thread.IsAlive)
-            {
-                if (stopwatch.Elapsed.TotalSeconds > timeOut)
-                {
-                    stopwatch.Stop();
-                    thread.Abort();
-                }
-                else
-                {
-                    Thread.Sleep(1);
-                }
-            }
-
-            if (client.IsConnect == false)
+            if (!good)
             {
                 client.SendErrorClose(CloseType.StopConnectionError);
+                client.Accepter.Stop();
 
                 return null;
             }
+
+
+            client.IsConnect = true;
 
             client.InitAcceptLogicEvent(EndPoint);
             client.StartProcessLocalReceive();
             client.ThreadRequestLostPackages.Start();
             client.ProcessPingSenderStart();
+
             return client;
         }
 
@@ -143,53 +126,53 @@ namespace EMI
             Stop();
         }
 
-        //TODO написанно плохо - переделать 
-
         /// <summary>
         /// Попытка подключиться к серверу
         /// </summary>
-        private void ConnectProcess()
+        private async Task<bool> ConnectProcess()
         {
-            bool Fail = false;
+            byte[] snd1 = { (byte)PacketType.ReqConnection0 };
 
-            Thread threadReader = new Thread(() =>
-            {
-                if (Accepter.Receive(out int size).GetPacketType() == PacketType.ReqConnection1)
-                {
-                    Task.Run(() =>
+            byte[] buffer = null;
+            int size;
+
+            CancellationToken cancellation = new CancellationTokenSource(15000).Token;
+
+            while (!cancellation.IsCancellationRequested) {
+                Accepter.Send(snd1, snd1.Length);
+
+                bool accept = await TaskUtilities.InvokeAsync(() => {
+                    buffer = Accepter.Receive(out size);
+                    if (buffer.GetPacketType() == PacketType.ReqConnection1 && size == sizeof(PacketType) + sizeof(int))
                     {
-                        byte[] sendBuffer2 = { (byte)PacketType.ReqConnection2 };
-                        for (int i = 0; i < 50; i++)
+                        buffer[0] = (byte)PacketType.ReqConnection2;
+                        Accepter.Send(buffer, size);
+                    }
+                }, new CancellationTokenSource(500));
+
+                if (accept) //если попытка считается успешной то проверяем отправляет ли нам что либо сервер
+                {
+                    bool accept2 = await TaskUtilities.InvokeAsync(() => {
+                        while (true)
                         {
-                            Accepter.Send(sendBuffer2, sendBuffer2.Length);
-                            Thread.Sleep(10 + i * 5);
+                            buffer = Accepter.Receive(out _);
+                            if (buffer.GetPacketType() == PacketType.ReqPing0)
+                            {
+                                break;
+                            }
                         }
-                    }).Wait();
+                    }, new CancellationTokenSource(500));
+
+                    if (accept2)
+                        return true;
                 }
                 else
                 {
-                    Fail = true;
+
                 }
-            })
-            {
-                IsBackground = true
-            };
-            threadReader.Start();
-
-            byte[] sendBuffer = { (byte)PacketType.ReqConnection0 };
-
-            while (threadReader.IsAlive)
-            {
-                Accepter.Send(sendBuffer, sendBuffer.Length);
-                Thread.Sleep(150);
             }
 
-            if (Fail)
-            {
-                return;
-            }
-
-            IsConnect = true;
+            return false;
         }
 
         private void StartProcessLocalReceive()

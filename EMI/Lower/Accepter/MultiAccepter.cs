@@ -35,7 +35,7 @@ namespace EMI.Lower.Accepter
         public void StartProcessReceive(Action<Client> acceptEvent)
         {
             AcceptEvent = acceptEvent;
-            Task.Factory.StartNew(()=>ProcessReceive(CancellationTokenSource.Token), CancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            System.Threading.Tasks.Task.Factory.StartNew(()=> ProcessReceive(CancellationTokenSource.Token), CancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
 
         private const int BufferSize = 1248;//максимальный размер MPU
@@ -48,7 +48,7 @@ namespace EMI.Lower.Accepter
         {
             Buffer = new byte[BufferSize];
             EndPoint receivePoint = new IPEndPoint(IPAddress.Any, 1);
-            while (!CancellationTokenSource.IsCancellationRequested)
+            while (!cancellationToken.IsCancellationRequested)
             {
                 try
                 {
@@ -79,7 +79,12 @@ namespace EMI.Lower.Accepter
                                     //ждём ответа в виде хэш кода который мы отсылаем
                                     if (packetType == PacketType.ReqConnection2 && size == sizeof(PacketType) + sizeof(int))
                                     {
-                                        PackConvector.UnPack<PacketType, int>(Buffer, out _, out int hash);
+                                        int hash;
+                                        unsafe
+                                        {
+                                            fixed (byte* num = &Buffer[1])
+                                                hash = *(int*)num;
+                                        }
                                         if(hash == receivePoint.GetHashCode())
                                         {
                                             RegisteringСlients.Remove(receivePoint);
@@ -97,7 +102,15 @@ namespace EMI.Lower.Accepter
                                     RegisteringСlients.Add(receivePoint, DateTime.Now);
 
                                     byte[] sendBuffer = new byte[sizeof(PacketType) + sizeof(int)];
-                                    PackConvector.PackUP(sendBuffer, PacketType.ReqConnection1, receivePoint.GetHashCode());
+                                    sendBuffer[0] = (byte)PacketType.ReqConnection1;
+                                    unsafe
+                                    {
+                                        {
+                                            fixed (byte* num = &sendBuffer[1])
+                                                *(int*)num = receivePoint.GetHashCode();
+                                        }
+                                        
+                                    }
                                     Socket.SendTo(sendBuffer, receivePoint);
                                 }
                             }
