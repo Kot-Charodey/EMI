@@ -334,7 +334,6 @@ namespace EMI
             }
         }
 
-
         private void SndGuaranteedRtrSegmented()
         {
             Packager_Segmented.UnPack(AcceptBuffer, 0, out var bitPacket, out byte[] data);

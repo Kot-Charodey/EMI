@@ -3,12 +3,17 @@
 namespace EMI
 {
     using Lower.Accepter;
+    using Debug;
 
     /// <summary>
     /// Сервер EMI
     /// </summary>
     public class Server
     {
+        /// <summary>
+        /// Отладка
+        /// </summary>
+        public Net Debug = new Net();
         private MultiAccepter MultiAccepter;
         private readonly ushort Port;
         /// <summary>
@@ -26,7 +31,7 @@ namespace EMI
         /// <param name="accepterEvent">Событие подключения нового пользователя [создаёт новый поток]</param>
         public void Start(Action<Client> accepterEvent)
         {
-            MultiAccepter = new MultiAccepter(Port);
+            MultiAccepter = new MultiAccepter(Port,this);
             MultiAccepter.StartProcessReceive(accepterEvent);
         }
 
