@@ -16,20 +16,21 @@ namespace EMI.Lower.Accepter
     /// </summary>
     internal class MultiAccepter
     {
-
+        public Server Server;
         public Socket Socket;
         public Dictionary<EndPoint, MultyAccepterClient> ReceiveClients = new Dictionary<EndPoint, MultyAccepterClient>();
         public Dictionary<EndPoint, DateTime> RegisteringСlients = new Dictionary<EndPoint, DateTime>();
         public CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
         private Action<Client> AcceptEvent;
 
-        public MultiAccepter(int port)
+        public MultiAccepter(int port,Server server)
         {
             Socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp)
             {
                 ExclusiveAddressUse = false
             };
             Socket.Bind(new IPEndPoint(IPAddress.Any, port));
+            Server = server;
         }
 
         public void StartProcessReceive(Action<Client> acceptEvent)
@@ -55,7 +56,7 @@ namespace EMI.Lower.Accepter
                     int size = Socket.ReceiveFrom(Buffer, ref receivePoint);
 
                     DateTime nowTime = DateTime.Now;
-                    var removingTimeOut = from point in RegisteringСlients where (nowTime - point.Value).Seconds > 15 select point.Key;
+                    var removingTimeOut = from point in RegisteringСlients where (nowTime - point.Value).Seconds > 60 select point.Key;
                     foreach(var key in removingTimeOut)
                     {
                         RegisteringСlients.Remove(key);
@@ -64,54 +65,55 @@ namespace EMI.Lower.Accepter
                     lock (ReceiveClients) {
                         if (ReceiveClients.TryGetValue(receivePoint, out MultyAccepterClient client))
                         {
+                            //TODO проверить многопоточность
                             //RPC
                             client.AcceptEvent.Invoke(Buffer, size);
                         }
                         else
                         {
                             PacketType packetType = Buffer.GetPacketType();
-
+                            
                             //Если игрок хочет подключиться
                             if (packetType == PacketType.ReqConnection0 || packetType == PacketType.ReqConnection2)
                             {
                                 if (RegisteringСlients.TryGetValue(receivePoint, out DateTime time))
                                 {
-                                    //ждём ответа в виде хэш кода который мы отсылаем
-                                    if (packetType == PacketType.ReqConnection2 && size == sizeof(PacketType) + sizeof(int))
+                                    switch (packetType)
                                     {
-                                        int hash;
-                                        unsafe
-                                        {
-                                            fixed (byte* num = &Buffer[1])
-                                                hash = *(int*)num;
-                                        }
-                                        if(hash == receivePoint.GetHashCode())
-                                        {
-                                            RegisteringСlients.Remove(receivePoint);
-                                            Task.Run(()=>
+                                        case PacketType.ReqConnection0:
+                                            SendReqCon1(receivePoint);
+                                            break;
+                                        case PacketType.ReqConnection2:
+                                            //ждём ответа в виде хэш кода который мы отсылаем
+                                            if (packetType == PacketType.ReqConnection2 && size == sizeof(PacketType) + sizeof(int))
                                             {
-                                                Client cc = new Client(receivePoint, this);
-                                                AcceptEvent.Invoke(cc);
-                                            });
-                                            continue;
-                                        }
+                                                int hash;
+                                                unsafe
+                                                {
+                                                    fixed (byte* num = &Buffer[1])
+                                                        hash = *(int*)num;
+                                                }
+                                                if (hash == receivePoint.GetHashCode())
+                                                {
+                                                    RegisteringСlients.Remove(receivePoint);
+                                                    Task.Run(() =>
+                                                    {
+                                                        Client cc = new Client(receivePoint, this);
+                                                        AcceptEvent.Invoke(cc);
+                                                    });
+                                                    continue;
+                                                }
+                                            }
+                                            break;
+                                        default:
+                                            RegisteringСlients.Remove(receivePoint);
+                                            break;
                                     }
                                 }
                                 else
                                 {
                                     RegisteringСlients.Add(receivePoint, DateTime.Now);
-
-                                    byte[] sendBuffer = new byte[sizeof(PacketType) + sizeof(int)];
-                                    sendBuffer[0] = (byte)PacketType.ReqConnection1;
-                                    unsafe
-                                    {
-                                        {
-                                            fixed (byte* num = &sendBuffer[1])
-                                                *(int*)num = receivePoint.GetHashCode();
-                                        }
-                                        
-                                    }
-                                    Socket.SendTo(sendBuffer, receivePoint);
+                                    SendReqCon1(receivePoint);
                                 }
                             }
                         }
@@ -126,23 +128,34 @@ namespace EMI.Lower.Accepter
             }
         }
 
+        private byte[] sendBuffer = {(byte)PacketType.ReqConnection1,0,0,0,0};
+
+        private void SendReqCon1(EndPoint receivePoint)
+        {
+            unsafe
+            {
+                    fixed (byte* num = &sendBuffer[1])
+                        *(int*)num = receivePoint.GetHashCode();
+            }
+            Socket.SendTo(sendBuffer, receivePoint);
+        }
+
 
         /// <summary>
         /// Отключает всех клиентов
         /// </summary>
         public void Stop()
         {
-            //TODO
-            //for (int i = 0; i < ReceiveClients.Count; i++)
-            //{
-            //    lock (ReceiveClients)
-            //    {
-            //        if (ReceiveClients[i].Stopped == false)
-            //        {
-            //            ReceiveClients[i].Client.Close();
-            //        }
-            //    }
-            //}
+            lock (ReceiveClients)
+            {
+                foreach(var client in ReceiveClients.Values)
+                {
+                    if (!client.Stopped)
+                    {
+                        client.Client.Close();
+                    }
+                }
+            }
 
             //завершает потоки обработки
             CancellationTokenSource.Cancel();

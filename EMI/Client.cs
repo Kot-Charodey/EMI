@@ -2,7 +2,6 @@
 using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
-using SpeedByteConvector;
 using System.Net;
 
 namespace EMI
@@ -10,10 +9,15 @@ namespace EMI
     using Lower;
     using Lower.Accepter;
     using Lower.Package;
+    using Debug;
 
 
     public partial class Client
     {
+        /// <summary>
+        /// Отладка
+        /// </summary>
+        public Net Debug;
         /// <summary>
         /// Локальный список вызываймых методов
         /// </summary>
@@ -74,8 +78,14 @@ namespace EMI
             RPC = new RPC(this);
         }
 
+        /// <summary>
+        /// Инициализация клиента на стороне сервера
+        /// </summary>
+        /// <param name="endPoint"></param>
+        /// <param name="accepter"></param>
         internal Client(EndPoint endPoint, MultiAccepter accepter)
         {
+            Debug = accepter.Server.Debug;
             RPC = new RPC(this);
 
             IsConnect = true;
@@ -96,6 +106,7 @@ namespace EMI
         public static async Task<Client> Connect(IPAddress IP, ushort port)
         {
             Client client = new Client();
+            client.Debug = new Net();
             var EndPoint = new IPEndPoint(IP, port);
             client.Accepter = new SimpleAccepter(EndPoint);
 

@@ -18,7 +18,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;NoPingLimit</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;NoPingLimit DebugNet</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -53,6 +53,7 @@
     <Compile Include="ClientSend.cs" />
     <Compile Include="CloseType.cs" />
     <Compile Include="ClientOutException.cs" />
+    <Compile Include="Debug\Net.cs" />
     <Compile Include="LostPackageInfo.cs" />
     <Compile Include="Lower\Accepter\IMyAccepter.cs" />
     <Compile Include="Lower\Accepter\MultiAccepter.cs" />
@@ -93,5 +94,6 @@
   <ItemGroup>
     <Content Include="Info.txt" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

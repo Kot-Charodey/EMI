@@ -258,7 +258,7 @@ namespace EMI
             byte[] data = Packager_GuaranteedNoData.PackUP(bp);
             SendBackupBuffer.Add(id, data);
             SendID.UnlockID();
-            return await ReturnWaiter.Wait<TOut>(id, () => Accepter.Send(data, data.Length)); ;
+            return await ReturnWaiter.Wait<TOut>(id, () => Accepter.Send(data, data.Length));
         }
 
         /// <summary>
