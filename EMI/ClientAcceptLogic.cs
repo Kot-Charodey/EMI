@@ -262,7 +262,7 @@ namespace EMI
                 Packager_GuaranteedNoData.UnPack(AcceptBuffer, 0, out bitPacket);
             }
 
-            if (SubGuaranteedCheck(bitPacket.ID,false) == false)
+            if (SubGuaranteedCheck(bitPacket.ID, false) == false)
                 return;
 
             ThreadPool.QueueUserWorkItem((object stateInfo) =>
@@ -271,7 +271,7 @@ namespace EMI
                 {
                     RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, false, true);
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     Console.WriteLine("Client -> SndGuaranteed -> Execute -> Exception -> " + e.ToString());
                 }
@@ -293,7 +293,7 @@ namespace EMI
                 Packager_GuaranteedNoData.UnPack(AcceptBuffer, 0, out bitPacket);
             }
 
-            if (SubGuaranteedCheck(bitPacket.ID,false) == false)
+            if (SubGuaranteedCheck(bitPacket.ID, false) == false)
                 return;
 
             ThreadPool.QueueUserWorkItem((object stateInfo) =>
@@ -312,7 +312,7 @@ namespace EMI
             {
                 //TODO проверить
                 //удаляем его из списка запрашиваемых (работает но это не точно (лень проверять (потом проверю)))
-                if (SubGuaranteedCheck(bitPacket.ID,true) == false)
+                if (SubGuaranteedCheck(bitPacket.ID, true) == false)
                     return;
 
                 ThreadPool.QueueUserWorkItem((object stateInfo) =>
@@ -343,12 +343,12 @@ namespace EMI
             if (package != null)
             {
                 //удаляем его из списка запрашиваемых (работает но это не точно (лень проверять (потом проверю)))
-                if (SubGuaranteedCheck(bitPacket.ID,true) == false)
+                if (SubGuaranteedCheck(bitPacket.ID, true) == false)
                     return;
 
                 ThreadPool.QueueUserWorkItem((object stateInfo) =>
                 {
-                    SendReturn(RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, true, true), package.ID);
+                    SendReturn(RPC.Execute(LVL_Permission, package.Data, package.RPCAddres, true, true), package.ID);
                 });
 
             }
@@ -372,7 +372,7 @@ namespace EMI
                 Packager_GuaranteedReturnedNoData.UnPack(AcceptBuffer, 0, out bitPacket);
             }
 
-            if (SubGuaranteedCheck(bitPacket.ID,false) == false)
+            if (SubGuaranteedCheck(bitPacket.ID, false) == false)
                 return;
 
             ReturnWaiter.AddData(bitPacket.ReturnID, data);
@@ -387,7 +387,7 @@ namespace EMI
             if (package != null)
             {
                 //удаляем его из списка запрашиваемых (работает но это не точно (лень проверять (потом проверю)))
-                if (SubGuaranteedCheck(bitPacket.ID,true) == false)
+                if (SubGuaranteedCheck(bitPacket.ID, true) == false)
                     return;
 
                 ReturnWaiter.AddData(bitPacket.ReturnID, data);
@@ -572,10 +572,11 @@ namespace EMI
                     Stop();
                 }
 #endif
-                lock (LostID)
+                lock (ReqID)
                 {
-                    lock (ReqID)
+                    lock (LostID)
                     {
+
                         //если всё на месте то проверяем не потерялся/появился новый пакет
                         if (LostID.Count == 0)
                         {
@@ -639,7 +640,7 @@ namespace EMI
         {
             Packager_SndFullyReceivedSegmentPackage.UnPack(AcceptBuffer, 0, out var bitPacket);
 
-            if (SubGuaranteedCheck(bitPacket.ID,false) == false)
+            if (SubGuaranteedCheck(bitPacket.ID, false) == false)
                 return;
 
             SendSegmentBackupBuffer.Remove(bitPacket.FullID);

@@ -153,7 +153,17 @@ namespace EMI
             CancellationToken cancellation = new CancellationTokenSource(30000).Token;
 
             while (!cancellation.IsCancellationRequested) {
-                Accepter.Send(snd1, snd1.Length);
+                bool CancelSpam=false;
+#pragma warning disable CS4014 // Так как этот вызов не ожидается, выполнение существующего метода продолжается до тех пор, пока вызов не будет завершен
+                Task.Run(() =>
+                {
+                    while (!CancelSpam)
+                    {
+                        Accepter.Send(snd1, snd1.Length);
+                        Task.Delay(50).Wait();
+                    }
+                });
+#pragma warning restore CS4014 // Так как этот вызов не ожидается, выполнение существующего метода продолжается до тех пор, пока вызов не будет завершен
 
                 bool accept = await TaskUtilities.InvokeAsync(() => {
                     buffer = Accepter.Receive(out size);
@@ -163,6 +173,8 @@ namespace EMI
                         Accepter.Send(buffer, size);
                     }
                 }, new CancellationTokenSource(500));
+
+                CancelSpam = true;
 
                 if (accept) //если попытка считается успешной то проверяем отправляет ли нам что либо сервер
                 {
@@ -179,10 +191,6 @@ namespace EMI
 
                     if (accept2)
                         return true;
-                }
-                else
-                {
-
                 }
             }
 

@@ -17,14 +17,15 @@ namespace Test1
 
         private static readonly RPCAddressTable table = new RPCAddressTable();
 
-        public static readonly RPCAddress               BuxA         = new RPCAddress(table);
-        public static readonly RPCAddress<string>       MSGA         = new RPCAddress<string>(table);
-        public static readonly RPCAddress               BeepA        = new RPCAddress(table);
-        public static readonly RPCAddressOut<string>    GetInputA    = new RPCAddressOut<string>(table);
-        public static readonly RPCAddress<int[]>        TestArrayA   = new RPCAddress<int[]>(table);
-        public static readonly RPCAddressOut<int,int[]> TestA = new RPCAddressOut<int, int[]>(table);
+        public static readonly RPCAddress BuxA = new RPCAddress(table);
+        public static readonly RPCAddress<string> MSGA = new RPCAddress<string>(table);
+        public static readonly RPCAddress BeepA = new RPCAddress(table);
+        public static readonly RPCAddressOut<string> GetInputA = new RPCAddressOut<string>(table);
+        public static readonly RPCAddress<int[]> TestArrayA = new RPCAddress<int[]>(table);
+        public static readonly RPCAddressOut<int, int[]> TestArraySumA = new RPCAddressOut<int, int[]>(table);
+        public static readonly RPCAddressOut<int, int[]> TestA = new RPCAddressOut<int, int[]>(table);
 
-        static readonly CancellationTokenSource CancellationTokenSource=new CancellationTokenSource();
+        static readonly CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
 
         static Server srv;
 
@@ -37,6 +38,7 @@ namespace Test1
             RPC.Global.RegisterMethod(BeepA, 0, Console.Beep);
             RPC.Global.RegisterMethod(GetInputA, 0, GetInput);
             RPC.Global.RegisterMethod(TestArrayA, 0, TestArray);
+            RPC.Global.RegisterMethod(TestArraySumA, 0, TestArraySum);
             RPC.Global.RegisterMethod(TestA, 0, test);
 
             string com = Console.ReadLine();
@@ -61,6 +63,7 @@ namespace Test1
                 else
                 {
                     srv = new Server(25600);
+                    srv.Debug.StartDebug();
                     srv.Start(Proc);
                 }
 
@@ -76,10 +79,23 @@ namespace Test1
             CancellationTokenSource.Cancel();
         }
 
+        private static int TestArraySum(int[] p1)
+        {
+            int s = 0;
+            for (int i = 0; i < p1.Length; i++)
+            {
+                s += p1[i];
+            }
+            Console.WriteLine($"TestArraySum:\n" +
+                $"p1.Length-{p1.Length}\n" +
+                $"sum-{s}");
+            return s;
+        }
+
         private static void TestArray(int[] p1)
         {
-            Console.WriteLine("Test Array length:"+p1.Length);
-            for(int i = 0; i < p1.Length; i++)
+            Console.WriteLine("Test Array length:" + p1.Length);
+            for (int i = 0; i < p1.Length; i++)
             {
                 if (p1[i] != i)
                 {
@@ -95,7 +111,6 @@ namespace Test1
             cc.CloseEvent += Client_CloseEvent;
             TestCom(cc);
         }
-
 
         static void Bux()
         {
@@ -132,55 +147,30 @@ namespace Test1
                         }
                         cc.RemoteGuaranteedExecution(TestArrayA, b);
                         break;
-                    case "test":
-                        Random random = new Random();
-                        int rest = 0;
-                        int good = 0;
-                        int bad = 0;
-                        int mysum = 0;
-                        float jobsCountPerSecond = 0;
-                        float _jobsCountPerSecond = 0;
-                        System.Diagnostics.Stopwatch st = new System.Diagnostics.Stopwatch();
-                        System.Diagnostics.Stopwatch st2 = new System.Diagnostics.Stopwatch();
-                        st.Start();
-                        st2.Start();
-                        Console.Clear();
-                        while (true)
+                    case "at2":
                         {
-                            int[] g = new int[1000/32];
-                            for (int i = 0; i < g.Length; i++)
+                            int[] b2 = new int[64];
+                            int sm = 0;
+                            for (int i = 0; i < b2.Length; i++)
                             {
-                                mysum += g[i] = i;
+                                b2[i] = i;
+                                sm += i;
                             }
-                            int sm = cc.RemoteGuaranteedExecution(TestA, g).Result;
-
-                            if (sm == mysum)
-                                good++;
-                            else
-                                bad++;
-
-                            jobsCountPerSecond++;
-
-                            if (st2.Elapsed.TotalSeconds > 10)
+                            int res = cc.RemoteGuaranteedExecution(TestArraySumA, b2).Result;
+                            Console.WriteLine($"{res == sm}: {res}=={sm}");
+                        }
+                        break;
+                    case "at3":
+                        {
+                            int[] b2 = new int[5000];
+                            int sm = 0;
+                            for (int i = 0; i < b2.Length; i++)
                             {
-                                st2.Restart();
-                                jobsCountPerSecond = (_jobsCountPerSecond + jobsCountPerSecond) * 0.5f;
-                                _jobsCountPerSecond = jobsCountPerSecond;
+                                b2[i] = i;
+                                sm += i;
                             }
-
-                            if (rest++ == 100)
-                            {
-                                Console.SetCursorPosition(0, 0);
-                                rest = 0;
-
-                                string txt =
-                                $"На запрос затрачено времени: {st.Elapsed.TotalMilliseconds / 100} MS      \n" +
-                                $"Запростов в секунду: {jobsCountPerSecond / 10}           \n" +
-                                $"Выполнено:\n" +
-                                $"      Верно: {good}\tC ошибокой: {bad}        ";
-                                Console.WriteLine(txt);
-                                st.Restart();
-                            }
+                            int res = cc.RemoteGuaranteedExecution(TestArraySumA, b2).Result;
+                            Console.WriteLine($"{res == sm}: {res}=={sm}");
                         }
                         break;
                     default:
@@ -192,7 +182,7 @@ namespace Test1
         static int test(int[] arr)
         {
             int a = 0;
-            for(int i = 0; i < arr.Length; i++)
+            for (int i = 0; i < arr.Length; i++)
             {
                 a += arr[i];
             }
