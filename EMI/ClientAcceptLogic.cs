@@ -111,9 +111,6 @@ namespace EMI
                 SizeAcceptBuffer = size;
                 packetType = buffer.GetPacketType();
 
-                //if(packetType!=PacketType.ReqGetPkg && packetType!=PacketType.ReqPing0 && packetType != PacketType.ReqPing1)
-                //Console.WriteLine(packetType);
-                //выполняем обработку в соотведствии с типом
                 AcceptLogicEvent[(int)packetType].Invoke();
             }
             catch (OperationCanceledException)
