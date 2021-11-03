@@ -248,6 +248,7 @@ namespace EMI
         /// <returns>Массив результата от выполнения всех функций (количество зависит от выполненных функций)</returns>
         public async Task<TOut> RemoteGuaranteedExecution<TOut>(RPCAddressOut<TOut> Address)
         {
+            RPCfunctOut<Task<TOut>> waiter = null;
             ulong id = SendID.GetNewIDAndLock();
             BitPacketGuaranteed bp = new BitPacketGuaranteed()
             {
@@ -257,8 +258,12 @@ namespace EMI
             };
             byte[] data = Packager_GuaranteedNoData.PackUP(bp);
             SendBackupBuffer.Add(id, data);
+            waiter = ReturnWaiter.SetupWaiting<TOut>(id);
             SendID.UnlockID();
-            return await ReturnWaiter.Wait<TOut>(id, () => Accepter.Send(data, data.Length));
+
+            Accepter.Send(data, data.Length);
+
+            return await waiter();
         }
 
         /// <summary>
@@ -275,6 +280,8 @@ namespace EMI
             var pac = Packager.Create<T1>();
             long size = pac.CalcNeedSize(t1);
             byte[] data, buffer;
+            RPCfunctOut<Task<TOut>> waiter=null;
+
             if (size <= 1024)
             {
                 BitPacketGuaranteed bp = new BitPacketGuaranteed()
@@ -286,8 +293,11 @@ namespace EMI
                 buffer = new byte[size];
                 pac.PackUP(buffer, 0, t1);
                 data = Packager_Guaranteed.PackUP(bp, pac.PackUP(t1));
+                waiter = ReturnWaiter.SetupWaiting<TOut>(id);
                 SendBackupBuffer.Add(id, data);
                 SendID.UnlockID();
+
+                Accepter.Send(data, data.Length);
             }
             else if (size <= 67107840) //(64 MB)
             {
@@ -307,16 +317,18 @@ namespace EMI
                 };
 
                 SendSegmentBackupBuffer.Add(id, buffer, bp);
+                waiter = ReturnWaiter.SetupWaiting<TOut>(id);
                 SendID.UnlockID();
 
                 data = Packager_Segmented.PackUP(bp, sndBuffer);
+                Accepter.Send(data, data.Length);
             }
             else
             {
                 throw new InsufficientMemoryException("Execution -> Size > 67107840 bytes (64 MB)");
             }
 
-            return await ReturnWaiter.Wait<TOut>(id, () => Accepter.Send(data, data.Length));
+            return await waiter();
         }
         #endregion
     }

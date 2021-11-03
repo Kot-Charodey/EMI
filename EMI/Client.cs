@@ -44,6 +44,15 @@ namespace EMI
         /// </summary>
         internal const int TimeOutPing = 6000;
         /// <summary>
+        /// Для RequestRatePing
+        /// </summary>
+        private static readonly TimeSpan[] RequestRatePingDelay = {
+            new TimeSpan(0,0,0,0,10),
+            new TimeSpan(0,0,0,0,100),
+            new TimeSpan(0,0,0,0,1000),
+            new TimeSpan(0,0,0,0,2000)
+        };
+        /// <summary>
         /// Чатота опроса ping
         /// </summary>
         public RequestRatePing RequestRatePing = RequestRatePing.ms1000;
@@ -152,8 +161,9 @@ namespace EMI
 
             CancellationToken cancellation = new CancellationTokenSource(30000).Token;
 
-            while (!cancellation.IsCancellationRequested) {
-                bool CancelSpam=false;
+            while (!cancellation.IsCancellationRequested)
+            {
+                bool CancelSpam = false;
 #pragma warning disable CS4014 // Так как этот вызов не ожидается, выполнение существующего метода продолжается до тех пор, пока вызов не будет завершен
                 Task.Run(() =>
                 {
@@ -165,7 +175,8 @@ namespace EMI
                 });
 #pragma warning restore CS4014 // Так как этот вызов не ожидается, выполнение существующего метода продолжается до тех пор, пока вызов не будет завершен
 
-                bool accept = await TaskUtilities.InvokeAsync(() => {
+                bool accept = await TaskUtilities.InvokeAsync(() =>
+                {
                     buffer = Accepter.Receive(out size);
                     if (buffer.GetPacketType() == PacketType.ReqConnection1 && size == sizeof(PacketType) + sizeof(int))
                     {
@@ -178,7 +189,8 @@ namespace EMI
 
                 if (accept) //если попытка считается успешной то проверяем отправляет ли нам что либо сервер
                 {
-                    bool accept2 = await TaskUtilities.InvokeAsync(() => {
+                    bool accept2 = await TaskUtilities.InvokeAsync(() =>
+                    {
                         while (true)
                         {
                             buffer = Accepter.Receive(out _);
@@ -226,12 +238,12 @@ namespace EMI
             ThreadProcessPing.Start();
         }
 
-        
+
         private void ProcessPingSender()
         {
             StopwatchPing.Start();
             byte[] buffer = { (byte)PacketType.ReqPing0 };
-            int[] delay = { 10, 100, 1000, 2000 };
+            var delay = RequestRatePingDelay;
             while (IsConnect)
             {
                 Accepter.Send(buffer, buffer.Length);

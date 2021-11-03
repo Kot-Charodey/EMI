@@ -36,7 +36,7 @@ namespace EMI.Lower.Accepter
         public void StartProcessReceive(Action<Client> acceptEvent)
         {
             AcceptEvent = acceptEvent;
-            System.Threading.Tasks.Task.Factory.StartNew(() => ProcessReceive(CancellationTokenSource.Token), CancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            Task.Factory.StartNew(() => ProcessReceive(CancellationTokenSource.Token), CancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
 
         private const int BufferSize = 1248;//максимальный размер MPU

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,44 +13,53 @@ namespace EMI
         private class Waiter
         {
             public bool ClientOut = false;
-            public CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
+            public bool @lock = true;
             public byte[] Data;
         }
 
         private readonly Dictionary<ulong, Waiter> list = new Dictionary<ulong, Waiter>();
 
+        private class Handle<TOut> {
+            
+            public Waiter Waiter;
+
+            public async Task<TOut> Wait()
+            {
+                var pack = Packager.Create<TOut>();
+
+                //когда прийдёт наш пакет то поток разбудят и мы его отдадим
+                while (Waiter.@lock)
+                {
+                    await Task.Delay(1);
+                }
+
+                if (Waiter.ClientOut)
+                {
+                    throw new ClientOutException();
+                }
+
+                pack.UnPack(Waiter.Data, 0, out TOut ret);
+                return ret;
+            }
+        }
+
+        
         /// <summary>
-        /// Ожидает ответ и возвращает аргументы
+        /// Генерирует функцию ожидания - (её можно запустить позже)
         /// </summary>
         /// <typeparam name="TOut"></typeparam>
         /// <param name="ID"></param>
-        /// <param name="send"></param>
         /// <returns></returns>
-        public async Task<TOut> Wait<TOut>(ulong ID, RPCfunct send)
+        public RPCfunctOut<Task<TOut>> SetupWaiting<TOut>(ulong ID)
         {
-            var pack = Packager.Create<TOut>();
-
-            //оставим запрос и идём спать - когда прийдёт наш пакет то поток разбудят
-            Waiter waiter = new Waiter();
+            Handle<TOut> handle = new Handle<TOut>();
+            handle.Waiter = new Waiter();
             lock (list)
             {
-                list.Add(ID, waiter);
-            }
-            send.Invoke();
-            try
-            {
-                //ждём пока прийдёт ответ....
-                await Task.Delay(-1, waiter.CancellationTokenSource.Token);
-            }
-            catch { }
-
-            if (waiter.ClientOut)
-            {
-                throw new ClientOutException();
+                list.Add(ID, handle.Waiter);
             }
 
-            pack.UnPack(waiter.Data, 0, out TOut ret);
-            return ret;
+            return handle.Wait;
         }
 
         /// <summary>
@@ -64,7 +74,7 @@ namespace EMI
                 var wait = list[ID];
                 list.Remove(ID);
                 wait.Data = data;
-                wait.CancellationTokenSource.Cancel();
+                wait.@lock = false;
             }
         }
 
@@ -78,7 +88,7 @@ namespace EMI
                 foreach (Waiter waiter in list.Values)
                 {
                     waiter.ClientOut = true;
-                    waiter.CancellationTokenSource.Cancel(true);
+                    waiter.@lock = false;
                 }
             }
         }
