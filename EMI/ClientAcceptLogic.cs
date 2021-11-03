@@ -119,15 +119,15 @@ namespace EMI
                 Stop();
                 throw new OperationCanceledException();
             }
-            catch (Exception e)
-            {
-#if DEBUG
-                Console.WriteLine($"ProcessAccept -> ({packetType}) ->" + e.ToString());
-#endif
-                SendErrorClose(CloseType.StopPackageBad);
-                Stop();
-                throw e;
-            }
+            //catch (Exception e)
+            //{
+#if DEBUG   //
+            //    Console.WriteLine($"ProcessAccept -> ({packetType}) ->" + e.ToString());
+#endif      //
+            //    SendErrorClose(CloseType.StopPackageBad);
+            //    Stop();
+            //    throw e;
+            //}
         }
 
         /// <summary>
@@ -516,11 +516,15 @@ namespace EMI
         /// </summary>
         private void ReqPing1()
         {
-            var elips = StopwatchPing.Elapsed;
-            StopwatchPing.Restart();
-            Ping = (Ping + elips.TotalSeconds) * 0.5;
-            PingMS = (PingMS + elips.TotalMilliseconds) * 0.5;
-            PingIMS = (int)PingMS;
+            var elips = StopwatchPing.Elapsed - RequestRatePingDelay[(int)RequestRatePing];
+            //проверяем не устарел ли пакет
+            if (elips.Ticks > 0)
+            {
+                StopwatchPing.Restart();
+                Ping = (Ping + elips.TotalSeconds) * 0.5;
+                PingMS = (PingMS + elips.TotalMilliseconds) * 0.5;
+                PingIMS = (int)PingMS;
+            }
         }
 
         /// <summary>
@@ -543,7 +547,7 @@ namespace EMI
                             break;
                         }
                     }
-                    if (contains)
+                    if (!contains)
                         LostID.Add(new LostPackageInfo(i, false));
                 }
             }
