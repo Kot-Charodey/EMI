@@ -1,9 +1,9 @@
-﻿namespace EMI
+﻿namespace EMI.Lower
 {
     /// <summary>
     /// Хранит информацию о потерянных пакетах
     /// </summary>
-    internal class LostPackageInfo
+    internal struct LostPackageInfo
     {
         public ulong ID;
         public bool IsSegment;

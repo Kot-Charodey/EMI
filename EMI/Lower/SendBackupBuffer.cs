@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EMI
+namespace EMI.Lower
 {
     /// <summary>
     /// если пакет не дойдёт - тут должна храниться его копия если он понадобиться

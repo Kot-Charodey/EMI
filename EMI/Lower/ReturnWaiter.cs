@@ -3,9 +3,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace EMI
+namespace EMI.Lower
 {
-    using Lower.Package;
     using SmartPackager;
 
     internal class ReturnWaiter
@@ -30,7 +29,7 @@ namespace EMI
                 //когда прийдёт наш пакет то поток разбудят и мы его отдадим
                 while (Waiter.@lock)
                 {
-                    await Task.Delay(1);
+                    await Task.Delay(1).ConfigureAwait(false);
                 }
 
                 if (Waiter.ClientOut)

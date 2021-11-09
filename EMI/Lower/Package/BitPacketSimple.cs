@@ -6,8 +6,8 @@ namespace EMI.Lower.Package
     internal struct BitPacketSimple
     {
         [FieldOffset(0)]
-        public PacketType PacketType;
+        public PacketType PacketType;//0+1=1
         [FieldOffset(1)]
-        public ushort RPCAddres;
+        public ushort RPCAddres;//1+2=3
     }
 }
