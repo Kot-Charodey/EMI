@@ -7,6 +7,11 @@
             return (PacketType)(BitBuffer[0]);
         }
 
+        public static bool IsSegmentPacket(this PacketType packet)
+        {
+            return packet == PacketType.SndGuaranteedRtrSegmented || packet == PacketType.SndGuaranteedSegmented || packet == PacketType.SndGuaranteedSegmentedReturned;
+        }
+
         /// <summary>
         /// Рассчитать на сколько надо поделить большой пакет
         /// </summary>

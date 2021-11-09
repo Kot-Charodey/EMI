@@ -65,11 +65,11 @@ namespace EMI
 
             if (sndData == null)//если просто вызов без данных
             {
-                data = Packager_SimpleNoData.PackUP(bps);
+                data = Packagers.SimpleNoData.PackUP(bps);
             }
             else//если вызов с данными
             {
-                data = Packager_Simple.PackUP(bps, sndData);
+                data = Packagers.Simple.PackUP(bps, sndData);
             }
             Accepter.Send(data, data.Length);
         }
@@ -83,7 +83,7 @@ namespace EMI
                 RPCAddres = Address,
                 ID = id
             };
-            byte[] data = Packager_GuaranteedNoData.PackUP(bpg);
+            byte[] data = Packagers.GuaranteedNoData.PackUP(bpg);
             SendBackupBuffer.Add(id, data);
             SendID.UnlockID();
             Accepter.Send(data, data.Length);
@@ -98,7 +98,7 @@ namespace EMI
                 RPCAddres = Address,
                 ID = id
             };
-            byte[] data = Packager_Guaranteed.PackUP(bpg,sndData);
+            byte[] data = Packagers.Guaranteed.PackUP(bpg,sndData);
             SendBackupBuffer.Add(id, data);
             SendID.UnlockID();
             Accepter.Send(data, data.Length);
@@ -123,7 +123,7 @@ namespace EMI
             SendSegmentBackupBuffer.Add(id, sndData, bp);
             SendID.UnlockID();
 
-            byte[] data = Packager_Segmented.PackUP(bp, sndBuffer);
+            byte[] data = Packagers.Segmented.PackUP(bp, sndBuffer);
             Accepter.Send(data, data.Length);
         }
 
@@ -141,7 +141,7 @@ namespace EMI
                 PacketType = PacketType.SndSimple,
                 RPCAddres = Address.ID,
             };
-            byte[] data = Packager_SimpleNoData.PackUP(bps);
+            byte[] data = Packagers.SimpleNoData.PackUP(bps);
             Accepter.Send(data, data.Length);
         }
         /// <summary>
@@ -159,7 +159,7 @@ namespace EMI
             };
             var pac = Packager.Create<T1>();
 
-            byte[] data = Packager_Simple.PackUP(bps, pac.PackUP(t1));
+            byte[] data = Packagers.Simple.PackUP(bps, pac.PackUP(t1));
             Accepter.Send(data, data.Length);
         }
         #endregion
@@ -177,7 +177,7 @@ namespace EMI
                 RPCAddres = Address.ID,
                 ID = id
             };
-            byte[] data = Packager_GuaranteedNoData.PackUP(bp);
+            byte[] data = Packagers.GuaranteedNoData.PackUP(bp);
             SendBackupBuffer.Add(id, data);
             SendID.UnlockID();
             Accepter.Send(data, data.Length);
@@ -204,7 +204,7 @@ namespace EMI
                 };
                 buffer = new byte[size];
                 pac.PackUP(buffer, 0, t1);
-                data = Packager_Guaranteed.PackUP(bp, pac.PackUP(t1));
+                data = Packagers.Guaranteed.PackUP(bp, pac.PackUP(t1));
                 SendBackupBuffer.Add(id, data);
                 SendID.UnlockID();
                 Accepter.Send(data, data.Length);
@@ -229,7 +229,7 @@ namespace EMI
                 SendSegmentBackupBuffer.Add(id, buffer, bp);
                 SendID.UnlockID();
 
-                data = Packager_Segmented.PackUP(bp, sndBuffer);
+                data = Packagers.Segmented.PackUP(bp, sndBuffer);
                 Accepter.Send(data, data.Length);
             }
             else
@@ -256,7 +256,7 @@ namespace EMI
                 RPCAddres = Address.ID,
                 ID = id
             };
-            byte[] data = Packager_GuaranteedNoData.PackUP(bp);
+            byte[] data = Packagers.GuaranteedNoData.PackUP(bp);
             SendBackupBuffer.Add(id, data);
             waiter = ReturnWaiter.SetupWaiting<TOut>(id);
             SendID.UnlockID();
@@ -292,7 +292,7 @@ namespace EMI
                 };
                 buffer = new byte[size];
                 pac.PackUP(buffer, 0, t1);
-                data = Packager_Guaranteed.PackUP(bp, pac.PackUP(t1));
+                data = Packagers.Guaranteed.PackUP(bp, pac.PackUP(t1));
                 waiter = ReturnWaiter.SetupWaiting<TOut>(id);
                 SendBackupBuffer.Add(id, data);
                 SendID.UnlockID();
@@ -320,7 +320,7 @@ namespace EMI
                 waiter = ReturnWaiter.SetupWaiting<TOut>(id);
                 SendID.UnlockID();
 
-                data = Packager_Segmented.PackUP(bp, sndBuffer);
+                data = Packagers.Segmented.PackUP(bp, sndBuffer);
                 Accepter.Send(data, data.Length);
             }
             else
