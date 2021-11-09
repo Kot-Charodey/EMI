@@ -5,9 +5,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace EMI.Lower
+namespace EMI
 {
-    internal static class TaskUtilities
+    /// <summary>
+    /// Доп функции для работы с Task (многопоточностью)
+    /// </summary>
+    public static class TaskUtilities
     {
         /// <summary>
         /// Позволяет выполнить блокирующию операцию с функцией отмены и асинхронно (в другом потоке)

@@ -6,8 +6,8 @@
         SndSimple,//просто вызвать функцию (не гарантированно)
         SndGuaranteed,//просто вызвать функцию (гарантированно)
         SndGuaranteedRtr,//результат данного пакета следует вернуть
-        SndGuaranteedSegmented,
-        SndGuaranteedRtrSegmented,//требует вернуть результат
+        SndGuaranteedSegmented,//выполнить жирную функцию
+        SndGuaranteedRtrSegmented,//выполнить жирную функцию и вернуть результат
         SndGuaranteedReturned,//результат выполнения функции
         SndGuaranteedSegmentedReturned,//результат выполнения функции (жирные данные)
         SndDeliveryСompletedPackage,//пакет доставлен (любой гарантированный (и сегментный и обычный))

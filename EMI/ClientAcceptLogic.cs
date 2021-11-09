@@ -14,18 +14,6 @@ namespace EMI
     /// </summary>
     public partial class Client
     {
-        //SmartPackager - создаёт упаковщики для дальнейшего использования
-        private static readonly Packager.M<BitPacketReqGetPkgSegmented, ushort[]> Packager_PkgSegmented = Packager.Create<BitPacketReqGetPkgSegmented, ushort[]>();
-        private static readonly Packager.M<PacketType, ulong[]> Packager_PacketGetPkg = Packager.Create<PacketType, ulong[]>();
-        private static readonly Packager.M<BitPacketSegmented, byte[]> Packager_Segmented = Packager.Create<BitPacketSegmented, byte[]>();
-        private static readonly Packager.M<BitPacketSegmentedReturned, byte[]> Packager_SegmentedReturned = Packager.Create<BitPacketSegmentedReturned, byte[]>();
-        private static readonly Packager.M<BitPacketSimple> Packager_SimpleNoData = Packager.Create<BitPacketSimple>();
-        private static readonly Packager.M<BitPacketSimple, byte[]> Packager_Simple = Packager.Create<BitPacketSimple, byte[]>();
-        private static readonly Packager.M<BitPacketGuaranteed> Packager_GuaranteedNoData = Packager.Create<BitPacketGuaranteed>();
-        private static readonly Packager.M<BitPacketGuaranteed, byte[]> Packager_Guaranteed = Packager.Create<BitPacketGuaranteed, byte[]>();
-        private static readonly Packager.M<BitPacketGuaranteedReturned> Packager_GuaranteedReturnedNoData = Packager.Create<BitPacketGuaranteedReturned>();
-        private static readonly Packager.M<BitPacketGuaranteedReturned, byte[]> Packager_GuaranteedReturned = Packager.Create<BitPacketGuaranteedReturned, byte[]>();
-        private static readonly Packager.M<BitPacketSndFullyReceivedSegmentPackage> Packager_SndFullyReceivedSegmentPackage = Packager.Create<BitPacketSndFullyReceivedSegmentPackage>();
 
         /// <summary>
         /// последний принятый ID
@@ -231,11 +219,11 @@ namespace EMI
 
             if (SizeAcceptBuffer > sizeof(BitPacketSimple))
             {
-                Packager_Simple.UnPack(AcceptBuffer, 0, out bitPacket, out data);
+                Packagers.Simple.UnPack(AcceptBuffer, 0, out bitPacket, out data);
             }
             else
             {
-                Packager_SimpleNoData.UnPack(AcceptBuffer, 0, out bitPacket);
+                Packagers.SimpleNoData.UnPack(AcceptBuffer, 0, out bitPacket);
             }
 
             ThreadPool.QueueUserWorkItem((object stateInfo) =>
@@ -252,11 +240,11 @@ namespace EMI
 
             if (SizeAcceptBuffer > sizeof(BitPacketGuaranteed))
             {
-                Packager_Guaranteed.UnPack(AcceptBuffer, 0, out bitPacket, out data);
+                Packagers.Guaranteed.UnPack(AcceptBuffer, 0, out bitPacket, out data);
             }
             else
             {
-                Packager_GuaranteedNoData.UnPack(AcceptBuffer, 0, out bitPacket);
+                Packagers.GuaranteedNoData.UnPack(AcceptBuffer, 0, out bitPacket);
             }
 
             if (SubGuaranteedCheck(bitPacket.ID, false) == false)
@@ -283,11 +271,11 @@ namespace EMI
 
             if (SizeAcceptBuffer > sizeof(BitPacketGuaranteed))
             {
-                Packager_Guaranteed.UnPack(AcceptBuffer, 0, out bitPacket, out data);
+                Packagers.Guaranteed.UnPack(AcceptBuffer, 0, out bitPacket, out data);
             }
             else
             {
-                Packager_GuaranteedNoData.UnPack(AcceptBuffer, 0, out bitPacket);
+                Packagers.GuaranteedNoData.UnPack(AcceptBuffer, 0, out bitPacket);
             }
 
             if (SubGuaranteedCheck(bitPacket.ID, false) == false)
@@ -302,7 +290,7 @@ namespace EMI
 
         private void SndGuaranteedSegmented()
         {
-            Packager_Segmented.UnPack(AcceptBuffer, 0, out var bitPacket, out byte[] data);
+            Packagers.Segmented.UnPack(AcceptBuffer, 0, out var bitPacket, out byte[] data);
             var package = SegmentPackagesBuffer.AddSegment(in bitPacket, data);
             //если пакет готов
             if (package != null)
@@ -333,7 +321,7 @@ namespace EMI
 
         private void SndGuaranteedRtrSegmented()
         {
-            Packager_Segmented.UnPack(AcceptBuffer, 0, out var bitPacket, out byte[] data);
+            Packagers.Segmented.UnPack(AcceptBuffer, 0, out var bitPacket, out byte[] data);
             var package = SegmentPackagesBuffer.AddSegment(in bitPacket, data);
 
             //если пакет готов
@@ -362,11 +350,11 @@ namespace EMI
 
             if (SizeAcceptBuffer > sizeof(BitPacketGuaranteedReturned))
             {
-                Packager_GuaranteedReturned.UnPack(AcceptBuffer, 0, out bitPacket, out data);
+                Packagers.GuaranteedReturned.UnPack(AcceptBuffer, 0, out bitPacket, out data);
             }
             else
             {
-                Packager_GuaranteedReturnedNoData.UnPack(AcceptBuffer, 0, out bitPacket);
+                Packagers.GuaranteedReturnedNoData.UnPack(AcceptBuffer, 0, out bitPacket);
             }
 
             if (SubGuaranteedCheck(bitPacket.ID, false) == false)
@@ -377,7 +365,7 @@ namespace EMI
 
         private void SndGuaranteedSegmentedReturned()
         {
-            Packager_SegmentedReturned.UnPack(AcceptBuffer, 0, out var bitPacket, out byte[] data);
+            Packagers.SegmentedReturned.UnPack(AcceptBuffer, 0, out var bitPacket, out byte[] data);
             var package = SegmentPackagesBuffer.AddSegment(in bitPacket, data);
 
             //если пакет готов
@@ -419,7 +407,7 @@ namespace EMI
         /// </summary>
         private void ReqGetPkgSegmented()
         {
-            Packager_PkgSegmented.UnPack(AcceptBuffer, 0, out var bitPacket, out ushort[] ID_Data);
+            Packagers.PkgSegmented.UnPack(AcceptBuffer, 0, out var bitPacket, out ushort[] ID_Data);
 
             for (int i = 0; i < ID_Data.Length; i++)
             {
@@ -438,7 +426,7 @@ namespace EMI
                         var head = info.BPSR;
                         head.Segment = ID_Data[i];
 
-                        byte[] sndBuffer = Packager_SegmentedReturned.PackUP(head, buffer);
+                        byte[] sndBuffer = Packagers.SegmentedReturned.PackUP(head, buffer);
                         Accepter.Send(sndBuffer, sndBuffer.Length);
 
 
@@ -448,7 +436,7 @@ namespace EMI
                         var head = info.BPS;
                         head.Segment = ID_Data[i];
 
-                        byte[] sndBuffer = Packager_Segmented.PackUP(head, buffer);
+                        byte[] sndBuffer = Packagers.Segmented.PackUP(head, buffer);
                         Accepter.Send(sndBuffer, sndBuffer.Length);
                     }
                 }
@@ -461,7 +449,7 @@ namespace EMI
         /// </summary>
         private void ReqGetPkg()
         {
-            Packager_PacketGetPkg.UnPack(AcceptBuffer, 0, out _, out ulong[] ID_Data);
+            Packagers.PacketGetPkg.UnPack(AcceptBuffer, 0, out _, out ulong[] ID_Data);
 
             byte[] buffer;
             ulong id = SendID.GetID();
@@ -483,14 +471,14 @@ namespace EMI
                     //отправка сегиентированного пакета
                     if (info.IsReturned) //если возвращаймый сегиентированный
                     {
-                        byte[] sndBuffer = Packager_SegmentedReturned.PackUP(info.BPSR, buffer);
+                        byte[] sndBuffer = Packagers.SegmentedReturned.PackUP(info.BPSR, buffer);
                         Accepter.Send(sndBuffer, sndBuffer.Length);
 
 
                     }
                     else//если обычный сегментный
                     {
-                        byte[] sndBuffer = Packager_Segmented.PackUP(info.BPS, buffer);
+                        byte[] sndBuffer = Packagers.Segmented.PackUP(info.BPS, buffer);
                         Accepter.Send(sndBuffer, sndBuffer.Length);
                     }
                 }
@@ -581,7 +569,7 @@ namespace EMI
                         //если всё на месте то проверяем не потерялся/появился новый пакет
                         if (LostID.Count == 0)
                         {
-                            byte[] sendBuffer = Packager_PacketGetPkg.PackUP(PacketType.ReqGetPkg, new ulong[1] { ReqID.Value });
+                            byte[] sendBuffer = Packagers.PacketGetPkg.PackUP(PacketType.ReqGetPkg, new ulong[1] { ReqID.Value });
                             Accepter.Send(sendBuffer, sendBuffer.Length);
                         }
                         else
@@ -610,7 +598,7 @@ namespace EMI
                                 }
                             }
 
-                            byte[] sendBuffer = Packager_PacketGetPkg.PackUP(PacketType.ReqGetPkg, IDs.ToArray());
+                            byte[] sendBuffer = Packagers.PacketGetPkg.PackUP(PacketType.ReqGetPkg, IDs.ToArray());
                             Accepter.Send(sendBuffer, sendBuffer.Length);
 
                             //если есть неполный сегментный пакет
@@ -622,7 +610,7 @@ namespace EMI
                                     if (segments != null)
                                     {
                                         bitPacketReqGetPkgSegmented.ID = IDBig.Value;
-                                        sendBuffer = Packager_PkgSegmented.PackUP(bitPacketReqGetPkgSegmented, segments);
+                                        sendBuffer = Packagers.PkgSegmented.PackUP(bitPacketReqGetPkgSegmented, segments);
                                         Accepter.Send(sendBuffer, sendBuffer.Length);
                                     }
                                 }
@@ -639,7 +627,7 @@ namespace EMI
         /// </summary>
         private void SndFullyReceivedSegmentPackage()
         {
-            Packager_SndFullyReceivedSegmentPackage.UnPack(AcceptBuffer, 0, out var bitPacket);
+            Packagers.SndFullyReceivedSegmentPackage.UnPack(AcceptBuffer, 0, out var bitPacket);
 
             if (SubGuaranteedCheck(bitPacket.ID, false) == false)
                 return;
@@ -661,7 +649,7 @@ namespace EMI
                         ReturnID = ID,
                         ReturnNull = false
                     };
-                    byte[] PackData = Packager_GuaranteedReturned.PackUP(bpgr, data);
+                    byte[] PackData = Packagers.GuaranteedReturned.PackUP(bpgr, data);
                     SendBackupBuffer.Add(bpgr.ID, PackData);
                     SendID.UnlockID();
                     Accepter.Send(PackData, PackData.Length);
@@ -683,7 +671,7 @@ namespace EMI
                     SendSegmentBackupBuffer.Add(ID, data, bp);
                     SendID.UnlockID();
 
-                    data = Packager_SegmentedReturned.PackUP(bp, sndBuffer);
+                    data = Packagers.SegmentedReturned.PackUP(bp, sndBuffer);
                     Accepter.Send(data, data.Length);
                 }
                 else //если пакет ОЧЕНЬ ЖИРНЫЙ
@@ -701,7 +689,7 @@ namespace EMI
                     ReturnNull = true
                 };
 
-                byte[] PackData = Packager_GuaranteedReturnedNoData.PackUP(bpgr);
+                byte[] PackData = Packagers.GuaranteedReturnedNoData.PackUP(bpgr);
                 SendBackupBuffer.Add(bpgr.ID, PackData);
                 SendID.UnlockID();
                 Accepter.Send(PackData, PackData.Length);

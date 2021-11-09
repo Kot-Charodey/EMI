@@ -53,12 +53,22 @@
     <Compile Include="ClientSend.cs" />
     <Compile Include="CloseType.cs" />
     <Compile Include="ClientOutException.cs" />
+    <Compile Include="Lower\Buffer\Accept\BufferedByteArrayPacket.cs" />
+    <Compile Include="Lower\Buffer\Accept\PacketInfo.cs" />
+    <Compile Include="Lower\Buffer\PacketAcceptBuffer.cs" />
+    <Compile Include="Lower\Buffer\Accept\ABufferedPackets.cs" />
+    <Compile Include="Lower\Buffer\Send\BufferedSegmentedReturnedPacket.cs" />
+    <Compile Include="Lower\Buffer\Send\BufferedSegmentedPacket.cs" />
+    <Compile Include="Lower\Buffer\Send\BufferedShortPacket.cs" />
+    <Compile Include="Lower\Buffer\Send\IBufferedPackets.cs" />
+    <Compile Include="Lower\Buffer\PacketSendBuffer.cs" />
     <Compile Include="Lower\LostPackageInfo.cs" />
     <Compile Include="Lower\Accepter\IMyAccepter.cs" />
     <Compile Include="Lower\Accepter\MultiAccepter.cs" />
     <Compile Include="Lower\Accepter\MultyAccepterClient.cs" />
     <Compile Include="Lower\Accepter\SimpleAccepter.cs" />
-    <Compile Include="Lower\TaskUtilities.cs" />
+    <Compile Include="Lower\Package\Packagers.cs" />
+    <Compile Include="TaskUtilities.cs" />
     <Compile Include="Lower\Package\BitPacketSndFullyReceivedSegmentPackage.cs" />
     <Compile Include="Lower\Package\BitPacketReqGetPkgSegmented.cs" />
     <Compile Include="Lower\Package\BitPacketSimple.cs" />
@@ -78,9 +88,6 @@
     <Compile Include="RPC\RPCMethodAttribute.cs" />
     <Compile Include="RPC\RPCRegister.cs" />
     <Compile Include="RPC\RPCAddressTable.cs" />
-    <Compile Include="Lower\SendSegmentBackupBuffer.cs" />
-    <Compile Include="Lower\SegmentPackagesBuffer.cs" />
-    <Compile Include="Lower\SendBackupBuffer.cs" />
     <Compile Include="Server.cs" />
     <Compile Include="RequestRatePing.cs" />
   </ItemGroup>
