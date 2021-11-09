@@ -20,21 +20,25 @@ namespace EMI.Lower.Buffer
         {
             ABufferedPackets packet = null;
 
-            if (!Buffer.TryGetValue(bitPacket.ID, out packet))
+            lock (Buffer)
             {
-                packet = new BufferedByteArrayPacket(bitPacket);
-                Buffer.Add(bitPacket.ID, packet);
-            }
-            packet.WriteSegment(bitPacket.Segment, data);
-            if (packet.IsReady())
-            {
-                packetInfo = packet.GetPacketInfo();
-                return true;
-            }
-            else
-            {
-                packetInfo = default;
-                return false;
+                if (!Buffer.TryGetValue(bitPacket.ID, out packet))
+                {
+                    packet = new BufferedByteArrayPacket(bitPacket);
+                    Buffer.Add(bitPacket.ID, packet);
+                }
+                packet.WriteSegment(bitPacket.Segment, data);
+                if (packet.IsReady())
+                {
+                    packetInfo = packet.GetPacketInfo();
+                    Buffer.Remove(bitPacket.ID);
+                    return true;
+                }
+                else
+                {
+                    packetInfo = default;
+                    return false;
+                }
             }
         }
 
@@ -42,21 +46,36 @@ namespace EMI.Lower.Buffer
         {
             ABufferedPackets packet = null;
 
-            if (!Buffer.TryGetValue(bitPacket.ID, out packet))
+            lock (Buffer)
             {
-                packet = new BufferedByteArrayPacket(bitPacket);
-                Buffer.Add(bitPacket.ID, packet);
+                if (!Buffer.TryGetValue(bitPacket.ID, out packet))
+                {
+                    packet = new BufferedByteArrayPacket(bitPacket);
+                    Buffer.Add(bitPacket.ID, packet);
+                }
+                packet.WriteSegment(bitPacket.Segment, data);
+                if (packet.IsReady())
+                {
+                    packetInfo = packet.GetPacketInfo();
+                    Buffer.Remove(bitPacket.ID);
+                    return true;
+                }
+                else
+                {
+                    packetInfo = default;
+                    return false;
+                }
             }
-            packet.WriteSegment(bitPacket.Segment, data);
-            if (packet.IsReady())
+        }
+
+        public int[] GetDownloadList(ulong ID, int count)
+        {
+            lock (Buffer)
             {
-                packetInfo = packet.GetPacketInfo();
-                return true;
-            }
-            else
-            {
-                packetInfo = default;
-                return false;
+                if(Buffer.TryGetValue(ID,out var buffer))
+                    return buffer.GetDownloadList(10);
+                else
+                    return new int[0];
             }
         }
     }

@@ -2,9 +2,10 @@
 
 namespace EMI.Lower.Package
 {
-    [StructLayout(LayoutKind.Explicit, Size = 16)] //12
+    [StructLayout(LayoutKind.Explicit, Size = SizeOf)] //12
     internal struct BitPacketGuaranteed
     {
+        public const int SizeOf = 16;
         [FieldOffset(0)]
         public PacketType PacketType;//0+1=1
         [FieldOffset(1)]

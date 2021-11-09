@@ -12,7 +12,7 @@ namespace EMI
         /// <summary>
         /// АЙДИ для отправки сообщений (нужен для отслеживания "ПРИШЛИ ЛИ ВСЕ ПАКЕТЫ")
         /// </summary>
-        private readonly SendID_Dispatcher SendID=new SendID_Dispatcher();
+        private readonly SendID_Dispatcher SendID = new SendID_Dispatcher();
 
         #region Forwarding
         /// <summary>
@@ -21,7 +21,7 @@ namespace EMI
         /// <param name="Address">Айди вызываемой функции</param>
         /// <param name="sndData">Данные в запакованном ввиде</param>
         /// <param name="guaranteed">гарантийная доставка?</param>
-        internal void RemoteForwardingExecution(ushort Address,byte[] sndData,bool guaranteed)
+        internal void RemoteForwardingExecution(ushort Address, byte[] sndData, bool guaranteed)
         {
             //если гарантия доставки
             if (guaranteed)
@@ -34,18 +34,14 @@ namespace EMI
                 {
                     if (sndData.Length <= 1024)
                     {
-                        ForwardingGuaranteedNormal(Address,sndData);
-                    }
-                    else if (sndData.Length <= 67107840)
-                    {
-                        ForwardingGuaranteedBig(Address, sndData);
+                        ForwardingGuaranteedNormal(Address, sndData);
                     }
                     else
                     {
-                        throw new InsufficientMemoryException("Execution -> Size > 67107840 bytes (64 MB)");
+                        ForwardingGuaranteedBig(Address, sndData);
                     }
                 }
-                
+
             }
             else//если просто отправить
             {
@@ -76,7 +72,7 @@ namespace EMI
 
         private void ForwardingGuaranteedNormal(ushort Address)
         {
-            ulong id = SendID.GetNewIDAndLock();
+            ulong id = SendID.GetNewID();
             BitPacketGuaranteed bpg = new BitPacketGuaranteed()
             {
                 PacketType = PacketType.SndGuaranteed,
@@ -84,29 +80,27 @@ namespace EMI
                 ID = id
             };
             byte[] data = Packagers.GuaranteedNoData.PackUP(bpg);
-            SendBackupBuffer.Add(id, data);
-            SendID.UnlockID();
+            PacketSendBuffer.Storing(id, data).Wait();
             Accepter.Send(data, data.Length);
         }
 
         private void ForwardingGuaranteedNormal(ushort Address, byte[] sndData)
         {
-            ulong id = SendID.GetNewIDAndLock();
+            ulong id = SendID.GetNewID();
             BitPacketGuaranteed bpg = new BitPacketGuaranteed()
             {
                 PacketType = PacketType.SndGuaranteed,
                 RPCAddres = Address,
                 ID = id
             };
-            byte[] data = Packagers.Guaranteed.PackUP(bpg,sndData);
-            SendBackupBuffer.Add(id, data);
-            SendID.UnlockID();
+            byte[] data = Packagers.Guaranteed.PackUP(bpg, sndData);
+            PacketSendBuffer.Storing(id, data).Wait();
             Accepter.Send(data, data.Length);
         }
 
         private void ForwardingGuaranteedBig(ushort Address, byte[] sndData)
         {
-            ulong id = SendID.GetNewIDAndLock();
+            ulong id = SendID.GetNewID();
             byte[] sndBuffer = new byte[1024];
             Array.Copy(sndData, sndBuffer, 1024);
 
@@ -120,8 +114,7 @@ namespace EMI
             };
 
 
-            SendSegmentBackupBuffer.Add(id, sndData, bp);
-            SendID.UnlockID();
+            PacketSendBuffer.Storing(id, bp, sndData).Wait();
 
             byte[] data = Packagers.Segmented.PackUP(bp, sndBuffer);
             Accepter.Send(data, data.Length);
@@ -168,9 +161,9 @@ namespace EMI
         /// Выполнить RPC с гарантией доставки (последовательность вызовов не гарантируется)
         /// </summary>
         /// <param name="Address">Айди вызываемой функции</param>
-        public void RemoteGuaranteedExecution(RPCAddress Address)
+        public async void RemoteGuaranteedExecution(RPCAddress Address)
         {
-            ulong id = SendID.GetNewIDAndLock();
+            ulong id = SendID.GetNewID();
             BitPacketGuaranteed bp = new BitPacketGuaranteed()
             {
                 PacketType = PacketType.SndGuaranteed,
@@ -178,8 +171,7 @@ namespace EMI
                 ID = id
             };
             byte[] data = Packagers.GuaranteedNoData.PackUP(bp);
-            SendBackupBuffer.Add(id, data);
-            SendID.UnlockID();
+            await PacketSendBuffer.Storing(id, data);
             Accepter.Send(data, data.Length);
         }
         /// <summary>
@@ -188,9 +180,9 @@ namespace EMI
         /// <typeparam name="T1">тип аргумента</typeparam>
         /// <param name="Address">Айди вызываемой функции</param>
         /// <param name="t1">Aргумент</param>
-        public void RemoteGuaranteedExecution<T1>(RPCAddress<T1> Address, T1 t1)
+        public async void RemoteGuaranteedExecution<T1>(RPCAddress<T1> Address, T1 t1)
         {
-            ulong id = SendID.GetNewIDAndLock();
+            ulong id = SendID.GetNewID();
             var pac = Packager.Create<T1>();
             long size = pac.CalcNeedSize(t1);
             byte[] data, buffer;
@@ -205,11 +197,10 @@ namespace EMI
                 buffer = new byte[size];
                 pac.PackUP(buffer, 0, t1);
                 data = Packagers.Guaranteed.PackUP(bp, pac.PackUP(t1));
-                SendBackupBuffer.Add(id, data);
-                SendID.UnlockID();
+                await PacketSendBuffer.Storing(id, data);
                 Accepter.Send(data, data.Length);
             }
-            else if (size <= 67107840) //(64 MB)
+            else
             {
                 buffer = new byte[size];
                 pac.PackUP(buffer, 0, t1);
@@ -226,15 +217,10 @@ namespace EMI
                     SegmentCount = BitPacketsUtilities.CalcSegmentCount(size)
                 };
 
-                SendSegmentBackupBuffer.Add(id, buffer, bp);
-                SendID.UnlockID();
+                await PacketSendBuffer.Storing(id, bp, buffer);
 
                 data = Packagers.Segmented.PackUP(bp, sndBuffer);
                 Accepter.Send(data, data.Length);
-            }
-            else
-            {
-                throw new InsufficientMemoryException("Execution -> Size > 67107840 bytes (64 MB)");
             }
         }
         #endregion
@@ -249,7 +235,7 @@ namespace EMI
         public async Task<TOut> RemoteGuaranteedExecution<TOut>(RPCAddressOut<TOut> Address)
         {
             RPCfunctOut<Task<TOut>> waiter = null;
-            ulong id = SendID.GetNewIDAndLock();
+            ulong id = SendID.GetNewID();
             BitPacketGuaranteed bp = new BitPacketGuaranteed()
             {
                 PacketType = PacketType.SndGuaranteedRtr,
@@ -257,9 +243,8 @@ namespace EMI
                 ID = id
             };
             byte[] data = Packagers.GuaranteedNoData.PackUP(bp);
-            SendBackupBuffer.Add(id, data);
+            await PacketSendBuffer.Storing(id, data);
             waiter = ReturnWaiter.SetupWaiting<TOut>(id);
-            SendID.UnlockID();
 
             Accepter.Send(data, data.Length);
 
@@ -274,13 +259,13 @@ namespace EMI
         /// <param name="Address">Айди вызываемой функции</param>
         /// <param name="t1">Aргумент</param>
         /// <returns>Массив результата от выполнения всех функций (количество зависит от выполненных функций)</returns>
-        public async Task<TOut> RemoteGuaranteedExecution<TOut, T1>(RPCAddressOut<TOut,T1> Address, T1 t1)
+        public async Task<TOut> RemoteGuaranteedExecution<TOut, T1>(RPCAddressOut<TOut, T1> Address, T1 t1)
         {
-            ulong id = SendID.GetNewIDAndLock();
+            ulong id = SendID.GetNewID();
             var pac = Packager.Create<T1>();
             long size = pac.CalcNeedSize(t1);
             byte[] data, buffer;
-            RPCfunctOut<Task<TOut>> waiter=null;
+            RPCfunctOut<Task<TOut>> waiter = null;
 
             if (size <= 1024)
             {
@@ -294,12 +279,11 @@ namespace EMI
                 pac.PackUP(buffer, 0, t1);
                 data = Packagers.Guaranteed.PackUP(bp, pac.PackUP(t1));
                 waiter = ReturnWaiter.SetupWaiting<TOut>(id);
-                SendBackupBuffer.Add(id, data);
-                SendID.UnlockID();
+                await PacketSendBuffer.Storing(id, data);
 
                 Accepter.Send(data, data.Length);
             }
-            else if (size <= 67107840) //(64 MB)
+            else
             {
                 buffer = new byte[size];
                 pac.PackUP(buffer, 0, t1);
@@ -316,16 +300,11 @@ namespace EMI
                     SegmentCount = BitPacketsUtilities.CalcSegmentCount(size)
                 };
 
-                SendSegmentBackupBuffer.Add(id, buffer, bp);
+                await PacketSendBuffer.Storing(id, bp, buffer);
                 waiter = ReturnWaiter.SetupWaiting<TOut>(id);
-                SendID.UnlockID();
 
                 data = Packagers.Segmented.PackUP(bp, sndBuffer);
                 Accepter.Send(data, data.Length);
-            }
-            else
-            {
-                throw new InsufficientMemoryException("Execution -> Size > 67107840 bytes (64 MB)");
             }
 
             return await waiter().ConfigureAwait(false);

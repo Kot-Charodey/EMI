@@ -1,7 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Net;
+using System.Threading.Tasks;
 
 namespace EMI.Lower.Accepter
 {
@@ -11,9 +11,9 @@ namespace EMI.Lower.Accepter
         public bool Stopped { get; private set; } = false;
         public EndPoint EndPoint { get; private set; }
         private readonly MultiAccepter MultiAccepter;
-        public Action<byte[],int> AcceptEvent;
+        public Func<AcceptData,Task> AcceptEvent;
 
-        public MultyAccepterClient(EndPoint address,MultiAccepter multiAccepter,Client client, Action<byte[],int> acceptEvent)
+        public MultyAccepterClient(EndPoint address,MultiAccepter multiAccepter,Client client, Func<AcceptData, Task> acceptEvent)
         {
             Client = client;
             MultiAccepter = multiAccepter;

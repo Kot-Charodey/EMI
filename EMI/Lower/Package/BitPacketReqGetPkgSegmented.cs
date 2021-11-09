@@ -2,9 +2,10 @@
 
 namespace EMI.Lower.Package
 {
-    [StructLayout(LayoutKind.Explicit,Size = 16)] //9
+    [StructLayout(LayoutKind.Explicit,Size = SizeOf)] //9
     internal struct BitPacketReqGetPkgSegmented
     {
+        public const int SizeOf = 16;
         [FieldOffset(0)]
         public PacketType PacketType;//0+1=1
         [FieldOffset(1)]

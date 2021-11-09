@@ -1,19 +1,17 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 
+[assembly: InternalsVisibleTo("MSTests")]
+[assembly: InternalsVisibleTo("DebTest")]
 namespace EMI
 {
     using Lower.Accepter;
-    using Debug;
 
     /// <summary>
     /// Сервер EMI
     /// </summary>
     public class Server
     {
-        /// <summary>
-        /// Отладка
-        /// </summary>
-        public Net Debug = new Net();
         private MultiAccepter MultiAccepter;
         private readonly ushort Port;
         /// <summary>

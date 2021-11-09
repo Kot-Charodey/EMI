@@ -64,7 +64,7 @@ namespace EMI
 
             if (exception != null)
             {
-                throw new Exception();
+                throw exception;
             }
 
             return threadEndWork;

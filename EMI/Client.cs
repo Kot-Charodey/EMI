@@ -208,7 +208,7 @@ namespace EMI
             while (IsConnect)
             {
                 var buffer = Accepter.Receive(out int size);
-                ProcessAccept(buffer, size);
+                Task.Run(async () => await ProcessAccept(new AcceptData(size, buffer)));
             }
         }
 

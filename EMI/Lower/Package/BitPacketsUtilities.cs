@@ -12,6 +12,11 @@
             return packet == PacketType.SndGuaranteedRtrSegmented || packet == PacketType.SndGuaranteedSegmented || packet == PacketType.SndGuaranteedSegmentedReturned;
         }
 
+        public static bool IsReturnedPacket(this PacketType packet)
+        {
+            return packet == PacketType.SndGuaranteedSegmentedReturned || packet == PacketType.SndGuaranteedReturned;
+        }
+
         /// <summary>
         /// Рассчитать на сколько надо поделить большой пакет
         /// </summary>

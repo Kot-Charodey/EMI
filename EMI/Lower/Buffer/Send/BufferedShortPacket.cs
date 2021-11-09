@@ -19,7 +19,7 @@ namespace EMI.Lower.Buffer.Send
             this.data = data ?? throw new ArgumentNullException(nameof(data));
         }
 
-        public byte[] GetData(uint segment = 0)
+        public byte[] GetData(int segment = 0)
         {
             return data;
         }

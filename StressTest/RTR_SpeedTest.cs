@@ -29,12 +29,12 @@ namespace StressTest
 
         protected override void ClientProcess(Client client)
         {
-            client.RequestRatePing = RequestRatePing.ms10;
+            client.RequestRatePing = EMI.Ping.RequestRate.ms10;
 
             Stopwatch stopwatch = new Stopwatch();
             long workCounter = 0;
 
-            bool error = false;
+            //bool error = false;
             stopwatch.Start();
 
             Thread thread = new Thread(() =>
@@ -56,7 +56,7 @@ namespace StressTest
                     }
                     else
                     {
-                        error = true;
+                       // error = true;
                     }
                 }
 

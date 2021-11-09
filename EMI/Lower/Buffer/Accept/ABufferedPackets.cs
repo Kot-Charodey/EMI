@@ -8,8 +8,8 @@ namespace EMI.Lower.Buffer.Accept
     {
         private PacketInfo PacketInfo;
 
-        protected uint SegmentCount;
-        private HashSet<uint> Delivered = new HashSet<uint>();
+        protected int SegmentCount;
+        private HashSet<int> Delivered = new HashSet<int>();
 
         public ABufferedPackets(BitPacketSegmented packet)
         {
@@ -36,7 +36,7 @@ namespace EMI.Lower.Buffer.Accept
             return SegmentCount == Delivered.Count;
         }
 
-        public void WriteSegment(uint segment, byte[] data)
+        public void WriteSegment(int segment, byte[] data)
         {
             if (!Delivered.Contains(segment))
             {
@@ -49,11 +49,35 @@ namespace EMI.Lower.Buffer.Accept
         {
             PacketInfo info = PacketInfo;
             info.Data = GetDataF(out info.DataLength);
-            return PacketInfo;
+            return info;
         }
 
-        protected abstract void InitDataBuffer(uint SegmentCount);
-        protected abstract void WriteSegmentF(uint segment, byte[] data);
-        protected abstract byte[] GetDataF(out uint DataLength);
+        public int[] GetDownloadList(int count)
+        {
+            int minStart = 0;
+            List<int> list = new List<int>(count + 1);
+            for (int i = 0; i < count && minStart < SegmentCount; i++)
+            {
+                do
+                {
+                    if (Delivered.Contains(minStart))
+                    {
+                        minStart++;
+                    }
+                    else
+                    {
+                        list.Add(minStart++);
+                        goto @continue;
+                    }
+                } while (minStart < SegmentCount);
+                break;
+            @continue:;
+            }
+            return list.ToArray();
+        }
+
+        protected abstract void InitDataBuffer(int SegmentCount);
+        protected abstract void WriteSegmentF(int segment, byte[] data);
+        protected abstract byte[] GetDataF(out int DataLength);
     }
 }

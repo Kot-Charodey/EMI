@@ -12,6 +12,6 @@
         /// </summary>
         /// <param name="segment"></param>
         /// <returns></returns>
-        byte[] GetData(uint segment = 0);
+        byte[] GetData(int segment = 0);
     }
 }

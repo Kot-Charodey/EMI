@@ -63,7 +63,6 @@ namespace Test1
                 else
                 {
                     srv = new Server(25600);
-                    srv.Debug.StartDebug();
                     srv.Start(Proc);
                 }
 

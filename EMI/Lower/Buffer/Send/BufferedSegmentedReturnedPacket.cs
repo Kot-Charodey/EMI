@@ -21,10 +21,10 @@ namespace EMI.Lower.Buffer.Send
             Data = data;
         }
 
-        public unsafe byte[] GetData(uint segment = 0)
+        public unsafe byte[] GetData(int segment = 0)
         {
-            long point = segment * 1024;
-            byte[] segmentData = new byte[Math.Min(Data.LongLength - point, 1024)];
+            int point = segment * 1024;
+            byte[] segmentData = new byte[Math.Min(Data.Length - point, 1024)];
             Array.Copy(Data, point, segmentData, 0, segmentData.Length);
             Header.Segment = segment;
             return Packagers.SegmentedReturned.PackUP(Header, segmentData);
