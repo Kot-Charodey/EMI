@@ -40,20 +40,19 @@ namespace EMI.Lower.Accepter
         }
 
         private const int BufferSize = 1248;//максимальный размер MPU
-        private byte[] Buffer;
 
         /// <summary>
         /// Входная точка обработки и запуска RPC на сервере
         /// </summary>
         public void ProcessReceive(CancellationToken cancellationToken)
         {
-            Buffer = new byte[BufferSize];
             EndPoint receivePoint = new IPEndPoint(IPAddress.Any, 1);
             while (!cancellationToken.IsCancellationRequested)
             {
                 try
                 {
-                    int size = Socket.ReceiveFrom(Buffer, ref receivePoint);
+                    byte[] buffer = new byte[BufferSize];
+                    int size = Socket.ReceiveFrom(buffer, ref receivePoint);
 
                     DateTime nowTime = DateTime.Now;
                     var removingTimeOut = from point in RegisteringСlients where (nowTime - point.Value).Seconds > 60 select point.Key;
@@ -69,13 +68,12 @@ namespace EMI.Lower.Accepter
                     {
                         if (ReceiveClients.TryGetValue(receivePoint, out MultyAccepterClient client))
                         {
-                            //TODO проверить многопоточность
                             //RPC
-                            client.AcceptEvent.Invoke(Buffer, size);
+                            client.AcceptEvent.Invoke(new AcceptData(size,buffer));
                         }
                         else
                         {
-                            PacketType packetType = Buffer.GetPacketType();
+                            PacketType packetType = buffer.GetPacketType();
 
                             //Если игрок хочет подключиться
                             if (RegisteringСlients.TryGetValue(receivePoint, out DateTime time))
@@ -92,7 +90,7 @@ namespace EMI.Lower.Accepter
                                             int hash;
                                             unsafe
                                             {
-                                                fixed (byte* num = &Buffer[1])
+                                                fixed (byte* num = &buffer[1])
                                                     hash = *(int*)num;
                                             }
                                             if (hash == receivePoint.GetHashCode())

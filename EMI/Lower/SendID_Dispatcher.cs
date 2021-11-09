@@ -8,47 +8,30 @@ namespace EMI.Lower
     /// </summary>
     internal class SendID_Dispatcher
     {
-        private SemaphoreSlim IDReturnLock = new SemaphoreSlim(1, 1);
         private ulong ID;
 
         /// <summary>
-        /// Возвращает новый ID для отправки чего либо а так же блокирует его для остальных потоков (необходимо вызвать UnlockID())
+        /// Возвращает новый ID для отправки чего либо
         /// </summary>
         /// <returns></returns>
-        public async Task<ulong> GetNewIDAndLock()
+        public ulong GetNewID()
         {
-            await IDReturnLock.WaitAsync();
-            return ID++;
+            lock (this)
+            {
+                return ID++;
+            }
         }
 
         /// <summary>
-        /// Разблокирует возможность получить ID
+        /// Безопасно получить текущий ID (по данному ID будет отправленно след сообщение)
         /// </summary>
-        public void UnlockID()
+        /// <returns></returns>
+        public ulong GetID()
         {
-            IDReturnLock.Release();
-        }
-
-        /// <summary>
-        /// Безопасно установить новый ID
-        /// </summary>
-        /// <param name="ID"></param>
-        public async void SetID(ulong ID)
-        {
-            await IDReturnLock.WaitAsync();
-            this.ID = ID;
-            IDReturnLock.Release();
-        }
-
-        /// <summary>
-        /// Безопасно получить текущий ID
-        /// </summary>
-        public async Task<ulong> GetID()
-        {
-            await IDReturnLock.WaitAsync();
-            ulong gid = ID;
-            IDReturnLock.Release();
-            return gid;
+            lock (this)
+            {
+                return ID;
+            }
         }
     }
 }

@@ -11,6 +11,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartPackager", "..\SmartPa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StressTest", "StressTest\StressTest.csproj", "{FFAF9F91-B6A4-4F76-9719-4480E07452B2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MSTests", "MSTests\MSTests.csproj", "{73EF2CCC-6D23-478E-A710-A7FF898B18D3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DebTest", "DebTest\DebTest.csproj", "{BF34B1F1-84A4-494C-8FC6-85315E6CBB9B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +37,14 @@ Global
 		{FFAF9F91-B6A4-4F76-9719-4480E07452B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FFAF9F91-B6A4-4F76-9719-4480E07452B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FFAF9F91-B6A4-4F76-9719-4480E07452B2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{73EF2CCC-6D23-478E-A710-A7FF898B18D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{73EF2CCC-6D23-478E-A710-A7FF898B18D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{73EF2CCC-6D23-478E-A710-A7FF898B18D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{73EF2CCC-6D23-478E-A710-A7FF898B18D3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BF34B1F1-84A4-494C-8FC6-85315E6CBB9B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF34B1F1-84A4-494C-8FC6-85315E6CBB9B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF34B1F1-84A4-494C-8FC6-85315E6CBB9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF34B1F1-84A4-494C-8FC6-85315E6CBB9B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

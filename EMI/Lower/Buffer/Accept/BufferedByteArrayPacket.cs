@@ -6,7 +6,7 @@ namespace EMI.Lower.Buffer.Accept
 
     internal class BufferedByteArrayPacket : ABufferedPackets
     {
-        private uint SizeData;
+        private int SizeData;
         private byte[] Data;
 
         public BufferedByteArrayPacket(BitPacketSegmented packet) : base(packet)
@@ -17,19 +17,19 @@ namespace EMI.Lower.Buffer.Accept
         {
         }
 
-        protected override void InitDataBuffer(uint SegmentCount)
+        protected override void InitDataBuffer(int SegmentCount)
         {
             Data = new byte[SegmentCount * 1024];
         }
 
-        protected override void WriteSegmentF(uint segment, byte[] data)
+        protected override void WriteSegmentF(int segment, byte[] data)
         {
-            SizeData += (uint)data.Length;
+            SizeData += data.Length;
             long point = segment * 1024;
             Array.Copy(data, 0, Data, point, data.Length);
         }
 
-        protected override byte[] GetDataF(out uint DataLength)
+        protected override byte[] GetDataF(out int DataLength)
         {
             DataLength = SizeData;
             return Data;

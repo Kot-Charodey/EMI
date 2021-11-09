@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Threading;
 
 namespace EMI.Lower.Buffer
@@ -14,16 +15,18 @@ namespace EMI.Lower.Buffer
         /// <summary>
         /// Если пакетов больше данного числа то поток Storing заблокируется в ожидание свободного
         /// </summary>
-        private const int Capacity = 128;
-        private Dictionary<ulong, IBufferedPackets> Buffer=new Dictionary<ulong, IBufferedPackets>();
+        public const int Capacity = 128;
+        private Dictionary<ulong, IBufferedPackets> Buffer = new Dictionary<ulong, IBufferedPackets>();
         /// <summary>
         /// Используется как счётсчик пакетов (если в буфере их больше положеного, блокирует поток)
         /// </summary>
         private SemaphoreSlim BufferPlace = new SemaphoreSlim(Capacity, Capacity);
 
-        public async void Storing(ulong ID,byte[] data)
+        public async Task Storing(ulong ID, byte[] data)
         {
             await BufferPlace.WaitAsync();
+            if (data.GetPacketType().IsSegmentPacket())
+                throw new System.Exception("EMI -> PacketSendBuffer -> Storing -> if GetPacketType().IsSegmentPacket()");
 
             lock (Buffer)
             {
@@ -31,7 +34,7 @@ namespace EMI.Lower.Buffer
             }
         }
 
-        public async void Storing(ulong ID, BitPacketSegmented bitPacket, byte[] data)
+        public async Task Storing(ulong ID, BitPacketSegmented bitPacket, byte[] data)
         {
             await BufferPlace.WaitAsync();
 
@@ -41,7 +44,7 @@ namespace EMI.Lower.Buffer
             }
         }
 
-        public async void Storing(ulong ID, BitPacketSegmentedReturned bitPacket, byte[] data)
+        public async Task Storing(ulong ID, BitPacketSegmentedReturned bitPacket, byte[] data)
         {
             await BufferPlace.WaitAsync();
 
@@ -51,17 +54,31 @@ namespace EMI.Lower.Buffer
             }
         }
 
-        public byte[] GetPacket(ulong ID,uint segment = 0)
+        public byte[] GetPacket(ulong ID, int segment = 0)
         {
             lock (Buffer)
             {
-                return Buffer[ID].GetData(segment);
+                if (Buffer.TryGetValue(ID, out IBufferedPackets packet))
+                {
+                    return packet.GetData(segment);
+                }
+                else
+                {
+                    return null;
+                }
             }
         }
 
         public void RemovePacket(ulong ID)
         {
-            BufferPlace.Release();
+            lock (Buffer)
+            {
+                if (Buffer.ContainsKey(ID))
+                {
+                    Buffer.Remove(ID);
+                    BufferPlace.Release();
+                }
+            }
         }
     }
 }

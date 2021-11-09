@@ -3,7 +3,7 @@
     /// <summary>
     /// Хранит информацию о потерянных пакетах
     /// </summary>
-    internal struct LostPackageInfo
+    internal class LostPackageInfo
     {
         public ulong ID;
         public bool IsSegment;
