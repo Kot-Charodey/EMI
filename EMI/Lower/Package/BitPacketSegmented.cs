@@ -2,18 +2,18 @@
 
 namespace EMI.Lower.Package
 {
-    [StructLayout(LayoutKind.Explicit,Size = 16)] //15
+    [StructLayout(LayoutKind.Explicit,Size = 24)] //19
     internal struct BitPacketSegmented
     {
         [FieldOffset(0)]
-        public PacketType PacketType;
+        public PacketType PacketType;//0+1=1
         [FieldOffset(1)]
-        public ulong ID;
+        public ulong ID;//1+8=9
         [FieldOffset(9)]
-        public ushort Segment;
-        [FieldOffset(11)]
-        public ushort SegmentCount;
+        public uint Segment;//9+4=13
         [FieldOffset(13)]
-        public ushort RPCAddres;
+        public uint SegmentCount;//13+4=17
+        [FieldOffset(17)]
+        public ushort RPCAddres;//17+2=19
     }
 }

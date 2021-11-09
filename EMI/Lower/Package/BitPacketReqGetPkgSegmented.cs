@@ -6,8 +6,8 @@ namespace EMI.Lower.Package
     internal struct BitPacketReqGetPkgSegmented
     {
         [FieldOffset(0)]
-        public PacketType PacketType;
+        public PacketType PacketType;//0+1=1
         [FieldOffset(1)]
-        public ulong ID;
+        public ulong ID;//1+8=9
     }
 }

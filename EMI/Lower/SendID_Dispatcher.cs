@@ -1,4 +1,5 @@
 ﻿using System.Threading;
+using System.Threading.Tasks;
 
 namespace EMI.Lower
 {
@@ -7,16 +8,16 @@ namespace EMI.Lower
     /// </summary>
     internal class SendID_Dispatcher
     {
-        private Semaphore IDReturnLock = new Semaphore(1, 1);
+        private SemaphoreSlim IDReturnLock = new SemaphoreSlim(1, 1);
         private ulong ID;
 
         /// <summary>
         /// Возвращает новый ID для отправки чего либо а так же блокирует его для остальных потоков (необходимо вызвать UnlockID())
         /// </summary>
         /// <returns></returns>
-        public ulong GetNewIDAndLock()
+        public async Task<ulong> GetNewIDAndLock()
         {
-            IDReturnLock.WaitOne();
+            await IDReturnLock.WaitAsync();
             return ID++;
         }
 
@@ -32,9 +33,9 @@ namespace EMI.Lower
         /// Безопасно установить новый ID
         /// </summary>
         /// <param name="ID"></param>
-        public void SetID(ulong ID)
+        public async void SetID(ulong ID)
         {
-            IDReturnLock.WaitOne();
+            await IDReturnLock.WaitAsync();
             this.ID = ID;
             IDReturnLock.Release();
         }
@@ -42,9 +43,9 @@ namespace EMI.Lower
         /// <summary>
         /// Безопасно получить текущий ID
         /// </summary>
-        public ulong GetID()
+        public async Task<ulong> GetID()
         {
-            IDReturnLock.WaitOne();
+            await IDReturnLock.WaitAsync();
             ulong gid = ID;
             IDReturnLock.Release();
             return gid;

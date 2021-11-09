@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace EMI
+namespace EMI.Lower
 {
-    using Lower.Package;
+    using Package;
 
     /// <summary>
     /// Хранит сегментные большие пакеты (только до их полной отправки и запроса об окончательном получении)
@@ -67,6 +67,7 @@ namespace EMI
         /// <returns></returns>
         public unsafe PacketInfo Get(ulong ID, ushort segment,out byte[] segmentData)
         {
+
             lock (BufferPackages)
                 if (BufferPackages.TryGetValue(ID, out var data))
                 {

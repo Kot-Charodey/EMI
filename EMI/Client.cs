@@ -9,15 +9,10 @@ namespace EMI
     using Lower;
     using Lower.Accepter;
     using Lower.Package;
-    using Debug;
 
 
     public partial class Client
     {
-        /// <summary>
-        /// Отладка
-        /// </summary>
-        public Net Debug;
         /// <summary>
         /// Локальный список вызываймых методов
         /// </summary>
@@ -44,18 +39,9 @@ namespace EMI
         /// </summary>
         internal const int TimeOutPing = 6000;
         /// <summary>
-        /// Для RequestRatePing
-        /// </summary>
-        private static readonly TimeSpan[] RequestRatePingDelay = {
-            new TimeSpan(0,0,0,0,10),
-            new TimeSpan(0,0,0,0,100),
-            new TimeSpan(0,0,0,0,1000),
-            new TimeSpan(0,0,0,0,2000)
-        };
-        /// <summary>
         /// Чатота опроса ping
         /// </summary>
-        public RequestRatePing RequestRatePing = RequestRatePing.ms1000;
+        public Ping.RequestRate RequestRatePing = EMI.Ping.RequestRate.ms1000;
         /// <summary>
         /// Существует ли подключение между клиентами
         /// </summary>
@@ -94,7 +80,6 @@ namespace EMI
         /// <param name="accepter"></param>
         internal Client(EndPoint endPoint, MultiAccepter accepter)
         {
-            Debug = accepter.Server.Debug;
             RPC = new RPC(this);
 
             IsConnect = true;
@@ -115,7 +100,6 @@ namespace EMI
         public static async Task<Client> Connect(IPAddress IP, ushort port)
         {
             Client client = new Client();
-            client.Debug = new Net();
             var EndPoint = new IPEndPoint(IP, port);
             client.Accepter = new SimpleAccepter(EndPoint);
 
@@ -243,7 +227,7 @@ namespace EMI
         {
             StopwatchPing.Start();
             byte[] buffer = { (byte)PacketType.ReqPing0 };
-            var delay = RequestRatePingDelay;
+            var delay = EMI.Ping.RequestRateDelay;
             while (IsConnect)
             {
                 Accepter.Send(buffer, buffer.Length);

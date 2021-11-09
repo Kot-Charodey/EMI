@@ -65,7 +65,8 @@ namespace StressTest
 
             while (true)
             {
-                StandLogClient.Type1(client,workCounter,error,stopwatch);
+                Thread.Sleep(3000);
+                //StandLogClient.Type1(client,workCounter,error,stopwatch);
             }
         }
 

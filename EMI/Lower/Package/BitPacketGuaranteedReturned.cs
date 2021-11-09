@@ -6,12 +6,12 @@ namespace EMI.Lower.Package
     internal struct BitPacketGuaranteedReturned
     {
         [FieldOffset(0)]
-        public PacketType PacketType;
+        public PacketType PacketType;//0+1=1
         [FieldOffset(1)]
-        public ulong ID;
+        public ulong ID;//1+8=9
         [FieldOffset(9)]
-        public ulong ReturnID;//айди пакета вызова
+        public ulong ReturnID;//9+8=17    айди пакета вызова
         [FieldOffset(17)]
-        public bool ReturnNull;
+        public bool ReturnNull;//17+1=18
     }
 }

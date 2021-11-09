@@ -6,10 +6,10 @@ namespace EMI.Lower.Package
     internal struct BitPacketGuaranteed
     {
         [FieldOffset(0)]
-        public PacketType PacketType;
+        public PacketType PacketType;//0+1=1
         [FieldOffset(1)]
-        public ushort RPCAddres;
+        public ushort RPCAddres;//1+2=3
         [FieldOffset(3)]
-        public ulong ID;
+        public ulong ID;//3+8
     }
 }

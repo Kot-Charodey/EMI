@@ -1,8 +1,8 @@
-﻿namespace EMI
+﻿namespace EMI.Lower
 {
     internal enum PacketType:byte
     {
-        SndClose,
+        SndClose,//сообщает что происходит отключение
         SndSimple,//просто вызвать функцию (не гарантированно)
         SndGuaranteed,//просто вызвать функцию (гарантированно)
         SndGuaranteedRtr,//результат данного пакета следует вернуть
@@ -10,13 +10,13 @@
         SndGuaranteedRtrSegmented,//требует вернуть результат
         SndGuaranteedReturned,//результат выполнения функции
         SndGuaranteedSegmentedReturned,//результат выполнения функции (жирные данные)
-        SndFullyReceivedSegmentPackage,//пакет доставлен
-        ReqGetPkg,
-        ReqGetPkgSegmented,
-        ReqPing0,
-        ReqPing1,
+        SndDeliveryСompletedPackage,//пакет доставлен (любой гарантированный (и сегментный и обычный))
+        ReqGetPkg,//просит вернуть пакет
+        ReqGetPkgSegmented,//просит вернуть сегментный пакет
+        ReqPing0,//пинг - отправка
+        ReqPing1,//пинг - приём 
         ReqConnection0,//client -> server #1
-        ReqConnection1,//server -> client #2 (hesh)
-        ReqConnection2,//client -> server #3 (hesh)
+        ReqConnection1,//server -> client #2 (int hesh code)
+        ReqConnection2,//client -> server #3 (int hesh code)
     }
 }

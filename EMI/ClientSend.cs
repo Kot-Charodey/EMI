@@ -263,7 +263,7 @@ namespace EMI
 
             Accepter.Send(data, data.Length);
 
-            return await waiter();
+            return await waiter().ConfigureAwait(false);
         }
 
         /// <summary>
@@ -328,7 +328,7 @@ namespace EMI
                 throw new InsufficientMemoryException("Execution -> Size > 67107840 bytes (64 MB)");
             }
 
-            return await waiter();
+            return await waiter().ConfigureAwait(false);
         }
         #endregion
     }

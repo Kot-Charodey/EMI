@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace EMI
+namespace EMI.Lower
 {
-    using Lower.Package;
+    using Package;
 
     /// <summary>
     /// Собирает пакеты в единый
