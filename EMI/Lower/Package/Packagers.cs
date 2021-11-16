@@ -15,7 +15,7 @@ namespace EMI.Lower.Package
         public static readonly Packager.M<BitPacketGuaranteed, byte[]> Guaranteed = Packager.Create<BitPacketGuaranteed, byte[]>();
         public static readonly Packager.M<BitPacketGuaranteedReturned> GuaranteedReturnedNoData = Packager.Create<BitPacketGuaranteedReturned>();
         public static readonly Packager.M<BitPacketGuaranteedReturned, byte[]> GuaranteedReturned = Packager.Create<BitPacketGuaranteedReturned, byte[]>();
-        public static readonly Packager.M<BitPacketSndFullyReceivedSegmentPackage> SndDeliveryСompletedPackage = Packager.Create<BitPacketSndFullyReceivedSegmentPackage>();
+        public static readonly Packager.M<BitPackageDeliveryСompleted> SndDeliveryСompletedPackage = Packager.Create<BitPackageDeliveryСompleted>();
 
     }
 }
