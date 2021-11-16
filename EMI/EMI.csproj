@@ -18,7 +18,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;NoPingLimit DebugNet</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;NoPingLimit</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -48,6 +48,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ClientTest.cs" />
     <Compile Include="Lower\AcceptData.cs" />
     <Compile Include="Client.cs" />
     <Compile Include="ClientAcceptLogic.cs" />
@@ -63,6 +64,7 @@
     <Compile Include="Lower\Buffer\Send\BufferedShortPacket.cs" />
     <Compile Include="Lower\Buffer\Send\IBufferedPackets.cs" />
     <Compile Include="Lower\Buffer\PacketSendBuffer.cs" />
+    <Compile Include="Lower\AcceptID_Dispatcher.cs" />
     <Compile Include="Lower\LostPackageInfo.cs" />
     <Compile Include="Lower\Accepter\IMyAccepter.cs" />
     <Compile Include="Lower\Accepter\MultiAccepter.cs" />
@@ -70,7 +72,7 @@
     <Compile Include="Lower\Accepter\SimpleAccepter.cs" />
     <Compile Include="Lower\Package\Packagers.cs" />
     <Compile Include="TaskUtilities.cs" />
-    <Compile Include="Lower\Package\BitPacketSndFullyReceivedSegmentPackage.cs" />
+    <Compile Include="Lower\Package\BitPackageDeliveryСompleted.cs" />
     <Compile Include="Lower\Package\BitPacketReqGetPkgSegmented.cs" />
     <Compile Include="Lower\Package\BitPacketSimple.cs" />
     <Compile Include="Lower\Package\BitPacketGuaranteedReturned.cs" />
@@ -101,6 +103,5 @@
   <ItemGroup>
     <Content Include="Info.txt" />
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

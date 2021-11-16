@@ -3,7 +3,7 @@
 namespace EMI.Lower.Package
 {
     [StructLayout(LayoutKind.Explicit, Size = SizeOf)] // 17
-    internal struct BitPacketSndFullyReceivedSegmentPackage
+    internal struct BitPackageDeliveryСompleted
     {
         public const int SizeOf = 24;
         [FieldOffset(0)]

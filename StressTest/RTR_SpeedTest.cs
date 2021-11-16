@@ -34,7 +34,7 @@ namespace StressTest
             Stopwatch stopwatch = new Stopwatch();
             long workCounter = 0;
 
-            //bool error = false;
+            bool error = false;
             stopwatch.Start();
 
             Thread thread = new Thread(() =>
@@ -56,7 +56,7 @@ namespace StressTest
                     }
                     else
                     {
-                       // error = true;
+                       error = true;
                     }
                 }
 
@@ -65,8 +65,7 @@ namespace StressTest
 
             while (true)
             {
-                Thread.Sleep(3000);
-                //StandLogClient.Type1(client,workCounter,error,stopwatch);
+                StandLogClient.Type1(client,workCounter,error,stopwatch);
             }
         }
 

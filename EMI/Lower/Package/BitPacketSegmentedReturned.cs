@@ -12,9 +12,9 @@ namespace EMI.Lower.Package
         public ulong ID;//1+8=9
         [FieldOffset(9)]
         public int Segment;//9+4=13
-        [FieldOffset(11)]
-        public int SegmentCount;//13+4=17
         [FieldOffset(13)]
+        public int SegmentCount;//13+4=17
+        [FieldOffset(17)]
         public ulong ReturnID;//17+8=25    айди пакета вызова
     }
 }

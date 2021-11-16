@@ -79,8 +79,6 @@ namespace EMI
             };
         }
 
-
-
         /// <summary>
         /// если пришёл пакет
         /// </summary>
@@ -112,7 +110,7 @@ namespace EMI
 #pragma warning disable CS1998 // В асинхронном методе отсутствуют операторы await, будет выполнен синхронный метод
 
         /// <summary>
-        /// Запрос - разрыв соединение
+        /// Запрос - разрыв соединение + заполняет причину отключения
         /// </summary>
         private async Task SndClose(AcceptData AcceptData)
         {
@@ -139,11 +137,26 @@ namespace EMI
 
             ThreadPool.QueueUserWorkItem((object stateInfo) =>
             {
-                RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, false, false);
+#if DEBUG
+                try
+                {
+                    RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, false, false);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Client -> SndSimple -> Execute -> Exception -> " + e.ToString());
+                }
+#else
+                    RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, false, false);
+#endif
             });
 
         }
 
+        /// <summary>
+        /// Запрос - выполнить с гарантией доставки
+        /// </summary>
+        /// <returns></returns>
         private async Task SndGuaranteed(AcceptData AcceptData)
         {
             BitPacketGuaranteed bitPacket;
@@ -163,6 +176,7 @@ namespace EMI
 
             ThreadPool.QueueUserWorkItem((object stateInfo) =>
             {
+#if DEBUG
                 try
                 {
                     RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, false, true);
@@ -171,10 +185,17 @@ namespace EMI
                 {
                     Console.WriteLine("Client -> SndGuaranteed -> Execute -> Exception -> " + e.ToString());
                 }
+#else
+                    RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, false, true);
+#endif
             });
 
         }
 
+        /// <summary>
+        /// Запрос - выполнить с гарантией доставки + вернуть результат
+        /// </summary>
+        /// <returns></returns>
         private async Task SndGuaranteedRtr(AcceptData AcceptData)
         {
             BitPacketGuaranteed bitPacket;
@@ -194,7 +215,18 @@ namespace EMI
 
             ThreadPool.QueueUserWorkItem(async (object stateInfo) =>
             {
-                await SendReturn(RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, true, true), bitPacket.ID).ConfigureAwait(false);
+#if DEBUG
+                try
+                {
+                    await SendReturn(RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, true, true), bitPacket.ID).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Client -> SndGuaranteedRtr -> Execute -> Exception -> " + e.ToString());
+                }
+#else
+                    await SendReturn(RPC.Execute(LVL_Permission, data, bitPacket.RPCAddres, true, true), bitPacket.ID).ConfigureAwait(false);
+#endif
             });
 
         }
@@ -212,6 +244,7 @@ namespace EMI
 
                 ThreadPool.QueueUserWorkItem((object stateInfo) =>
                 {
+#if DEBUG
                     try
                     {
                         RPC.Execute(LVL_Permission, package.Data, package.RPCAddres, false, true);
@@ -220,6 +253,9 @@ namespace EMI
                     {
                         Console.WriteLine("Client -> SndGuaranteedSegmented -> Execute -> Exception -> " + e.ToString());
                     }
+#else
+                    RPC.Execute(LVL_Permission, package.Data, package.RPCAddres, false, true);
+#endif
                 });
 
             }
@@ -241,7 +277,18 @@ namespace EMI
 
                 ThreadPool.QueueUserWorkItem(async (object stateInfo) =>
                 {
+#if DEBUG
+                    try
+                    {
+                        await SendReturn(RPC.Execute(LVL_Permission, package.Data, package.RPCAddres, true, true), package.ID).ConfigureAwait(false);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("Client -> SndGuaranteedRtrSegmented -> Execute -> Exception -> " + e.ToString());
+                    }
+#else
                     await SendReturn(RPC.Execute(LVL_Permission, package.Data, package.RPCAddres, true, true), package.ID).ConfigureAwait(false);
+#endif
                 });
 
             }
@@ -281,7 +328,7 @@ namespace EMI
                 if (SubGuaranteedCheck(bitPacket.ID, true) == false)
                     return;
 
-                ReturnWaiter.AddData(bitPacket.ReturnID, data);
+                ReturnWaiter.AddData(bitPacket.ReturnID, package.Data);
             }
             else
             {
@@ -308,27 +355,16 @@ namespace EMI
         }
 
         /// <summary>
-        ///  Запрос - повторить отправку - потерянный сегментированный пакет (так же если слишком много сегментов то изначально отправяться не все)
-        ///  упаковка: /BitPacketGetPkgSegmented/,/ushort[] список сегментов/
+        /// Говорит о том что пакет полность доставлен
         /// </summary>
-        private async Task ReqGetPkgSegmented(AcceptData AcceptData)
+        private async Task SndDeliveryСompletedPackage(AcceptData AcceptData)
         {
-            Packagers.PkgSegmented.UnPack(AcceptData.Buffer, 0, out var bitPacket, out int[] ID_Data);
+            Packagers.SndDeliveryСompletedPackage.UnPack(AcceptData.Buffer, 0, out var bitPacket);
 
-            for (int i = 0; i < ID_Data.Length; i++)
-            {
-                byte[] buffer = PacketSendBuffer.GetPacket(bitPacket.ID, ID_Data[i]);
-                //если пакет не найден - выходим (мы уже его доставили (так нам сказал клиент))
-                if (buffer == null)
-                {
-                    return;
-                }
-                //иначе отправим пакет повторно
-                if (buffer != null)
-                {
-                    Accepter.Send(buffer, buffer.Length);
-                }
-            }
+            if (SubGuaranteedCheck(bitPacket.ID, false) == false)
+                return;
+
+            PacketSendBuffer.RemovePacket(bitPacket.FullID);
         }
 
         /// <summary>
@@ -356,6 +392,30 @@ namespace EMI
         }
 
         /// <summary>
+        ///  Запрос - повторить отправку - потерянный сегментированный пакет (так же если слишком много сегментов то изначально отправяться не все)
+        ///  упаковка: /BitPacketGetPkgSegmented/,/ushort[] список сегментов/
+        /// </summary>
+        private async Task ReqGetPkgSegmented(AcceptData AcceptData)
+        {
+            Packagers.PkgSegmented.UnPack(AcceptData.Buffer, 0, out var bitPacket, out int[] ID_Data);
+
+            for (int i = 0; i < ID_Data.Length; i++)
+            {
+                byte[] buffer = PacketSendBuffer.GetPacket(bitPacket.ID, ID_Data[i]);
+                //если пакет не найден - выходим (мы уже его доставили (так нам сказал клиент))
+                if (buffer == null)
+                {
+                    return;
+                }
+                //иначе отправим пакет повторно
+                if (buffer != null)
+                {
+                    Accepter.Send(buffer, buffer.Length);
+                }
+            }
+        }
+
+        /// <summary>
         /// Отражает запрос пинга обратно
         /// </summary>
         private async Task ReqPing0(AcceptData AcceptData)
@@ -378,19 +438,6 @@ namespace EMI
                 PingMS = (PingMS + elips.TotalMilliseconds) * 0.5;
                 PingIMS = (int)PingMS;
             }
-        }
-
-        /// <summary>
-        /// Говорит о том что пакет полность доставлен
-        /// </summary>
-        private async Task SndDeliveryСompletedPackage(AcceptData AcceptData)
-        {
-            Packagers.SndDeliveryСompletedPackage.UnPack(AcceptData.Buffer, 0, out var bitPacket);
-
-            if (SubGuaranteedCheck(bitPacket.ID, false) == false)
-                return;
-
-            PacketSendBuffer.RemovePacket(bitPacket.FullID);
         }
 #pragma warning restore CS1998 // В асинхронном методе отсутствуют операторы await, будет выполнен синхронный метод
 
@@ -504,6 +551,12 @@ namespace EMI
             }
         }
 
+        /// <summary>
+        /// Упаковывает и отправляет ответные пакеты
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="ID"></param>
+        /// <returns></returns>
         private async Task SendReturn(byte[] data, ulong ID)
         {
             if (data != null)
@@ -516,7 +569,6 @@ namespace EMI
                         PacketType = PacketType.SndGuaranteedReturned,
                         ID = SendID.GetNewID(),
                         ReturnID = ID,
-                        ReturnNull = false
                     };
                     byte[] PackData = Packagers.GuaranteedReturned.PackUP(bpgr, data);
                     await PacketSendBuffer.Storing(bpgr.ID, PackData).ConfigureAwait(false);
@@ -524,8 +576,8 @@ namespace EMI
                 }
                 else//большой пакет
                 {
-                    byte[] sndBuffer = new byte[1024];
-                    Array.Copy(data, sndBuffer, 1024);
+                    //byte[] sndBuffer = new byte[1024];
+                    //Array.Copy(data, sndBuffer, 1024);
 
                     BitPacketSegmentedReturned bp = new BitPacketSegmentedReturned()
                     {
@@ -536,10 +588,12 @@ namespace EMI
                         SegmentCount = BitPacketsUtilities.CalcSegmentCount(data.Length)
                     };
 
-                    await PacketSendBuffer.Storing(ID, bp, data).ConfigureAwait(false);
+                    await PacketSendBuffer.Storing(bp.ID, bp, data).ConfigureAwait(false);
 
-                    data = Packagers.SegmentedReturned.PackUP(bp, sndBuffer);
-                    Accepter.Send(data, data.Length);
+                    //data = Packagers.SegmentedReturned.PackUP(bp, sndBuffer);
+                    //Accepter.Send(data, data.Length);
+                    byte[] sndData = PacketSendBuffer.GetPacket(bp.ID, 0);
+                    Accepter.Send(sndData, sndData.Length);
                 }
             }
             else
@@ -549,7 +603,6 @@ namespace EMI
                     PacketType = PacketType.SndGuaranteedReturned,
                     ID = SendID.GetNewID(),
                     ReturnID = ID,
-                    ReturnNull = true
                 };
 
                 byte[] PackData = Packagers.GuaranteedReturnedNoData.PackUP(bpgr);
@@ -624,7 +677,7 @@ namespace EMI
         private void SendSndDeliveryСompletedPackage(ulong completID)
         {
             ulong sndID = SendID.GetNewID();
-            var bp = new BitPacketSndFullyReceivedSegmentPackage()
+            var bp = new BitPackageDeliveryСompleted()
             {
                 FullID = completID,
                 ID = sndID,

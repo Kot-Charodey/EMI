@@ -9,8 +9,8 @@ namespace StressTest
     {
         static void Main(string[] args)
         {
-            new RTR_SpeedTest().Run();
-            //new Threads_Test().Run();
+            //new RTR_SpeedTest().Run();
+            new Threads_Test().Run();
         }
     }
 }

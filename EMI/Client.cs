@@ -10,7 +10,6 @@ namespace EMI
     using Lower.Accepter;
     using Lower.Package;
 
-
     public partial class Client
     {
         /// <summary>
@@ -72,7 +71,7 @@ namespace EMI
         {
             RPC = new RPC(this);
         }
-
+        
         /// <summary>
         /// Инициализация клиента на стороне сервера
         /// </summary>

@@ -2,7 +2,7 @@
 
 namespace EMI.Lower.Package
 {
-    [StructLayout(LayoutKind.Explicit,Size = SizeOf)] //18
+    [StructLayout(LayoutKind.Explicit,Size = SizeOf)] //17
     internal struct BitPacketGuaranteedReturned
     {
         public const int SizeOf = 24;
@@ -12,7 +12,5 @@ namespace EMI.Lower.Package
         public ulong ID;//1+8=9
         [FieldOffset(9)]
         public ulong ReturnID;//9+8=17    айди пакета вызова
-        [FieldOffset(17)]
-        public bool ReturnNull;//17+1=18
     }
 }
