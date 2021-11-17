@@ -11,23 +11,42 @@ namespace EMI.Lower.Accepter
         public bool Stopped { get; private set; } = false;
         public EndPoint EndPoint { get; private set; }
         private readonly MultiAccepter MultiAccepter;
-        public Func<AcceptData,Task> AcceptEvent;
+        public Action<AcceptData> AcceptEvent;
 
-        public MultyAccepterClient(EndPoint address,MultiAccepter multiAccepter,Client client, Func<AcceptData, Task> acceptEvent)
+        private MultyAccepterClient(EndPoint address,MultiAccepter multiAccepter,Client client, Action<AcceptData> acceptEvent)
         {
             Client = client;
             MultiAccepter = multiAccepter;
             EndPoint = address;
             AcceptEvent = acceptEvent;
-
-            lock (MultiAccepter.ReceiveClients)
-            {
-                MultiAccepter.ReceiveClients.Add(EndPoint,this);
-            }
         }
 
-        public byte[] Receive(out int size)
+        /// <summary>
+        /// Создаёт серверного клиента
+        /// </summary>
+        /// <param name="сlientAccepter">Серверный клиент</param>
+        /// <param name="address"></param>
+        /// <param name="multiAccepter"></param>
+        /// <param name="client"></param>
+        /// <param name="acceptEvent"></param>
+        /// <returns>Делегат для активации ацептера (следует запускать после инициализации клиента)</returns>
+        public static Action Create(out MultyAccepterClient сlientAccepter, EndPoint address, MultiAccepter multiAccepter, Client client, Action<AcceptData> acceptEvent)
         {
+            var mac = new MultyAccepterClient(address, multiAccepter, client, acceptEvent);
+            сlientAccepter = mac;
+
+            return () =>
+            {
+                lock (mac.MultiAccepter.ReceiveClients)
+                {
+                    mac.MultiAccepter.ReceiveClients.Add(mac.EndPoint, mac);
+                }
+            };
+        }
+
+        public int Receive(byte[] buffer)
+        {
+            //на серверных клиента обработчик вызывается классе MultiAccepter
             throw new Exception("use Action acceptEvent");
         }
 

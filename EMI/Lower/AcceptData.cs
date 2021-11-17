@@ -2,7 +2,7 @@
 {
     using Package;
 
-    internal class AcceptData
+    internal struct AcceptData
     {
         public PacketType PacketType;
         public int Size;
@@ -10,9 +10,9 @@
 
         public AcceptData(int size, byte[] buffer)
         {
-            PacketType = buffer.GetPacketType();
             Size = size;
             Buffer = buffer;
+            PacketType = Buffer.GetPacketType();
         }
     }
 }

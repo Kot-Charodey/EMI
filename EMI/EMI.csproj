@@ -55,6 +55,8 @@
     <Compile Include="ClientSend.cs" />
     <Compile Include="CloseType.cs" />
     <Compile Include="ClientOutException.cs" />
+    <Compile Include="Lower\Accepter\MTU.cs" />
+    <Compile Include="Lower\BufferedObjectStore.cs" />
     <Compile Include="Lower\Buffer\Accept\BufferedByteArrayPacket.cs" />
     <Compile Include="Lower\Buffer\Accept\PacketInfo.cs" />
     <Compile Include="Lower\Buffer\PacketAcceptBuffer.cs" />
@@ -65,7 +67,6 @@
     <Compile Include="Lower\Buffer\Send\IBufferedPackets.cs" />
     <Compile Include="Lower\Buffer\PacketSendBuffer.cs" />
     <Compile Include="Lower\AcceptID_Dispatcher.cs" />
-    <Compile Include="Lower\LostPackageInfo.cs" />
     <Compile Include="Lower\Accepter\IMyAccepter.cs" />
     <Compile Include="Lower\Accepter\MultiAccepter.cs" />
     <Compile Include="Lower\Accepter\MultyAccepterClient.cs" />

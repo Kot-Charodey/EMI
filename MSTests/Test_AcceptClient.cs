@@ -319,7 +319,7 @@ namespace MSTests
             public EndPoint EndPoint => new System.Net.IPEndPoint(System.Net.IPAddress.Any, 1);
             
 
-            public byte[] Receive(out int size)
+            public int Receive(byte[] buffer)
             {
                 throw new NotImplementedException();
             }

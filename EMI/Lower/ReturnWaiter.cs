@@ -1,18 +1,18 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace EMI.Lower
 {
     using SmartPackager;
+    using System;
 
     internal class ReturnWaiter
     {
         private class Waiter
         {
             public bool ClientOut = false;
-            public bool @lock = true;
+            public SemaphoreSlim SemaphoreSlim = new SemaphoreSlim(0, 1);
             public byte[] Data;
         }
 
@@ -27,10 +27,7 @@ namespace EMI.Lower
                 var pack = Packager.Create<TOut>();
 
                 //когда прийдёт наш пакет то поток разбудят и мы его отдадим
-                while (Waiter.@lock)
-                {
-                    await Task.Delay(1).ConfigureAwait(false);
-                }
+                await Waiter.SemaphoreSlim.WaitAsync().ConfigureAwait(false);
 
                 if (Waiter.ClientOut)
                 {
@@ -68,12 +65,13 @@ namespace EMI.Lower
         /// <param name="data"></param>
         public void AddData(ulong ID, byte[] data)
         {
+
             lock (list)
             {
                 var wait = list[ID];
                 list.Remove(ID);
-                wait.Data = data;
-                wait.@lock = false;
+                wait.Data = data ?? throw new ArgumentNullException(nameof(data));
+                wait.SemaphoreSlim.Release();
             }
         }
 
@@ -87,7 +85,7 @@ namespace EMI.Lower
                 foreach (Waiter waiter in list.Values)
                 {
                     waiter.ClientOut = true;
-                    waiter.@lock = false;
+                    waiter.SemaphoreSlim.Release();
                 }
             }
         }

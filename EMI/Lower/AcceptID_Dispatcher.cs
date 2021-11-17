@@ -19,7 +19,7 @@ namespace EMI.Lower
         //ссылки на компоненты клиента что бы отправлять запросы о доставке
         private readonly IMyAccepter Accepter;
         private readonly SendID_Dispatcher SendID;
-        private readonly PacketSendBuffer PacketSendBuffer;
+        public PacketSendBuffer PacketSendBuffer;
 
         public AcceptID_Dispatcher(IMyAccepter accepter, SendID_Dispatcher sendID, PacketSendBuffer packetSendBuffer)
         {
@@ -32,6 +32,21 @@ namespace EMI.Lower
         /// последний принятый ID
         /// </summary>
         private ulong ReqID = 0;
+        private ulong _ReqIDDataLast = 0;
+        /// <summary>
+        /// Последний доставленный ID который не DeliveryСompletedPackage
+        /// </summary>
+        private ulong ReqIDDataLast { 
+            set 
+            {
+                if (_ReqIDDataLast < value)
+                    _ReqIDDataLast = value;
+            }
+            get
+            {
+                return _ReqIDDataLast;
+            }
+        }
         /// <summary>
         /// Список потерянных пакетов [key - ID, value - isSegment]
         /// </summary>
@@ -51,6 +66,10 @@ namespace EMI.Lower
             }
         }
 
+        /// <summary>
+        /// Говорит что пакет доставлен
+        /// </summary>
+        /// <param name="completID"></param>
         private void SendSndDeliveryСompletedPackage(ulong completID)
         {
             ulong sndID = SendID.GetNewID();
@@ -64,7 +83,6 @@ namespace EMI.Lower
 
             byte[] buffer = Packagers.SndDeliveryСompletedPackage.PackUP(bp);
             Task.Run(async () => await PacketSendBuffer.Storing(sndID, buffer));
-
             Accepter.Send(buffer, buffer.Length);
         }
 
@@ -78,20 +96,34 @@ namespace EMI.Lower
         }
 
         /// <summary>
+        /// Возвращает ID пакета который был доставлен (не учитывает DeliveryСompletedPackage)
+        /// </summary>
+        /// <returns>ID</returns>
+        public ulong GetDataLastID()
+        {
+            return ReqIDDataLast;
+        }
+
+        /// <summary>
         /// Проверяет потерян ли пакет и доставлен ли он уже
         /// Выполняет процесс по поиску потерянных пакетов
         /// </summary>
         /// <param name="ID">айди пакета</param>
+        /// <param name="packetType">Тип пакета, нужен для счётика </param>
         /// <returns>если true то пакет пришёл в первые</returns>
-        public bool CheckPacket(ulong ID)
+        public bool CheckPacket(ulong ID,PacketType packetType)
         {
             lock (this)
             {
+                if (!packetType.IsDeliveryСompletedPackage())
+                    ReqIDDataLast = ID;
+
                 //если пакет новый
                 if (ID == ReqID)
                 {
                     ReqID++;
-                    SendSndDeliveryСompletedPackage(ID);
+                    if (!packetType.IsDeliveryСompletedPackage())
+                        SendSndDeliveryСompletedPackage(ID);
                     return true;
                 }
 
@@ -99,7 +131,8 @@ namespace EMI.Lower
                 {
                     LostPackagesStartFind(ReqID, ID - 1);
                     ReqID = ID + 1;
-                    SendSndDeliveryСompletedPackage(ID);
+                    if (!packetType.IsDeliveryСompletedPackage())
+                        SendSndDeliveryСompletedPackage(ID);
                     return true;
                 }
                 else//если пакет устарел
@@ -169,6 +202,8 @@ namespace EMI.Lower
             {
                 if (LostID.ContainsKey(ID))
                     LostID.Remove(ID);
+
+                ReqIDDataLast = ID;
 
                 //если пакет новый
                 if (ID == ReqID)

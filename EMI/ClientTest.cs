@@ -17,7 +17,7 @@ namespace EMI
             return new Client();
         }
 
-        internal static Func<AcceptData,Task> _InitAndGetProcessAccept(Client client, IMyAccepter IMyAccepter)
+        internal static Action<AcceptData> _InitAndGetProcessAccept(Client client, IMyAccepter IMyAccepter)
         {
             client.Accepter = IMyAccepter;
             client.InitAcceptLogicEvent(new System.Net.IPEndPoint(System.Net.IPAddress.Any, 1));

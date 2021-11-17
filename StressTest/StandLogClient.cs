@@ -13,6 +13,7 @@ namespace StressTest
     {
         public static void Type1(Client client, long workCounter,bool error, Stopwatch stopwatch)
         {
+            return;
             List<string> lines = new List<string>();
 
             double work = workCounter / stopwatch.Elapsed.TotalSeconds;

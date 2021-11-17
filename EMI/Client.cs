@@ -82,10 +82,14 @@ namespace EMI
             RPC = new RPC(this);
 
             IsConnect = true;
+
+            //AccepterDone нужно запустить после инициализации InitAcceptLogicEvent
+            Action AccepterDone = MultyAccepterClient.Create(out var multyAccepterClient, endPoint, accepter, this, ProcessAccept);
+            Accepter = multyAccepterClient;
             InitAcceptLogicEvent(endPoint);
 
-            MultyAccepterClient multyAccepterClient = new MultyAccepterClient(endPoint, accepter, this, ProcessAccept);
-            Accepter = multyAccepterClient;
+            AccepterDone.Invoke();
+
             ThreadRequestLostPackages.Start();
             ProcessPingSenderStart();
         }
@@ -139,7 +143,7 @@ namespace EMI
         {
             byte[] snd1 = { (byte)PacketType.ReqConnection0 };
 
-            byte[] buffer = null;
+            byte[] buffer = new byte[MTU.Size];
             int size;
 
             CancellationToken cancellation = new CancellationTokenSource(30000).Token;
@@ -160,7 +164,7 @@ namespace EMI
 
                 bool accept = await TaskUtilities.InvokeAsync(() =>
                 {
-                    buffer = Accepter.Receive(out size);
+                    size = Accepter.Receive(buffer);
                     if (buffer.GetPacketType() == PacketType.ReqConnection1 && size == sizeof(PacketType) + sizeof(int))
                     {
                         buffer[0] = (byte)PacketType.ReqConnection2;
@@ -176,7 +180,7 @@ namespace EMI
                     {
                         while (true)
                         {
-                            buffer = Accepter.Receive(out _);
+                            Accepter.Receive(buffer);
                             if (buffer.GetPacketType() == PacketType.ReqPing0)
                             {
                                 break;
@@ -204,10 +208,18 @@ namespace EMI
 
         private void ProcessLocalReceive()
         {
+            BufferedObjectStore<byte[]> bufferStore = new BufferedObjectStore<byte[]>(Environment.ProcessorCount, () => new byte[MTU.Size]);
+
             while (IsConnect)
             {
-                var buffer = Accepter.Receive(out int size);
-                Task.Run(async () => await ProcessAccept(new AcceptData(size, buffer)));
+                var handle = bufferStore.GetObject();
+                int size = Accepter.Receive(handle.Object);
+                var acceptD = new AcceptData(size, handle.Object);
+                Task.Run(() =>
+                {
+                    ProcessAccept(acceptD);
+                    handle.Release();
+                });
             }
         }
 
