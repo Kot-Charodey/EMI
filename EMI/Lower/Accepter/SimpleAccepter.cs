@@ -20,15 +20,14 @@ namespace EMI.Lower.Accepter
         }
 
         private EndPoint Point = new IPEndPoint(IPAddress.Any,1);
-        private readonly byte[] tmp=new byte[1248];
 
-        public byte[] Receive(out int size)
+        public int Receive(byte[] buffer)
         {
         @while:
-            size = Client.ReceiveFrom(tmp, ref Point);
+            int size = Client.ReceiveFrom(buffer, ref Point);
             if (Point.Equals(EndPoint))
             {
-                return tmp;
+                return size;
             }
             goto @while;
         }

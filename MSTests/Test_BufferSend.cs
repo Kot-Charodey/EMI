@@ -19,7 +19,7 @@ namespace MSTests
         [TestMethod]
         public void Test1_PacketSendBuffer_ShortPacket()
         {
-            PacketSendBuffer buffer = new PacketSendBuffer();
+            PacketSendBuffer buffer = new PacketSendBuffer(new AcceptID_Dispatcher(null, null, null));
             BitPacketGuaranteed bitPacket = new BitPacketGuaranteed()
             {
                 ID = 1,
@@ -44,7 +44,7 @@ namespace MSTests
         [TestMethod]
         public void Test2_PacketSendBuffer_Lock()
         {
-            PacketSendBuffer buffer = new PacketSendBuffer();
+            PacketSendBuffer buffer = new PacketSendBuffer(new AcceptID_Dispatcher(null, null, null));
             byte[][] TestData = new byte[PacketSendBuffer.Capacity+1][];
             for (ulong i = 0; i < PacketSendBuffer.Capacity; i++)
             {
@@ -94,7 +94,7 @@ namespace MSTests
         [TestMethod]
         public void Test3_PacketSendBuffer_LongPacket()
         {
-            PacketSendBuffer buffer = new PacketSendBuffer();
+            PacketSendBuffer buffer = new PacketSendBuffer(new AcceptID_Dispatcher(null, null, null));
 
             BitPacketSegmented bitPacket = new BitPacketSegmented()
             {
@@ -148,7 +148,7 @@ namespace MSTests
         [TestMethod]
         public void Test4_PacketSendBuffer_2GBPacket()
         {
-            PacketSendBuffer buffer = new PacketSendBuffer();
+            PacketSendBuffer buffer = new PacketSendBuffer(new AcceptID_Dispatcher(null, null, null));
 
             List<byte[]> Arrs = new List<byte[]>();
             for(int i=0;i< 2000000000/1024; i++)

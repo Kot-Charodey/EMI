@@ -47,13 +47,17 @@ namespace EMI.Lower.Accepter
         public void ProcessReceive(CancellationToken cancellationToken)
         {
             EndPoint receivePoint = new IPEndPoint(IPAddress.Any, 1);
+            BufferedObjectStore<byte[]> bufferStore = new BufferedObjectStore<byte[]>(Environment.ProcessorCount, () => new byte[MTU.Size]);
+
             while (!cancellationToken.IsCancellationRequested)
             {
                 try
                 {
-                    byte[] buffer = new byte[BufferSize];
-                    int size = Socket.ReceiveFrom(buffer, ref receivePoint);
+                    var handle = bufferStore.GetObject();
+                    int size = Socket.ReceiveFrom(handle.Object, ref receivePoint);
+                    AcceptData acceptD = new AcceptData(size, handle.Object);
 
+                    //TODO сделать через задачу с ожиданием
                     DateTime nowTime = DateTime.Now;
                     var removingTimeOut = from point in RegisteringСlients where (nowTime - point.Value).Seconds > 60 select point.Key;
                     foreach (var key in removingTimeOut)
@@ -69,11 +73,14 @@ namespace EMI.Lower.Accepter
                         if (ReceiveClients.TryGetValue(receivePoint, out MultyAccepterClient client))
                         {
                             //RPC
-                            client.AcceptEvent.Invoke(new AcceptData(size,buffer));
+                            Task.Run(() => {
+                                client.AcceptEvent.Invoke(acceptD);
+                                handle.Release();
+                            });
                         }
                         else
                         {
-                            PacketType packetType = buffer.GetPacketType();
+                            PacketType packetType = handle.Object.GetPacketType();
 
                             //Если игрок хочет подключиться
                             if (RegisteringСlients.TryGetValue(receivePoint, out DateTime time))
@@ -90,7 +97,7 @@ namespace EMI.Lower.Accepter
                                             int hash;
                                             unsafe
                                             {
-                                                fixed (byte* num = &buffer[1])
+                                                fixed (byte* num = & handle.Object[1])
                                                     hash = *(int*)num;
                                             }
                                             if (hash == receivePoint.GetHashCode())
@@ -124,6 +131,8 @@ namespace EMI.Lower.Accepter
                                 RegisteringСlients.Add(receivePoint, DateTime.Now);
                                 SendReqCon1(receivePoint);
                             }
+
+                            handle.Release();
                         }
                     }
                 }

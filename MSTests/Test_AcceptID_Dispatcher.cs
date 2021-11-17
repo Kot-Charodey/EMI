@@ -25,14 +25,15 @@ namespace MSTests
         public void Test1_Send()
         {
             Acp acp = new Acp();
-            PacketSendBuffer buffer = new PacketSendBuffer();
             SendID_Dispatcher sendID = new SendID_Dispatcher();
 
-            AcceptID_Dispatcher dispatcher = new AcceptID_Dispatcher(acp, sendID, buffer);
+            AcceptID_Dispatcher dispatcher = new AcceptID_Dispatcher(acp, sendID, null);
+            PacketSendBuffer buffer = new PacketSendBuffer(dispatcher);
+            dispatcher.PacketSendBuffer = buffer;
 
 
             Assert.IsTrue(dispatcher.GetID()==0,"в начале работы айди должен быть 0");
-            dispatcher.CheckPacket(0);
+            dispatcher.CheckPacket(0,PacketType.SndGuaranteed);
             Assert.IsTrue(dispatcher.GetID() == 1, "прибыл пакет с айди 0! значит айди должен прибавиться");
 
             Assert.IsTrue(dispatcher.LostID.Count == 0,"ни один пакет не мог потеряться");
@@ -47,14 +48,14 @@ namespace MSTests
         public void Test2_SendAndLose()
         {
             Acp acp = new Acp();
-            PacketSendBuffer buffer = new PacketSendBuffer();
             SendID_Dispatcher sendID = new SendID_Dispatcher();
 
-            AcceptID_Dispatcher dispatcher = new AcceptID_Dispatcher(acp, sendID, buffer);
-
+            AcceptID_Dispatcher dispatcher = new AcceptID_Dispatcher(acp, sendID, null);
+            PacketSendBuffer buffer = new PacketSendBuffer(dispatcher);
+            dispatcher.PacketSendBuffer = buffer;
 
             Assert.IsTrue(dispatcher.GetID() == 0, "в начале работы айди должен быть 0");
-            dispatcher.CheckPacket(1);
+            dispatcher.CheckPacket(1,PacketType.SndGuaranteed);
             Assert.IsTrue(dispatcher.GetID() == 2, "прибыл пакет с айди 1! значит айди должен прибавиться");
 
             Assert.IsTrue(dispatcher.LostID.Count == 1, "1 один пакет должен был потеряться");
@@ -72,14 +73,15 @@ namespace MSTests
         public void Test3_SendAndLose2()
         {
             Acp acp = new Acp();
-            PacketSendBuffer buffer = new PacketSendBuffer();
             SendID_Dispatcher sendID = new SendID_Dispatcher();
 
-            AcceptID_Dispatcher dispatcher = new AcceptID_Dispatcher(acp, sendID, buffer);
+            AcceptID_Dispatcher dispatcher = new AcceptID_Dispatcher(acp, sendID, null);
+            PacketSendBuffer buffer = new PacketSendBuffer(dispatcher);
+            dispatcher.PacketSendBuffer = buffer;
 
 
             Assert.IsTrue(dispatcher.GetID() == 0, "в начале работы айди должен быть 0");
-            dispatcher.CheckPacket(2);
+            dispatcher.CheckPacket(2, PacketType.SndGuaranteed);
             Assert.IsTrue(dispatcher.GetID() == 3, "прибыл пакет с айди 1! значит айди должен прибавиться");
 
             Assert.IsTrue(dispatcher.LostID.Count == 2, "2 один пакет должен был потеряться");
@@ -100,13 +102,14 @@ namespace MSTests
         public void Test4_SendRepetition()
         {
             Acp acp = new Acp();
-            PacketSendBuffer buffer = new PacketSendBuffer();
             SendID_Dispatcher sendID = new SendID_Dispatcher();
 
-            AcceptID_Dispatcher dispatcher = new AcceptID_Dispatcher(acp, sendID, buffer);
+            AcceptID_Dispatcher dispatcher = new AcceptID_Dispatcher(acp, sendID, null);
+            PacketSendBuffer buffer = new PacketSendBuffer(dispatcher);
+            dispatcher.PacketSendBuffer = buffer;
 
-            dispatcher.CheckPacket(0);
-            dispatcher.CheckPacket(0);
+            dispatcher.CheckPacket(0, PacketType.SndGuaranteed);
+            dispatcher.CheckPacket(0, PacketType.SndGuaranteed);
 
             Assert.IsTrue(dispatcher.LostID.Count == 0, "ни один пакет не мог потеряться");
             Assert.IsTrue(acp.sndDats.Count == 1, "должно быть 1 отправленное сообщение");
@@ -120,10 +123,11 @@ namespace MSTests
         public void Test5_SendSegment()
         {
             Acp acp = new Acp();
-            PacketSendBuffer buffer = new PacketSendBuffer();
             SendID_Dispatcher sendID = new SendID_Dispatcher();
 
-            AcceptID_Dispatcher dispatcher = new AcceptID_Dispatcher(acp, sendID, buffer);
+            AcceptID_Dispatcher dispatcher = new AcceptID_Dispatcher(acp, sendID, null);
+            PacketSendBuffer buffer = new PacketSendBuffer(dispatcher);
+            dispatcher.PacketSendBuffer = buffer;
 
             dispatcher.PreCheckPacketSegment(0);
 
@@ -138,10 +142,11 @@ namespace MSTests
         public void Test6_SendSegment()
         {
             Acp acp = new Acp();
-            PacketSendBuffer buffer = new PacketSendBuffer();
             SendID_Dispatcher sendID = new SendID_Dispatcher();
 
-            AcceptID_Dispatcher dispatcher = new AcceptID_Dispatcher(acp, sendID, buffer);
+            AcceptID_Dispatcher dispatcher = new AcceptID_Dispatcher(acp, sendID, null);
+            PacketSendBuffer buffer = new PacketSendBuffer(dispatcher);
+            dispatcher.PacketSendBuffer = buffer;
 
             dispatcher.PreCheckPacketSegment(0);
             dispatcher.PreCheckPacketSegment(0);
@@ -159,12 +164,13 @@ namespace MSTests
         public void Test7_SendSegment()
         {
             Acp acp = new Acp();
-            PacketSendBuffer buffer = new PacketSendBuffer();
             SendID_Dispatcher sendID = new SendID_Dispatcher();
 
-            AcceptID_Dispatcher dispatcher = new AcceptID_Dispatcher(acp, sendID, buffer);
+            AcceptID_Dispatcher dispatcher = new AcceptID_Dispatcher(acp, sendID, null);
+            PacketSendBuffer buffer = new PacketSendBuffer(dispatcher);
+            dispatcher.PacketSendBuffer = buffer;
 
-            dispatcher.CheckPacket(1);
+            dispatcher.CheckPacket(1, PacketType.SndGuaranteed);
             dispatcher.PreCheckPacketSegment(0);
 
             Assert.IsTrue(dispatcher.LostID.Count == 1);
@@ -178,10 +184,11 @@ namespace MSTests
         public void Test8_SendSegment()
         {
             Acp acp = new Acp();
-            PacketSendBuffer buffer = new PacketSendBuffer();
             SendID_Dispatcher sendID = new SendID_Dispatcher();
 
-            AcceptID_Dispatcher dispatcher = new AcceptID_Dispatcher(acp, sendID, buffer);
+            AcceptID_Dispatcher dispatcher = new AcceptID_Dispatcher(acp, sendID, null);
+            PacketSendBuffer buffer = new PacketSendBuffer(dispatcher);
+            dispatcher.PacketSendBuffer = buffer;
 
             dispatcher.PreCheckPacketSegment(0);
             dispatcher.PreCheckPacketSegment(0);
@@ -200,15 +207,16 @@ namespace MSTests
         public void Test9_SendSegment()
         {
             Acp acp = new Acp();
-            PacketSendBuffer buffer = new PacketSendBuffer();
             SendID_Dispatcher sendID = new SendID_Dispatcher();
 
-            AcceptID_Dispatcher dispatcher = new AcceptID_Dispatcher(acp, sendID, buffer);
+            AcceptID_Dispatcher dispatcher = new AcceptID_Dispatcher(acp, sendID, null);
+            PacketSendBuffer buffer = new PacketSendBuffer(dispatcher);
+            dispatcher.PacketSendBuffer = buffer;
 
-            dispatcher.CheckPacket(1);
+            dispatcher.CheckPacket(1, PacketType.SndGuaranteed);
             Assert.IsTrue(dispatcher.PreCheckPacketSegment(0) == true);
             Assert.IsTrue(dispatcher.PreCheckPacketSegment(0) == true);
-            dispatcher.CheckPacket(2);
+            dispatcher.CheckPacket(2, PacketType.SndGuaranteed);
             Assert.IsTrue(dispatcher.PreCheckPacketSegment(0) == true);
             dispatcher.DoneCheckPacketSegment(0);
             Assert.IsTrue(dispatcher.PreCheckPacketSegment(0) == false);
@@ -229,7 +237,7 @@ namespace MSTests
             public EndPoint EndPoint => new System.Net.IPEndPoint(System.Net.IPAddress.Any, 1);
 
 
-            public byte[] Receive(out int size)
+            public int Receive(byte[] buffer)
             {
                 throw new NotImplementedException();
             }
