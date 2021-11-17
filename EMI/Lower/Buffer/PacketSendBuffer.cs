@@ -16,7 +16,7 @@ namespace EMI.Lower.Buffer
         internal struct Delivery
         {
             public ulong ID;
-            public IBufferedPackets Packet;
+            public byte[] BytePacket;
         }
 
         /// <summary>
@@ -60,8 +60,6 @@ namespace EMI.Lower.Buffer
                         BufferDelivery.RemoveAt(i--);
                 }
             }
-            //lock(BufferDelivery)
-            //    BufferDelivery.RemoveAll((key) => key < oldID);
         }
 
         public async Task Storing(ulong ID, byte[] data)
@@ -77,7 +75,7 @@ namespace EMI.Lower.Buffer
                 if (data.GetPacketType().IsDeliveryСompletedPackage())
                 {
                     lock (BufferDelivery)
-                        BufferDelivery.Add(new Delivery() { ID = ID, Packet = new BufferedShortPacket(data) });
+                        BufferDelivery.Add(new Delivery() { ID = ID, BytePacket = data });
                     BufferPlace.Release();
                 }
                 else
@@ -115,6 +113,16 @@ namespace EMI.Lower.Buffer
                 }
                 else
                 {
+                    lock (BufferDelivery)
+                    {
+                        for(int i = 0; i < BufferDelivery.Count; i++)
+                        {
+                            if (BufferDelivery[i].ID == ID)
+                            {
+                                return BufferDelivery[i].BytePacket;
+                            }
+                        }
+                    }
                     return null;
                 }
             }
