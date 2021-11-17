@@ -1,45 +1,71 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace EMI.Lower
 {
     using SmartPackager;
-    using System;
+    using Buffer;
 
     internal class ReturnWaiter
     {
         private class Waiter
         {
-            public bool ClientOut = false;
-            public SemaphoreSlim SemaphoreSlim = new SemaphoreSlim(0, 1);
-            public byte[] Data;
+            private SemaphoreSlim SemaphoreSlim = new SemaphoreSlim(0, 1);
+            private byte[] Data;
+
+            public void ReleaseError()
+            {
+                Data = null;
+                SemaphoreSlim.Release();
+            }
+
+            public void Release(byte[] data)
+            {
+                Data = data;
+                SemaphoreSlim.Release();
+            }
+
+            public async Task<byte[]> WaitAndGet()
+            {
+                await SemaphoreSlim.WaitAsync().ConfigureAwait(false);
+                if(Data==null)
+                    throw new ClientOutException();
+                return Data;
+            }
         }
 
         private readonly Dictionary<ulong, Waiter> list = new Dictionary<ulong, Waiter>();
+        private readonly BufferedObjectStore<Waiter> Waiters = new BufferedObjectStore<Waiter>(PacketSendBuffer.Capacity, () => new Waiter());
 
-        private class Handle<TOut> {
+        private interface IHandle
+        {
             
-            public Waiter Waiter;
+        }
+
+        private struct Handle<TOut>:IHandle {
+            
+            public BufferedObjectStore<Waiter>.Handle Waiter;
 
             public async Task<TOut> Wait()
             {
                 var pack = Packager.Create<TOut>();
+                TOut ret;
 
                 //когда прийдёт наш пакет то поток разбудят и мы его отдадим
-                await Waiter.SemaphoreSlim.WaitAsync().ConfigureAwait(false);
-
-                if (Waiter.ClientOut)
+                try
                 {
-                    throw new ClientOutException();
+                    pack.UnPack(await Waiter.Object.WaitAndGet().ConfigureAwait(false), 0, out ret);
                 }
-
-                pack.UnPack(Waiter.Data, 0, out TOut ret);
+                finally
+                {
+                    Waiter.Release();
+                }
                 return ret;
             }
         }
 
-        
         /// <summary>
         /// Генерирует функцию ожидания - (её можно запустить позже)
         /// </summary>
@@ -49,10 +75,10 @@ namespace EMI.Lower
         public RPCfunctOut<Task<TOut>> SetupWaiting<TOut>(ulong ID)
         {
             Handle<TOut> handle = new Handle<TOut>();
-            handle.Waiter = new Waiter();
+            handle.Waiter = Waiters.GetObject();
             lock (list)
             {
-                list.Add(ID, handle.Waiter);
+                list.Add(ID, handle.Waiter.Object);
             }
 
             return handle.Wait;
@@ -70,8 +96,7 @@ namespace EMI.Lower
             {
                 var wait = list[ID];
                 list.Remove(ID);
-                wait.Data = data ?? throw new ArgumentNullException(nameof(data));
-                wait.SemaphoreSlim.Release();
+                wait.Release(data);
             }
         }
 
@@ -84,8 +109,7 @@ namespace EMI.Lower
             {
                 foreach (Waiter waiter in list.Values)
                 {
-                    waiter.ClientOut = true;
-                    waiter.SemaphoreSlim.Release();
+                    waiter.ReleaseError();
                 }
             }
         }

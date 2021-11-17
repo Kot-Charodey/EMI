@@ -47,7 +47,7 @@ namespace StressTest
             {
                 while (true)
                 {
-                    Thread[] ths = new Thread[1];
+                    Thread[] ths = new Thread[10];
                     for (int i = 0; i < ths.Length; i++)
                     {
                         ths[i] = new Thread(() =>
