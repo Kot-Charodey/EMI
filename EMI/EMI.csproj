@@ -48,53 +48,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ClientTest.cs" />
     <Compile Include="Network\INetworkClient.cs" />
     <Compile Include="Network\INetworkServer.cs" />
-    <Compile Include="Lower\AcceptData.cs" />
-    <Compile Include="Client.cs" />
-    <Compile Include="ClientAcceptLogic.cs" />
-    <Compile Include="ClientSend.cs" />
-    <Compile Include="CloseType.cs" />
-    <Compile Include="ClientOutException.cs" />
-    <Compile Include="Lower\Accepter\MTU.cs" />
-    <Compile Include="Lower\BufferedObjectStore.cs" />
-    <Compile Include="Lower\Buffer\Accept\BufferedByteArrayPacket.cs" />
-    <Compile Include="Lower\Buffer\Accept\PacketInfo.cs" />
-    <Compile Include="Lower\Buffer\PacketAcceptBuffer.cs" />
-    <Compile Include="Lower\Buffer\Accept\ABufferedPackets.cs" />
-    <Compile Include="Lower\Buffer\Send\BufferedSegmentedReturnedPacket.cs" />
-    <Compile Include="Lower\Buffer\Send\BufferedSegmentedPacket.cs" />
-    <Compile Include="Lower\Buffer\Send\BufferedShortPacket.cs" />
-    <Compile Include="Lower\Buffer\Send\IBufferedPackets.cs" />
-    <Compile Include="Lower\Buffer\PacketSendBuffer.cs" />
-    <Compile Include="Lower\AcceptID_Dispatcher.cs" />
-    <Compile Include="Lower\Accepter\IMyAccepter.cs" />
-    <Compile Include="Lower\Accepter\MultiAccepter.cs" />
-    <Compile Include="Lower\Accepter\MultyAccepterClient.cs" />
-    <Compile Include="Lower\Accepter\SimpleAccepter.cs" />
-    <Compile Include="Lower\Package\Packagers.cs" />
+    <Compile Include="Exception\ClientDisconnectException.cs" />
+    <Compile Include="RPCFunctDelegate.cs" />
     <Compile Include="TaskUtilities.cs" />
-    <Compile Include="Lower\Package\BitPackageDeliveryСompleted.cs" />
-    <Compile Include="Lower\Package\BitPacketReqGetPkgSegmented.cs" />
-    <Compile Include="Lower\Package\BitPacketSimple.cs" />
-    <Compile Include="Lower\Package\BitPacketGuaranteedReturned.cs" />
-    <Compile Include="Lower\Package\BitPacketSegmentedReturned.cs" />
-    <Compile Include="Lower\Package\BitPacketSegmented.cs" />
-    <Compile Include="Lower\Package\BitPacketGuaranteed.cs" />
-    <Compile Include="Lower\Package\BitPacketsUtilities.cs" />
     <Compile Include="Lower\RefVarible.cs" />
-    <Compile Include="Lower\SendID_Dispatcher.cs" />
-    <Compile Include="Lower\PacketType.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Lower\ReturnWaiter.cs" />
-    <Compile Include="RPC\RPC.cs" />
-    <Compile Include="RPC\RPCForwarding.cs" />
-    <Compile Include="RPC\RPCFunctDelegate.cs" />
-    <Compile Include="RPC\RPCMethodAttribute.cs" />
-    <Compile Include="RPC\RPCRegister.cs" />
-    <Compile Include="RPC\RPCAddressTable.cs" />
-    <Compile Include="Server.cs" />
     <Compile Include="RequestRatePing.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -105,6 +65,9 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Info.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="RPC\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
