@@ -49,6 +49,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ClientTest.cs" />
+    <Compile Include="Network\INetworkClient.cs" />
+    <Compile Include="Network\INetworkServer.cs" />
     <Compile Include="Lower\AcceptData.cs" />
     <Compile Include="Client.cs" />
     <Compile Include="ClientAcceptLogic.cs" />
