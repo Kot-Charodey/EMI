@@ -48,10 +48,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Client.cs" />
     <Compile Include="Network\INetworkClient.cs" />
     <Compile Include="Network\INetworkServer.cs" />
     <Compile Include="Exception\ClientDisconnectException.cs" />
-    <Compile Include="RPCFunctDelegate.cs" />
+    <Compile Include="RPCFuncDelegate.cs" />
+    <Compile Include="RPC.cs" />
     <Compile Include="TaskUtilities.cs" />
     <Compile Include="Lower\RefVarible.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -66,8 +68,6 @@
   <ItemGroup>
     <Content Include="Info.txt" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="RPC\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

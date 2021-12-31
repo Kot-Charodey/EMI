@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,7 +15,7 @@ namespace EMI
         /// <param name="function">функция на выполнение</param>
         /// <param name="tokenSource">передаётся именно TokenSource так как задача себя таким образом разбудит когда закончит выполняться</param>
         /// <returns>вернёт true если задача завершена без прерываний</returns>
-        public static async Task<bool> InvokeAsync(RPCfunct function, CancellationTokenSource tokenSource)
+        public static async Task<bool> InvokeAsync(RPCfunc function, CancellationTokenSource tokenSource)
         {
             Exception exception = null;
             bool threadEndWork = false;

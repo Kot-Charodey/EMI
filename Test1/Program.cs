@@ -1,4 +1,58 @@
-﻿//using System;
+﻿using System;
+using System.Threading.Tasks;
+using EMI;
+using EMI.Network;
+
+namespace test
+{
+    public static class Program
+    {
+        public static void Main()
+        {
+            Client client = new Client(new NT());
+            client.RPC.RegisterMethod(test);
+            Console.ReadLine();
+        }
+
+        public static void test(MethodHandle mh)
+        {
+
+        }
+    }
+
+    public class NT : EMI.Network.INetworkClient
+    {
+        public bool IsConnect => true;
+
+        public string Address => "none";
+
+        public TimeSpan TimeOutToDisconnect { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+        public event INetworkClientDisconnected Disconnected;
+
+        public Task<int> Accept(byte[] data)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Disconnect()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Send(byte[] data, int length, bool guaranteed)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<bool> Сonnect(string address)
+        {
+            throw new NotImplementedException();
+        }
+    }
+}
+
+//using System;
 //using System.Collections.Generic;
 //using System.Runtime.InteropServices;
 //using System.Linq;
