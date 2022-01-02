@@ -49,20 +49,30 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Client.cs" />
+    <Compile Include="InputSerialWaiter.cs" />
+    <Compile Include="MethodHandle.cs" />
     <Compile Include="Network\INetworkClient.cs" />
     <Compile Include="Network\INetworkServer.cs" />
     <Compile Include="Exception\ClientDisconnectException.cs" />
+    <Compile Include="ProBuffer\AllocatedArray.cs" />
+    <Compile Include="ProBuffer\IAllocatedArray.cs" />
+    <Compile Include="ProBuffer\ProArrayBuffer.cs" />
+    <Compile Include="ProBuffer\WrapperArray.cs" />
     <Compile Include="RPCFuncDelegate.cs" />
     <Compile Include="RPC.cs" />
     <Compile Include="TaskUtilities.cs" />
-    <Compile Include="Lower\RefVarible.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RequestRatePing.cs" />
+    <Compile Include="TimeSync.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\SmartPackager\SmartPackager\SmartPackager.csproj">
       <Project>{7bb03a3c-b5ed-474d-89b0-c457630c5cfe}</Project>
       <Name>SmartPackager</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\TimeSync\TimeSync.csproj">
+      <Project>{e042c217-d9f7-41b2-a5e5-2627222e5dab}</Project>
+      <Name>TimeSync</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

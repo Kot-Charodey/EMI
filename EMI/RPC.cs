@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Reflection;
 using System.Collections.Generic;
 
@@ -175,24 +174,5 @@ namespace EMI
                 RPC.RegisteredMethodsName.Remove(Name);
             }
         }
-    }
-
-    /// <summary>
-    /// Дополнительные функции/информация для удалённно вызваного метода
-    /// </summary>
-    public class MethodHandle
-    {
-        /// <summary>
-        /// Клиент от которого был вызван RPC
-        /// </summary>
-        public readonly Client Client;
-        /// <summary>
-        /// Пинг
-        /// </summary>
-        public float Ping { get; private set; }
-        /// <summary>
-        /// Связанные сетевые потоки данных
-        /// </summary>
-        public Stream[] LinkedStreams { get; private set; } = null;
     }
 }

@@ -10,13 +10,12 @@ namespace test
         public static void Main()
         {
             Client client = new Client(new NT());
-            client.RPC.RegisterMethod(test);
+            var hh=client.RPC.RegisterMethod(Test);
             Console.ReadLine();
         }
 
-        public static void test(MethodHandle mh)
+        public static void Test(MethodHandle mh)
         {
-
         }
     }
 
@@ -30,7 +29,7 @@ namespace test
 
         public event INetworkClientDisconnected Disconnected;
 
-        public Task<int> Accept(byte[] data)
+        public Task<byte[]> Accept()
         {
             throw new NotImplementedException();
         }

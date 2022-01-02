@@ -61,8 +61,7 @@ namespace EMI.Network
         /// <summary>
         /// Считывает пришедшие данные
         /// </summary>
-        /// <param name="data"></param>
         /// <returns></returns>
-        Task<int> Accept(byte[] data);
+        Task<byte[]> Accept();
     }
 }
