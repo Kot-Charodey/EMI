@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 namespace EMI
 {
     using Network;
+    using ProBuffer;
 
     /// <summary>
     /// Клиент EMI
@@ -30,7 +31,7 @@ namespace EMI
         public TimeSync.TimeSyncAccuracy TimeSyncAccuracy = TimeSync.TimeSyncAccuracy.Hight;
 
 
-
+        private ProArrayBuffer MyArrayBuffer;
         /// <summary>
         /// Интерфейс отправки/считывания датаграмм
         /// </summary>
@@ -95,24 +96,24 @@ namespace EMI
             if (MyTimerSync == null)
                 MyTimerSync = new TimerBuiltInSync();
 
+            MyArrayBuffer = new ProArrayBuffer(100, 1024 * 10);//~1 MB
+
             TimerSyncInputTick = new InputSerialWaiter<byte[]>();
             TimerSyncInputInteg = new InputSerialWaiter<byte[]>();
 
             MyNetworkClient.Disconnected += LowDisconnect;
+            MyNetworkClient.ProArrayBuffer = MyArrayBuffer;
         }
 
         /// <summary>
         /// Подключиться к серверу
         /// </summary>
         /// <param name="address">адрес сервера</param>
-        /// <param name="token">позволяет отменить подключение</param>
+        /// <param name="token">токен отмены задачи</param>
         /// <returns>было ли произведено подключение</returns>
         public async Task<bool> Connect(string address,CancellationToken token)
         {
-            TimerSyncInputTick.Reset();
-            TimerSyncInputInteg.Reset();
-
-            var status = await MyNetworkClient.Сonnect(address).ConfigureAwait(false);
+            var status = await MyNetworkClient.Сonnect(address,token).ConfigureAwait(false);
 
             if (status == true)
             {
@@ -154,22 +155,30 @@ namespace EMI
         /// <param name="user_error">что сообщить клиенту при отключении</param>
         public void Disconnect(string user_error = "unknown")
         {
-            //TODO отправить user_error
-            MyNetworkClient.Disconnect();
+            MyNetworkClient.Disconnect(user_error);
         }
 
         /// <summary>
-        /// Вызвать при внутренем отключение
+        /// Вызвать при внутренем отключение (так же вызывается если дисконект произошёл на более низких уровнях)
         /// </summary>
         /// <param name="error"></param>
         private void LowDisconnect(string error)
         {
             Disconnected?.Invoke(error);
+
+            //сброс компонентов для реиспользования клиента
+            if (!IsServerSide)
+            {
+                TimerSyncInputTick.Reset();
+                TimerSyncInputInteg.Reset();
+                MyArrayBuffer.Reinit();
+            }
         }
 
-        private async Task ProccesAccept()
+        private async Task ProccesAccept(CancellationToken token)
         {
-            byte[] buffer = await MyNetworkClient.Accept().ConfigureAwait(false);
+            IReleasableArray buffer = await MyNetworkClient.Accept(token).ConfigureAwait(false);
+            
         }
     }
 }

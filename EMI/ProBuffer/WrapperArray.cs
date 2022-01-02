@@ -3,7 +3,7 @@
     /// <summary>
     /// Массив выделенный ProArrayBuffer (массив не стандартного размера)
     /// </summary>
-    public struct WrapperArray : IAllocatedArray
+    public struct WrapperArray : IReleasableArray
     {
         /// <summary>
         /// Размер массива

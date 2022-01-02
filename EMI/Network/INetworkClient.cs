@@ -1,8 +1,10 @@
-﻿using System.Threading.Tasks;
+﻿using System.Threading;
+using System.Threading.Tasks;
 using System;
 
 namespace EMI.Network
 {
+    using EMI.ProBuffer;
     /* Рекомендации по реализации интерфейса
     * address для сетевых подключений в виде текста localhost:port
     * address для других типов интерфейсов может быть описан свой
@@ -26,6 +28,11 @@ namespace EMI.Network
     public interface INetworkClient
     {
         /// <summary>
+        /// Конвеер для выдачи массивов "ИЗБЕГАТЬ создания объектов"
+        /// Устанавливается библиотекой при инициализации
+        /// </summary>
+        ProArrayBuffer ProArrayBuffer { set; }
+        /// <summary>
         /// Подключён ли клиент
         /// </summary>
         bool IsConnect { get; }
@@ -46,22 +53,25 @@ namespace EMI.Network
         /// </summary>
         /// <param name="address">адрес сервера</param>
         /// <returns>было ли произведено подключение</returns>
-        Task<bool> Сonnect(string address);
+        /// <param name="token">токен отмены задачи</param>
+        Task<bool> Сonnect(string address, CancellationToken token);
         /// <summary>
         /// Отключиться от сервера
         /// </summary>
-        void Disconnect();
+        void Disconnect(string user_error);
         /// <summary>
         /// Отправить данные
         /// </summary>
-        /// <param name="data">массив данных</param>
+        /// <param name="array">массив данных</param>
         /// <param name="length">сколько байт из массива будет отправленно</param>
         /// <param name="guaranteed">необходимо гарантированно доставить пакет (если false для оптимизации следует по возможности использовать негарантированную доставку, тоесть пакет может быть потерян)</param>
-        void Send(byte[] data, int length, bool guaranteed);
+        /// <param name="token">токен отмены задачи</param>
+        Task Send(IReleasableArray array, int length, bool guaranteed, CancellationToken token);
         /// <summary>
         /// Считывает пришедшие данные
         /// </summary>
+        /// <param name="token">токен отмены задачи</param>
         /// <returns></returns>
-        Task<byte[]> Accept();
+        Task<IReleasableArray> Accept(CancellationToken token);
     }
 }

@@ -10,12 +10,12 @@ namespace EMI.ProBuffer
     /// <summary>
     /// Позволяет реиспользовать массивне выделяя новую память
     /// </summary>
-    internal class ProArrayBuffer
+    public class ProArrayBuffer
     {
-        internal readonly Semaphore Semaphore;
+        internal Semaphore Semaphore;
         internal int FreeArrayID;
-        internal readonly AllocatedArray[] Arrays;
-        private readonly int ArraySize;
+        internal ReleasableArray [] Arrays;
+        private int ArraySize;
 
         /// <summary>
         /// 
@@ -24,18 +24,36 @@ namespace EMI.ProBuffer
         /// <param name="size">размер буфера (если потребуется буфер более большого размера то будет создан новый временный массив)</param>
         public ProArrayBuffer(int count,int size)
         {
+            Init(count, size);
+        }
+
+        /// <summary>
+        /// Пересоздаёт весь буфер заново
+        /// </summary>
+        public void Reinit()
+        {
+            Init(Arrays.Length, ArraySize);
+        }
+
+        private void Init(int count, int size)
+        {
             Semaphore = new Semaphore(count, count);
             FreeArrayID = count - 1;
-            Arrays = new AllocatedArray[count];
+            Arrays = new ReleasableArray[count];
             ArraySize = size;
 
-            for(int i = 0; i < count; i++)
+            for (int i = 0; i < count; i++)
             {
-                Arrays[i] = new AllocatedArray(this, size);
+                Arrays[i] = new ReleasableArray(this, size);
             }
         }
 
-        public IAllocatedArray AllocateArray(int size)
+        /// <summary>
+        /// Выделить массивы указанной длинны (поток заблокируется если все массивы заняты)
+        /// </summary>
+        /// <param name="size">размер массива</param>
+        /// <returns></returns>
+        public IReleasableArray AllocateArray(int size)
         {
             if (ArraySize < size)
             {

@@ -3,7 +3,7 @@
     /// <summary>
     /// Массив выделенный ProArrayBuffer
     /// </summary>
-    public struct AllocatedArray:IAllocatedArray
+    public struct ReleasableArray:IReleasableArray
     {
         /// <summary>
         /// Размер массива
@@ -25,7 +25,7 @@
             }
             MyBuffer.Semaphore.Release();
         }
-        internal AllocatedArray(ProArrayBuffer myBuffer, int size) : this()
+        internal ReleasableArray (ProArrayBuffer myBuffer, int size) : this()
         {
             Array = new byte[size];
             MyBuffer = myBuffer;

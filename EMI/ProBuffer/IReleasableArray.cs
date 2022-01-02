@@ -1,6 +1,9 @@
 ﻿namespace EMI.ProBuffer
 {
-    interface IAllocatedArray
+    /// <summary>
+    /// Массив который необходимо освободить после использования (от ProArrayBuffer)
+    /// </summary>
+    public interface IReleasableArray
     {
         /// <summary>
         /// Размер массива
