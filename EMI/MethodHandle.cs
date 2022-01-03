@@ -14,10 +14,6 @@ namespace EMI
         /// <summary>
         /// Пинг
         /// </summary>
-        public float Ping { get; private set; }
-        /// <summary>
-        /// Связанные сетевые потоки данных
-        /// </summary>
-        public Stream[] LinkedStreams { get; private set; }
+        public float Ping { get; internal set; }
     }
 }

@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 
 using SmartPackager;
 
 namespace EMI
 {
+    using Packet;
     using ProBuffer;
     /// <summary>
     /// Позволяет производить удалённый вызов процедур
@@ -15,9 +18,10 @@ namespace EMI
         /// Содержит в себе код по запуску функции
         /// </summary>
         /// <param name="handle"></param>
-        /// <param name="Packet">необработанный пакет данных</param>
+        /// <param name="array">необработанный пакет данных</param>
+        /// <param name="token"></param>
         /// <returns>результат выполения (null) если нет или не надо возвращать</returns>
-        internal delegate byte[] MicroFunc(MethodHandle handle, byte[] Packet);
+        internal delegate Task<IReleasableArray> MicroFunc(MethodHandle handle, Array2Offser array, bool needReturn, CancellationToken token);
         /// <summary>
         /// Зарегестрированные функции - используется при вызове
         /// </summary>
@@ -54,7 +58,7 @@ namespace EMI
         /// <param name="method"></param>
         /// <param name="micro"></param>
         /// <returns></returns>
-        private RemoveHandle RegisterMethodHelp(Delegate method,MicroFunc micro)
+        private RemoveHandle RegisterMethodHelp(Delegate method, MicroFunc micro)
         {
             string name = $"{method.Method.DeclaringType.FullName}.{method.Method.Name}";
 
@@ -67,6 +71,8 @@ namespace EMI
             }
         }
 
+
+#pragma warning disable CS1998 // В асинхронном методе отсутствуют операторы await, будет выполнен синхронный метод
         #region RegisterMethod
         /// <summary>
         /// Регестрирует метод для возможности вызвать его
@@ -74,11 +80,11 @@ namespace EMI
         /// <param name="method">метод</param>
         public RemoveHandle RegisterMethod(RPCfunc method)
         {
-            return RegisterMethodHelp(method, (MethodHandle handle, byte[] Packet) =>
+            return RegisterMethodHelp(method, async (MethodHandle handle, Array2Offser array, bool needReturn, CancellationToken _) =>
             {
-                method();
-                return null;
-            });
+                 method();
+                 return null;
+             });
         }
         /// <summary>
         /// Регестрирует метод для возможности вызвать его
@@ -86,11 +92,11 @@ namespace EMI
         /// <param name="method">метод</param>
         public RemoveHandle RegisterMethod(RPCfunc<MethodHandle> method)
         {
-            return RegisterMethodHelp(method, (MethodHandle handle, byte[] Packet) =>
-            {
-                method(handle);
-                return null;
-            });
+            return RegisterMethodHelp(method, async (MethodHandle handle, Array2Offser array, bool needReturn, CancellationToken _) =>
+             {
+                 method(handle);
+                 return null;
+             });
         }
 
         /// <summary>
@@ -100,26 +106,26 @@ namespace EMI
         public RemoveHandle RegisterMethod<T1>(RPCfunc<T1> method)
         {
             var packager = Packager.Create<T1>();
-            return RegisterMethodHelp(method, (MethodHandle handle, byte[] Packet) =>
-            {
-                packager.UnPack(Packet, 0,out T1 t1);
-                method(t1);
-                return null;
-            });
+            return RegisterMethodHelp(method, async (MethodHandle handle, Array2Offser array, bool needReturn, CancellationToken _) =>
+             {
+                 packager.UnPack(array.Array.Bytes, array.Offset, out T1 t1);
+                 method(t1);
+                 return null;
+             });
         }
         /// <summary>
         /// Регестрирует метод для возможности вызвать его
         /// </summary>
         /// <param name="method">метод</param>
-        public RemoveHandle RegisterMethod<T1>(RPCfunc<MethodHandle,T1> method)
+        public RemoveHandle RegisterMethod<T1>(RPCfunc<MethodHandle, T1> method)
         {
             var packager = Packager.Create<T1>();
-            return RegisterMethodHelp(method, (MethodHandle handle, byte[] Packet) =>
-            {
-                packager.UnPack(Packet, 0, out T1 t1);
-                method(handle,t1);
-                return null;
-            });
+            return RegisterMethodHelp(method, async (MethodHandle handle, Array2Offser array, bool needReturn, CancellationToken _) =>
+             {
+                 packager.UnPack(array.Array.Bytes, array.Offset, out T1 t1);
+                 method(handle, t1);
+                 return null;
+             });
         }
         #endregion
         #region RegisterMethodReturned
@@ -130,9 +136,21 @@ namespace EMI
         public RemoveHandle RegisterMethodReturned<Tout>(RPCfuncOut<Tout> method)
         {
             var packager = Packager.Create<Tout>();
-            return RegisterMethodHelp(method, (MethodHandle handle, byte[] Packet) =>
+            return RegisterMethodHelp(method, async (MethodHandle handle, Array2Offser array, bool needReturn, CancellationToken token) =>
             {
-                return packager.PackUP(method());
+                var data = method();
+
+                if (needReturn)
+                {
+                    IReleasableArray bits = await handle.Client.MyArrayBufferSend.AllocateArrayAsync((int)packager.CalcNeedSize(data), token).ConfigureAwait(false);
+                    if (token.IsCancellationRequested) return null;
+                    packager.PackUP(bits.Bytes, Packagers.RPCAnswerSizeOf, data);
+                    return bits;
+                }
+                else
+                {
+                    return null;
+                }
             });
         }
         /// <summary>
@@ -142,12 +160,25 @@ namespace EMI
         public RemoveHandle RegisterMethodReturned<Tout>(RPCfuncOut<Tout, MethodHandle> method)
         {
             var packager = Packager.Create<Tout>();
-            return RegisterMethodHelp(method, (MethodHandle handle, byte[] Packet) =>
+            return RegisterMethodHelp(method, async (MethodHandle handle, Array2Offser array, bool needReturn, CancellationToken token) =>
             {
-                return packager.PackUP(method(handle));
+                var data = method(handle);
+            
+                if (needReturn)
+                {
+                    IReleasableArray bits = await handle.Client.MyArrayBufferSend.AllocateArrayAsync((int)packager.CalcNeedSize(data), token).ConfigureAwait(false);
+                    if (token.IsCancellationRequested) return null;
+                    packager.PackUP(bits.Bytes, Packagers.RPCAnswerSizeOf, data);
+                    return bits;
+                }
+                else
+                {
+                    return null;
+                }
             });
         }
         #endregion
+#pragma warning restore CS1998 // В асинхронном методе отсутствуют операторы await, будет выполнен синхронный метод
 
         /// <summary>
         /// Позволяет удалить зарегестрированный метод
@@ -158,7 +189,7 @@ namespace EMI
             private readonly string Name;
             private readonly RPC RPC;
 
-            internal RemoveHandle(ushort id,string name, RPC rpc)
+            internal RemoveHandle(ushort id, string name, RPC rpc)
             {
                 ID = id;
                 Name = name;

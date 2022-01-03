@@ -267,6 +267,9 @@ namespace EMI
         {
             SemaphoreSlim semaphore = new SemaphoreSlim(0, 1);
             for (int i = 0; i < 20; i++)
+            {
+                MethodHandle handle = new MethodHandle();
+                handle.Client = this;
                 factory.StartNew(async () =>
                 {
                     while (true)
@@ -278,14 +281,15 @@ namespace EMI
                         }
                         else
                         {
-                            await ProccesAccept(token).ConfigureAwait(false);
+                            await ProccesAccept(token,handle).ConfigureAwait(false);
                             semaphore.Release();
                         }
                     }
                 });
+            }
         }
 
-        private async Task ProccesAccept(CancellationToken token)
+        private async Task ProccesAccept(CancellationToken token,MethodHandle handle)
         {
             Array2Offser data = await MyNetworkClient.Accept(token).ConfigureAwait(false);
             PacketHeader packetHeader;
@@ -352,7 +356,44 @@ namespace EMI
                     data.Array.Release();
                     break;
                 case PacketType.RPC:
+                    switch (packetHeader.RPCType)
+                    {
+                        case RPCType.Simple:
+                            {
+                                Packagers.RPC.UnPack(data.Array.Bytes, data.Offset, out _, out ushort id, out long time);
+                                data.Offset += Packagers.RPCSizeOf;
 
+                                if (RPC.RegisteredMethods.TryGetValue(id, out var func))
+                                {
+                                    await func(handle, data, false, token).ConfigureAwait(false);
+                                }
+                            }
+                            break;
+                        case RPCType.Returnded:
+                            {
+                                Packagers.RPC.UnPack(data.Array.Bytes, data.Offset, out _, out ushort id, out long time);
+                                data.Offset += Packagers.RPCSizeOf;
+
+                                if (RPC.RegisteredMethods.TryGetValue(id, out var func))
+                                {
+                                    var outData = await func(handle, data, true, token).ConfigureAwait(false);
+                                    if (token.IsCancellationRequested)
+                                        return;
+                                    Packagers.RPCAnswer.PackUP(outData.Bytes, 0, new PacketHeader(PacketType.RPC, (byte)RPCType.ReturnAnswer), id);
+                                    await MyNetworkClient.SendAsync(outData, true, token).ConfigureAwait(false);
+                                    outData.Release();
+                                }
+                            }
+                            break;
+                        case RPCType.ReturnAnswer:
+                            {
+
+                            }
+                            break;
+                        default:
+                            LowDisconnect("bad package header (flags)");
+                            break;
+                    }
                     data.Array.Release();
                     break;
                 default:
