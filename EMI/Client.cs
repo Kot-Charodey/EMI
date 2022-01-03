@@ -201,7 +201,7 @@ namespace EMI
             switch (packetHeader.PacketType)
             {
                 case PacketType.Ping05:
-                    Packagers.PLong.UnPack(data.Array.Bytes, data.Offset+=Packagers.SizeOfLong, out long ticks);
+                    Packagers.PLong.UnPack(data.Array.Bytes, data.Offset+=sizeof(long), out long ticks);
                     Ping05 = new TimeSpan(MyTimerSync.SyncTicks - ticks).TotalMilliseconds;
                     data.Array.Release();
                     break;
