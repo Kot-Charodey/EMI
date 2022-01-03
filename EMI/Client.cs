@@ -10,6 +10,7 @@ namespace EMI
     using Packet;
     using Network;
     using ProBuffer;
+    using MyException;
 
     /// <summary>
     /// Клиент EMI
@@ -48,24 +49,35 @@ namespace EMI
         /// Пинг в секундах
         /// </summary>
         public double PingS => Ping / 1000;
-
-
-        internal ProArrayBuffer MyArrayBuffer;
         /// <summary>
-        /// Интерфейс отправки/считывания датаграмм
+        /// Время после которого будет произведено отключение
         /// </summary>
-        internal INetworkClient MyNetworkClient;
-        /// <summary>
-        /// Таймер времени - позволяет измерять пинг
-        /// </summary>
-        private TimerSync MyTimerSync;
+        public TimeSpan PingTimeout = new TimeSpan(0, 1, 0);
         /// <summary>
         /// Вызывается если неуспешный Connect или произошло отключение
         /// </summary>
         public event INetworkClientDisconnected Disconnected;
 
+
+        internal ProArrayBuffer MyArrayBuffer;
+        internal ProArrayBuffer MyArrayBufferSend;
+
         internal InputSerialWaiter<Array2Offser> TimerSyncInputTick;
         internal InputSerialWaiter<Array2Offser> TimerSyncInputInteg;
+
+        /// <summary>
+        /// Интерфейс отправки/считывания датаграмм
+        /// </summary>
+        internal INetworkClient MyNetworkClient;
+        /// <summary>
+        /// Когда приходил прошлый запрос о пинге (для time out)
+        /// </summary>
+        private DateTime LastPing;
+        /// <summary>
+        /// Таймер времени - позволяет измерять пинг
+        /// </summary>
+        private TimerSync MyTimerSync;
+        private CancellationTokenSource CancellationRun = new CancellationTokenSource();
 
         /// <summary>
         /// Инициализирует клиента но не подключает к серверу
@@ -115,7 +127,8 @@ namespace EMI
             if (MyTimerSync == null)
                 MyTimerSync = new TimerBuiltInSync();
 
-            MyArrayBuffer = new ProArrayBuffer(100, 1024 * 10);//~1 MB
+            MyArrayBuffer = new ProArrayBuffer(30, 1024 * 50);
+            MyArrayBufferSend = new ProArrayBuffer(30, 1024 * 50);
 
             TimerSyncInputTick = new InputSerialWaiter<Array2Offser>();
             TimerSyncInputInteg = new InputSerialWaiter<Array2Offser>();
@@ -130,9 +143,15 @@ namespace EMI
         /// <param name="address">адрес сервера</param>
         /// <param name="token">токен отмены задачи</param>
         /// <returns>было ли произведено подключение</returns>
-        public async Task<bool> Connect(string address,CancellationToken token)
+        public async Task<bool> Connect(string address, CancellationToken token)
         {
-            var status = await MyNetworkClient.Сonnect(address,token).ConfigureAwait(false);
+            if (IsConnect)
+                throw new ClientAlreadyConnectException();
+
+            try { CancellationRun.Cancel(); } catch { }
+            CancellationRun = new CancellationTokenSource();
+
+            var status = await MyNetworkClient.Сonnect(address, token).ConfigureAwait(false);
 
             if (status == true)
             {
@@ -157,7 +176,8 @@ namespace EMI
                     return false;
                 }
 
-
+                token.Register(() => { });
+                RunProcces();
 
                 //TODO мб тут надо что то сделать
                 return true;
@@ -191,19 +211,98 @@ namespace EMI
                 TimerSyncInputTick.Reset();
                 TimerSyncInputInteg.Reset();
                 MyArrayBuffer.Reinit();
+                MyArrayBufferSend.Reinit();
             }
+        }
+
+        /// <summary>
+        /// Запускает все необходимые потоки
+        /// </summary>
+        private void RunProcces()
+        {
+            TaskFactory factory = new TaskFactory(CancellationRun.Token, TaskCreationOptions.LongRunning, TaskContinuationOptions.NotOnCanceled, TaskScheduler.Current);
+            RunProccesAccept(factory, CancellationRun.Token);
+            RunProccesPing(factory, CancellationRun.Token);
+        }
+
+        /// <summary>
+        /// Отвечает за отправку пинга + за отключение по ping timeout
+        /// </summary>
+        /// <param name="factory"></param>
+        /// <param name="token"></param>
+        private void RunProccesPing(TaskFactory factory, CancellationToken token)
+        {
+            factory.StartNew(async () => {
+                while (true)
+                {
+                    await Task.Delay(1000).ConfigureAwait(false);
+                    if (token.IsCancellationRequested)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        if (DateTime.UtcNow - LastPing > PingTimeout)
+                        {
+                            LowDisconnect($"Timeout (Timeout = {PingTimeout.Milliseconds} ms)");
+                        }
+                        else
+                        {
+                            IReleasableArray array = await MyArrayBufferSend.AllocateArrayAsync(Packagers.PingSizeOf, token).ConfigureAwait(false);
+                            Packagers.Ping.PackUP(array.Bytes, 0, new PacketHeader(), MyTimerSync.SyncTicks);
+                            await MyNetworkClient.SendAsync(array, false, token).ConfigureAwait(false);
+                            array.Release();
+                        }
+                    }
+                }
+            });
+        }
+
+        /// <summary>
+        /// Запускает группу потоков ProccesAccept для обработки входящих запросов
+        /// </summary>
+        /// <param name="factory"></param>
+        /// <param name="token"></param>
+        private void RunProccesAccept(TaskFactory factory, CancellationToken token)
+        {
+            SemaphoreSlim semaphore = new SemaphoreSlim(0, 1);
+            for (int i = 0; i < 20; i++)
+                factory.StartNew(async () =>
+                {
+                    while (true)
+                    {
+                        await semaphore.WaitAsync(token).ConfigureAwait(false);
+                        if (token.IsCancellationRequested)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            await ProccesAccept(token).ConfigureAwait(false);
+                            semaphore.Release();
+                        }
+                    }
+                });
         }
 
         private async Task ProccesAccept(CancellationToken token)
         {
             Array2Offser data = await MyNetworkClient.Accept(token).ConfigureAwait(false);
-            Packagers.PPacketHeader.UnPack(data.Array.Bytes, data.Offset += PacketHeader.SizeOf, out var packetHeader);
+            PacketHeader packetHeader;
+            unsafe
+            {
+                fixed (byte* ptr = &data.Array.Bytes[data.Offset = PacketHeader.SizeOf])
+                {
+                    packetHeader = *(PacketHeader*)ptr;
+                }
+            }
             switch (packetHeader.PacketType)
             {
                 case PacketType.Ping05:
-                    Packagers.PLong.UnPack(data.Array.Bytes, data.Offset+=sizeof(long), out long ticks);
+                    Packagers.Ping.UnPack(data.Array.Bytes, data.Offset, out _, out long ticks);
                     Ping05 = new TimeSpan(MyTimerSync.SyncTicks - ticks).TotalMilliseconds;
                     data.Array.Release();
+                    LastPing = DateTime.UtcNow;
                     break;
                 case PacketType.TimeSync:
                     switch (packetHeader.TimeSyncType)
@@ -215,13 +314,50 @@ namespace EMI
                             TimerSyncInputInteg.Set(data);
                             break;
                         default:
-                            LowDisconnect("bad package header");
+                            LowDisconnect("bad package header (flags)");
                             break;
                     }
                     break;
                 case PacketType.RegisterMethod:
+                    switch (packetHeader.RegisterMethodType)
+                    {
+                        case RegisterMethodType.Request:
+                            Packagers.RegisterMethodRequest.UnPack(data.Array.Bytes, data.Offset, out _, out string nameMethod);
+                            if (RPC.RegisteredMethodsName.TryGetValue(nameMethod, out var ID))
+                            {
+                                IReleasableArray array = await MyArrayBufferSend.AllocateArrayAsync(Packagers.RegisterMethodAnswerSizeOf, token).ConfigureAwait(false);
+                                Packagers.RegisterMethodAnswer.PackUP(array.Bytes, 0, new PacketHeader(PacketType.RegisterMethod, (byte)RegisterMethodType.Answer), ID);
+                                await MyNetworkClient.SendAsync(array, true, token).ConfigureAwait(false);
+                                array.Release();
+                            }
+                            else //если у нас нет такого метода
+                            {
+                                IReleasableArray array = await MyArrayBufferSend.AllocateArrayAsync(Packagers.RegisterMethodAnswerSizeOf, token).ConfigureAwait(false);
+                                Packagers.RegisterMethodAnswer.PackUP(array.Bytes, 0, new PacketHeader(PacketType.RegisterMethod, (byte)RegisterMethodType.BadAnswer), ID);
+                                await MyNetworkClient.SendAsync(array, true, token).ConfigureAwait(false);
+                                array.Release();
+                            }
+                            break;
+                        case RegisterMethodType.Answer:
+                            Packagers.RegisterMethodAnswer.UnPack(data.Array.Bytes, data.Offset, out _, out ushort methodID);
+                            //TODO доделать
+                            break;
+                        case RegisterMethodType.BadAnswer:
+                            //TODO доделать мб ошибка
+                            break;
+                        default:
+                            LowDisconnect("bad package header (flags)");
+                            break;
+                    }
+                    data.Array.Release();
                     break;
                 case PacketType.RPC:
+
+                    data.Array.Release();
+                    break;
+                default:
+                    LowDisconnect("bad package header (PacketType)");
+                    data.Array.Release();
                     break;
             }
         }

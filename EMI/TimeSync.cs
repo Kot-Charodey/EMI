@@ -13,44 +13,40 @@ namespace EMI
 #pragma warning disable CS1591 // Отсутствует комментарий XML для открытого видимого типа или члена
         protected override void SendTicks(long ticks)
         {
-            var array = Client.MyArrayBuffer.AllocateArray(Packagers.Tics.SizeOf);
-            var data = new Packagers.Tics();
+            var array = Client.MyArrayBufferSend.AllocateArray(Packagers.TicksSizeOf);
 
-            data.PacketHeader.PacketType = PacketType.TimeSync;
-            data.PacketHeader.TimeSyncType = TimeSyncType.Ticks;
-            data.Tiks = ticks;
-
-            Packagers.PTics.PackUP(array.Bytes, 0, data);
+            Packagers.Ticks.PackUP(array.Bytes, 0,
+                new PacketHeader(PacketType.TimeSync, (byte)TimeSyncType.Ticks),
+                ticks);
             Client.MyNetworkClient.Send(array, true);
+            array.Release();
         }
 
         protected override long GetTicks()
         {
             var data = Client.TimerSyncInputTick.Get();
-            Packagers.PLong.UnPack(data.Array.Bytes, data.Offset, out var data2);
+            Packagers.Ticks.UnPack(data.Array.Bytes, data.Offset,out _, out var ticks);
             data.Array.Release();
-            return data2;
+            return ticks;
         }
 
         protected override void SendIntegrations(ushort count)
         {
-            var array = Client.MyArrayBuffer.AllocateArray(Packagers.Integ.SizeOf);
-            var data = new Packagers.Integ();
+            var array = Client.MyArrayBufferSend.AllocateArray(Packagers.IntegSizeOf);
 
-            data.PacketHeader.PacketType = PacketType.TimeSync;
-            data.PacketHeader.TimeSyncType = TimeSyncType.Integ;
-            data.Integration = count;
-
-            Packagers.PInteg.PackUP(array.Bytes, 0, data);
+            Packagers.Integ.PackUP(array.Bytes, 0, 
+                new PacketHeader(PacketType.TimeSync, (byte)TimeSyncType.Integ),
+                count);
             Client.MyNetworkClient.Send(array, true);
+            array.Release();
         }
 
         protected override ushort GetIntegrations()
         {
             var data = Client.TimerSyncInputInteg.Get();
-            Packagers.PUshort.UnPack(data.Array.Bytes, data.Offset, out var data2);
+            Packagers.Integ.UnPack(data.Array.Bytes, data.Offset,out _, out var integ);
             data.Array.Release();
-            return data2;
+            return integ;
         }
 #pragma warning restore CS1591 // Отсутствует комментарий XML для открытого видимого типа или члена
     }

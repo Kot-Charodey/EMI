@@ -49,6 +49,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Client.cs" />
+    <Compile Include="Exception\ClientAlreadyConnectException.cs" />
+    <Compile Include="Exception\RPCRegisterLimitException.cs" />
     <Compile Include="InputSerialWaiter.cs" />
     <Compile Include="MethodHandle.cs" />
     <Compile Include="Network\INetworkClient.cs" />

@@ -5,7 +5,8 @@ namespace EMI.Packet
     [Flags]
     internal enum RegisterMethodType : byte
     {
-        Request = 64,
-        Answer = 128,
+        Request = 32,
+        Answer = 64,
+        BadAnswer = 128,
     }
 }

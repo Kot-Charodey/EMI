@@ -21,7 +21,7 @@ namespace EMI
         /// <summary>
         /// Зарегестрированные функции - используется при вызове
         /// </summary>
-        private readonly Dictionary<ushort, MicroFunc> RegisteredMethods = new Dictionary<ushort, MicroFunc>();
+        internal readonly Dictionary<ushort, MicroFunc> RegisteredMethods = new Dictionary<ushort, MicroFunc>();
         /// <summary>
         /// позволяет по имени найти адресс функции для вызовов
         /// </summary>
@@ -30,23 +30,6 @@ namespace EMI
         //internal event Action<>
         internal RPC()
         {
-        }
-
-        /// <summary>
-        /// вернёт или функцию или null
-        /// </summary>
-        /// <param name="ID"></param>
-        /// <returns></returns>
-        internal MicroFunc TryGetFunction(ushort ID)
-        {
-            if (RegisteredMethods.TryGetValue(ID, out var func))
-            {
-                return func;
-            }
-            else
-            {
-                return null;
-            }
         }
 
         /// <summary>

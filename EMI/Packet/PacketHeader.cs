@@ -37,5 +37,10 @@ namespace EMI.Packet
             get => (RPCType)(_PacketType & OnlyFlagMask);
             set => _PacketType = PacketType | ((PacketType)value & OnlyFlagMask);
         }
+
+        public PacketHeader(PacketType pt, byte flag)
+        {
+            _PacketType = pt | (PacketType)flag;
+        }
     }
 }

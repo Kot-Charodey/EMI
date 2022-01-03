@@ -5,35 +5,36 @@ namespace EMI.Packet
 {
     internal static class Packagers
     {
-        public static Packager.M<PacketHeader> PPacketHeader = Packager.Create<PacketHeader>();
+        public static Packager.M<PacketHeader> PacketHeader = Packager.Create<PacketHeader>();
 
-        public static Packager.M<Tics> PTics = Packager.Create<Tics>();
-        public static Packager.M<Integ> PInteg = Packager.Create<Integ>();
+        public static Packager.M<PacketHeader, long> Ping = Packager.Create<PacketHeader, long>(); 
+        public static int PingSizeOf = (int)Ping.CalcNeedSize(default, default);
 
+        public static Packager.M<PacketHeader,long> Ticks = Packager.Create<PacketHeader,long>();
+        public static Packager.M<PacketHeader,ushort> Integ = Packager.Create<PacketHeader,ushort>();
+        public static int TicksSizeOf = (int)Ticks.CalcNeedSize(default, default);
+        public static int IntegSizeOf = (int)Integ.CalcNeedSize(default, default);
 
-        public static Packager.M<long> PLong = Packager.Create<long>();
-        public static Packager.M<ushort> PUshort = Packager.Create<ushort>();
+        /// <summary>
+        /// MethodName
+        /// </summary>
+        public static Packager.M<PacketHeader, string> RegisterMethodRequest = Packager.Create<PacketHeader, string>();
+        /// <summary>
+        /// MethodID
+        /// </summary>
+        public static Packager.M<PacketHeader, ushort> RegisterMethodAnswer = Packager.Create<PacketHeader, ushort>();
+        public static int RegisterMethodAnswerSizeOf = (int)RegisterMethodAnswer.CalcNeedSize(default, default);
 
-        [StructLayout(LayoutKind.Explicit, Pack = 1, Size = SizeOf)]
-        public struct Tics
-        {
-            public const int SizeOf = PacketHeader.SizeOf + sizeof(long);
-
-            [FieldOffset(0)]
-            public PacketHeader PacketHeader;
-            [FieldOffset(PacketHeader.SizeOf)]
-            public long Tiks;
-        }
-        [StructLayout(LayoutKind.Explicit, Pack = 1, Size = SizeOf)]
-        public struct Integ
-        {
-            public const int SizeOf = PacketHeader.SizeOf + sizeof(ushort);
-
-            [FieldOffset(0)]
-            public PacketHeader PacketHeader;
-            [FieldOffset(PacketHeader.SizeOf)]
-            public ushort Integration;
-        }
+        /// <summary>
+        /// ID,Ticks ... [array data]
+        /// </summary>
+        public static Packager.M<PacketHeader, ushort, long> RPC = Packager.Create<PacketHeader, ushort, long>();
+        /// <summary>
+        /// ID ... [array data]
+        /// </summary>
+        public static Packager.M<PacketHeader, ushort> RPCAnswer = Packager.Create<PacketHeader, ushort>();
+        public static int RPCSizeOf = (int)RPC.CalcNeedSize(default, default, default);
+        public static int RPCAnswerSizeOf = (int)RPCAnswer.CalcNeedSize(default, default);
     }
 
 }
