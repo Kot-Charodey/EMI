@@ -1,11 +1,11 @@
 ﻿using System;
-using System.Reflection;
 using System.Collections.Generic;
 
 using SmartPackager;
 
 namespace EMI
 {
+    using ProBuffer;
     /// <summary>
     /// Позволяет производить удалённый вызов процедур
     /// </summary>
@@ -17,7 +17,7 @@ namespace EMI
         /// <param name="handle"></param>
         /// <param name="Packet">необработанный пакет данных</param>
         /// <returns>результат выполения (null) если нет или не надо возвращать</returns>
-        private delegate byte[] MicroFunc(MethodHandle handle, byte[] Packet);
+        internal delegate byte[] MicroFunc(MethodHandle handle, byte[] Packet);
         /// <summary>
         /// Зарегестрированные функции - используется при вызове
         /// </summary>
@@ -32,22 +32,22 @@ namespace EMI
         {
         }
 
-
-        //internal byte[] TryInvoke(ushort ID,MethodHandle methodHandle,int offset, byte[] args)
-        //{
-        //    MicroFunc func = null;
-        //    lock (this)
-        //    {
-        //        RegisteredMethods.TryGetValue(ID, out func);
-        //    }
-        //    if (func != null)
-        //    {
-        //    }
-        //    else
-        //    {
-        //        return null;
-        //    }
-        //}
+        /// <summary>
+        /// вернёт или функцию или null
+        /// </summary>
+        /// <param name="ID"></param>
+        /// <returns></returns>
+        internal MicroFunc TryGetFunction(ushort ID)
+        {
+            if (RegisteredMethods.TryGetValue(ID, out var func))
+            {
+                return func;
+            }
+            else
+            {
+                return null;
+            }
+        }
 
         /// <summary>
         /// Ищет свободный айди для регистрации функции
