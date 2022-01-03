@@ -32,6 +32,23 @@ namespace EMI
         {
         }
 
+
+        //internal byte[] TryInvoke(ushort ID,MethodHandle methodHandle,int offset, byte[] args)
+        //{
+        //    MicroFunc func = null;
+        //    lock (this)
+        //    {
+        //        RegisteredMethods.TryGetValue(ID, out func);
+        //    }
+        //    if (func != null)
+        //    {
+        //    }
+        //    else
+        //    {
+        //        return null;
+        //    }
+        //}
+
         /// <summary>
         /// Ищет свободный айди для регистрации функции
         /// </summary>

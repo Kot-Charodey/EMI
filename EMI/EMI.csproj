@@ -54,15 +54,23 @@
     <Compile Include="Network\INetworkClient.cs" />
     <Compile Include="Network\INetworkServer.cs" />
     <Compile Include="Exception\ClientDisconnectException.cs" />
+    <Compile Include="Packet\Packagers.cs" />
+    <Compile Include="Packet\PacketHeader.cs" />
+    <Compile Include="Packet\PacketType.cs" />
+    <Compile Include="ProBuffer\Array2Offser.cs" />
     <Compile Include="ProBuffer\ReleasableArray.cs" />
     <Compile Include="ProBuffer\IReleasableArray.cs" />
     <Compile Include="ProBuffer\ProArrayBuffer.cs" />
     <Compile Include="ProBuffer\WrapperArray.cs" />
+    <Compile Include="Packet\RegisterMethodType.cs" />
     <Compile Include="RPCFuncDelegate.cs" />
     <Compile Include="RPC.cs" />
+    <Compile Include="Packet\RPCType.cs" />
     <Compile Include="TaskUtilities.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TimerBuiltInSync.cs" />
     <Compile Include="TimeSync.cs" />
+    <Compile Include="Packet\TimeSyncType.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\SmartPackager\SmartPackager\SmartPackager.csproj">

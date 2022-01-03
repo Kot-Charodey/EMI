@@ -8,18 +8,18 @@
         /// <summary>
         /// Размер массива
         /// </summary>
-        public int Length => Array.Length;
+        public int Length => Bytes.Length;
         /// <summary>
         /// Массив (размер массива следует считывать из другого поля)
         /// </summary>
-        public byte[] Array { get; private set; }
+        public byte[] Bytes { get; private set; }
         /// <summary>
         /// Необходимо вызвать после использования массива
         /// </summary>
         public void Release(){}
         internal WrapperArray(int size)
         {
-            Array = new byte[size];
+            Bytes = new byte[size];
         }
     }
 }

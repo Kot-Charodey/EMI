@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Threading;
 
 namespace EMI.ProBuffer
 {
@@ -32,6 +27,7 @@ namespace EMI.ProBuffer
         /// </summary>
         public void Reinit()
         {
+            Semaphore.Dispose();
             Init(Arrays.Length, ArraySize);
         }
 

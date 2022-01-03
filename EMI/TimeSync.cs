@@ -1,51 +1,57 @@
-﻿using System;
-
-using TimeSync;
-using SmartPackager;
+﻿using TimeSync;
 
 namespace EMI
 {
+    using Packet;
     /// <summary>
-    /// целое длинное число которое представляет тики времени (разрядность как в TimeSpan)
+    /// целое длинное число которое представляет тики времени (разрядность должна совпадать у экземпляров запущеных на разных машинах)
     /// </summary>
-    public abstract class TimerSync:TimeLongSync
+    public abstract class TimerSync : TimeLongSync
     {
         internal Client Client;
-        private Packager.M<long> PTicks = Packager.Create<long>();
-        private Packager.M<ushort> PIntegr = Packager.Create<ushort>();
-
 
 #pragma warning disable CS1591 // Отсутствует комментарий XML для открытого видимого типа или члена
         protected override void SendTicks(long ticks)
         {
-            byte[] bytes = PTicks.PackUP(ticks);
-            //TODO send
+            var array = Client.MyArrayBuffer.AllocateArray(Packagers.Tics.SizeOf);
+            var data = new Packagers.Tics();
+
+            data.PacketHeader.PacketType = PacketType.TimeSync;
+            data.PacketHeader.TimeSyncType = TimeSyncType.Ticks;
+            data.Tiks = ticks;
+
+            Packagers.PTics.PackUP(array.Bytes, 0, data);
+            Client.MyNetworkClient.Send(array, true);
         }
 
         protected override long GetTicks()
         {
-            byte[] bytes= Client.TimerSyncInputTick.Get();
-            PTicks.UnPack(bytes, 0, out var data);
-            return data;
+            var data = Client.TimerSyncInputTick.Get();
+            Packagers.PLong.UnPack(data.Array.Bytes, data.Offset, out var data2);
+            data.Array.Release();
+            return data2;
         }
 
         protected override void SendIntegrations(ushort count)
         {
-            byte[] bytes = PIntegr.PackUP(count);
-            //TODO send
+            var array = Client.MyArrayBuffer.AllocateArray(Packagers.Integ.SizeOf);
+            var data = new Packagers.Integ();
+
+            data.PacketHeader.PacketType = PacketType.TimeSync;
+            data.PacketHeader.TimeSyncType = TimeSyncType.Integ;
+            data.Integration = count;
+
+            Packagers.PInteg.PackUP(array.Bytes, 0, data);
+            Client.MyNetworkClient.Send(array, true);
         }
 
         protected override ushort GetIntegrations()
         {
-            byte[] bytes = Client.TimerSyncInputInteg.Get();
-            PIntegr.UnPack(bytes, 0, out var data);
-            return data;
+            var data = Client.TimerSyncInputInteg.Get();
+            Packagers.PUshort.UnPack(data.Array.Bytes, data.Offset, out var data2);
+            data.Array.Release();
+            return data2;
         }
 #pragma warning restore CS1591 // Отсутствует комментарий XML для открытого видимого типа или члена
-    }
-
-    internal class TimerBuiltInSync : TimerSync
-    {
-        public override long Ticks => DateTime.UtcNow.Ticks;
     }
 }

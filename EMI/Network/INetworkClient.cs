@@ -60,18 +60,23 @@ namespace EMI.Network
         /// </summary>
         void Disconnect(string user_error);
         /// <summary>
+        /// Отправить данные асинхронно
+        /// </summary>
+        /// <param name="array">массив данных</param>
+        /// <param name="guaranteed">необходимо гарантированно доставить пакет (если false для оптимизации следует по возможности использовать негарантированную доставку, тоесть пакет может быть потерян)</param>
+        /// <param name="token">токен отмены задачи</param>
+        Task SendAsync(IReleasableArray array, bool guaranteed, CancellationToken token);
+        /// <summary>
         /// Отправить данные
         /// </summary>
         /// <param name="array">массив данных</param>
-        /// <param name="length">сколько байт из массива будет отправленно</param>
         /// <param name="guaranteed">необходимо гарантированно доставить пакет (если false для оптимизации следует по возможности использовать негарантированную доставку, тоесть пакет может быть потерян)</param>
-        /// <param name="token">токен отмены задачи</param>
-        Task Send(IReleasableArray array, int length, bool guaranteed, CancellationToken token);
+        void Send(IReleasableArray array, bool guaranteed);
         /// <summary>
         /// Считывает пришедшие данные
         /// </summary>
         /// <param name="token">токен отмены задачи</param>
-        /// <returns></returns>
-        Task<IReleasableArray> Accept(CancellationToken token);
+        /// <returns>массив и смещение от куда можно начинать считывать данные</returns>
+        Task<Array2Offser> Accept(CancellationToken token);
     }
 }

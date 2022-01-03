@@ -5,12 +5,12 @@ namespace EMI
     /// <summary>
     /// Дополнительные функции/информация для удалённно вызваного метода
     /// </summary>
-    public class MethodHandle
+    public struct MethodHandle
     {
         /// <summary>
         /// Клиент от которого был вызван RPC
         /// </summary>
-        public readonly Client Client;
+        public Client Client;
         /// <summary>
         /// Пинг
         /// </summary>
@@ -18,6 +18,6 @@ namespace EMI
         /// <summary>
         /// Связанные сетевые потоки данных
         /// </summary>
-        public Stream[] LinkedStreams { get; private set; } = null;
+        public Stream[] LinkedStreams { get; private set; }
     }
 }

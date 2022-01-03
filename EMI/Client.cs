@@ -3,8 +3,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
+using SmartPackager;
+
 namespace EMI
 {
+    using Packet;
     using Network;
     using ProBuffer;
 
@@ -29,13 +32,29 @@ namespace EMI
         /// Точность синхронизации времени при подключении клиента к серверу для измерения пинга(только для клиента)
         /// </summary>
         public TimeSync.TimeSyncAccuracy TimeSyncAccuracy = TimeSync.TimeSyncAccuracy.Hight;
+        /// <summary>
+        /// Задержка отправки сообщений (милисекунд)
+        /// </summary>
+        public double Ping05 { get; private set; } = 1;
+        /// <summary>
+        /// Задержка отправки сообщений в секундах
+        /// </summary>
+        public double PingS05 => Ping05 / 1000;
+        /// <summary>
+        /// Пинг в милисекундах
+        /// </summary>
+        public double Ping => Ping05 * 2;
+        /// <summary>
+        /// Пинг в секундах
+        /// </summary>
+        public double PingS => Ping / 1000;
 
 
-        private ProArrayBuffer MyArrayBuffer;
+        internal ProArrayBuffer MyArrayBuffer;
         /// <summary>
         /// Интерфейс отправки/считывания датаграмм
         /// </summary>
-        private INetworkClient MyNetworkClient;
+        internal INetworkClient MyNetworkClient;
         /// <summary>
         /// Таймер времени - позволяет измерять пинг
         /// </summary>
@@ -45,8 +64,8 @@ namespace EMI
         /// </summary>
         public event INetworkClientDisconnected Disconnected;
 
-        internal InputSerialWaiter<byte[]> TimerSyncInputTick;
-        internal InputSerialWaiter<byte[]> TimerSyncInputInteg;
+        internal InputSerialWaiter<Array2Offser> TimerSyncInputTick;
+        internal InputSerialWaiter<Array2Offser> TimerSyncInputInteg;
 
         /// <summary>
         /// Инициализирует клиента но не подключает к серверу
@@ -98,8 +117,8 @@ namespace EMI
 
             MyArrayBuffer = new ProArrayBuffer(100, 1024 * 10);//~1 MB
 
-            TimerSyncInputTick = new InputSerialWaiter<byte[]>();
-            TimerSyncInputInteg = new InputSerialWaiter<byte[]>();
+            TimerSyncInputTick = new InputSerialWaiter<Array2Offser>();
+            TimerSyncInputInteg = new InputSerialWaiter<Array2Offser>();
 
             MyNetworkClient.Disconnected += LowDisconnect;
             MyNetworkClient.ProArrayBuffer = MyArrayBuffer;
@@ -177,8 +196,34 @@ namespace EMI
 
         private async Task ProccesAccept(CancellationToken token)
         {
-            IReleasableArray buffer = await MyNetworkClient.Accept(token).ConfigureAwait(false);
-            
+            Array2Offser data = await MyNetworkClient.Accept(token).ConfigureAwait(false);
+            Packagers.PPacketHeader.UnPack(data.Array.Bytes, data.Offset += PacketHeader.SizeOf, out var packetHeader);
+            switch (packetHeader.PacketType)
+            {
+                case PacketType.Ping05:
+                    Packagers.PLong.UnPack(data.Array.Bytes, data.Offset+=Packagers.SizeOfLong, out long ticks);
+                    Ping05 = new TimeSpan(MyTimerSync.SyncTicks - ticks).TotalMilliseconds;
+                    data.Array.Release();
+                    break;
+                case PacketType.TimeSync:
+                    switch (packetHeader.TimeSyncType)
+                    {
+                        case TimeSyncType.Ticks:
+                            TimerSyncInputTick.Set(data);
+                            break;
+                        case TimeSyncType.Integ:
+                            TimerSyncInputInteg.Set(data);
+                            break;
+                        default:
+                            LowDisconnect("bad package header");
+                            break;
+                    }
+                    break;
+                case PacketType.RegisterMethod:
+                    break;
+                case PacketType.RPC:
+                    break;
+            }
         }
     }
 }

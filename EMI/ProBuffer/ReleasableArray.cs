@@ -12,7 +12,7 @@
         /// <summary>
         /// Массив (размер массива следует считывать из другого поля)
         /// </summary>
-        public byte[] Array { get; private set; }
+        public byte[] Bytes { get; private set; }
         private ProArrayBuffer MyBuffer;
         /// <summary>
         /// Необходимо вызвать после использования массива
@@ -27,7 +27,7 @@
         }
         internal ReleasableArray (ProArrayBuffer myBuffer, int size) : this()
         {
-            Array = new byte[size];
+            Bytes = new byte[size];
             MyBuffer = myBuffer;
         }
     }
