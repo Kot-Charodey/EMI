@@ -53,6 +53,7 @@
     <Compile Include="Exception\RPCRegisterLimitException.cs" />
     <Compile Include="InputSerialWaiter.cs" />
     <Compile Include="MethodHandle.cs" />
+    <Compile Include="MethodIndicator.cs" />
     <Compile Include="Network\INetworkClient.cs" />
     <Compile Include="Network\INetworkServer.cs" />
     <Compile Include="Exception\ClientDisconnectException.cs" />

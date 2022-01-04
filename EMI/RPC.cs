@@ -72,6 +72,7 @@ namespace EMI
             }
         }
 
+        
 
 #pragma warning disable CS1998 // В асинхронном методе отсутствуют операторы await, будет выполнен синхронный метод
         #region RegisterMethod
@@ -182,7 +183,7 @@ namespace EMI
 #pragma warning restore CS1998 // В асинхронном методе отсутствуют операторы await, будет выполнен синхронный метод
 
         /// <summary>
-        /// Позволяет удалить зарегестрированный метод
+        /// Позволяет удалить зарегистрированный метод
         /// </summary>
         public class RemoveHandle
         {
