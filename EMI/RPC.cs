@@ -19,6 +19,7 @@ namespace EMI
         /// </summary>
         /// <param name="handle"></param>
         /// <param name="array">необработанный пакет данных</param>
+        /// <param name="needReturn">нуж но ли проводить упаковку для функций которые возвращают результат</param>
         /// <param name="token"></param>
         /// <returns>результат выполения (null) если нет или не надо возвращать</returns>
         internal delegate Task<IReleasableArray> MicroFunc(MethodHandle handle, Array2Offser array, bool needReturn, CancellationToken token);

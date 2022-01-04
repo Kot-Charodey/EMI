@@ -34,21 +34,9 @@ namespace EMI
         /// </summary>
         public TimeSync.TimeSyncAccuracy TimeSyncAccuracy = TimeSync.TimeSyncAccuracy.Hight;
         /// <summary>
-        /// Задержка отправки сообщений (милисекунд)
+        /// Задержка отправки сообщений (не путать с ping (ping = Ping05 * 2)) (обновляется раз в секунду)
         /// </summary>
-        public double Ping05 { get; private set; } = 1;
-        /// <summary>
-        /// Задержка отправки сообщений в секундах
-        /// </summary>
-        public double PingS05 => Ping05 / 1000;
-        /// <summary>
-        /// Пинг в милисекундах
-        /// </summary>
-        public double Ping => Ping05 * 2;
-        /// <summary>
-        /// Пинг в секундах
-        /// </summary>
-        public double PingS => Ping / 1000;
+        public TimeSpan Ping05 = new TimeSpan(0);
         /// <summary>
         /// Время после которого будет произведено отключение
         /// </summary>
@@ -146,7 +134,7 @@ namespace EMI
         public async Task<bool> Connect(string address, CancellationToken token)
         {
             if (IsConnect)
-                throw new ClientAlreadyConnectException();
+                throw new ClientAlreadyException();
 
             try { CancellationRun.Cancel(); } catch { }
             CancellationRun = new CancellationTokenSource();
@@ -172,7 +160,7 @@ namespace EMI
 
                 if (token.IsCancellationRequested)
                 {
-                    LowDisconnect("Сonnection canceled");
+                    MyNetworkClient.Disconnect("Сonnection canceled");
                     return false;
                 }
 
@@ -194,11 +182,15 @@ namespace EMI
         /// <param name="user_error">что сообщить клиенту при отключении</param>
         public void Disconnect(string user_error = "unknown")
         {
+            if (!IsConnect)
+            {
+                throw new ClientAlreadyException();
+            }
             MyNetworkClient.Disconnect(user_error);
         }
 
         /// <summary>
-        /// Вызвать при внутренем отключение (так же вызывается если дисконект произошёл на более низких уровнях)
+        /// Вызвать при внутренем отключение
         /// </summary>
         /// <param name="error"></param>
         private void LowDisconnect(string error)
@@ -244,7 +236,7 @@ namespace EMI
                     {
                         if (DateTime.UtcNow - LastPing > PingTimeout)
                         {
-                            LowDisconnect($"Timeout (Timeout = {PingTimeout.Milliseconds} ms)");
+                            MyNetworkClient.Disconnect($"Timeout (Timeout = {PingTimeout.Milliseconds} ms)");
                         }
                         else
                         {
@@ -304,7 +296,7 @@ namespace EMI
             {
                 case PacketType.Ping05:
                     Packagers.Ping.UnPack(data.Array.Bytes, data.Offset, out _, out long ticks);
-                    Ping05 = new TimeSpan(MyTimerSync.SyncTicks - ticks).TotalMilliseconds;
+                    Ping05 = new TimeSpan(MyTimerSync.SyncTicks - ticks);
                     data.Array.Release();
                     LastPing = DateTime.UtcNow;
                     break;
@@ -318,7 +310,7 @@ namespace EMI
                             TimerSyncInputInteg.Set(data);
                             break;
                         default:
-                            LowDisconnect("bad package header (flags)");
+                            MyNetworkClient.Disconnect("bad package header (flags)");
                             break;
                     }
                     break;
@@ -350,7 +342,7 @@ namespace EMI
                             //TODO доделать мб ошибка
                             break;
                         default:
-                            LowDisconnect("bad package header (flags)");
+                            MyNetworkClient.Disconnect("bad package header (flags)");
                             break;
                     }
                     data.Array.Release();
@@ -363,6 +355,8 @@ namespace EMI
                                 Packagers.RPC.UnPack(data.Array.Bytes, data.Offset, out _, out ushort id, out long time);
                                 data.Offset += Packagers.RPCSizeOf;
 
+                                handle.Ping = new TimeSpan(MyTimerSync.SyncTicks - time);
+
                                 if (RPC.RegisteredMethods.TryGetValue(id, out var func))
                                 {
                                     await func(handle, data, false, token).ConfigureAwait(false);
@@ -373,6 +367,8 @@ namespace EMI
                             {
                                 Packagers.RPC.UnPack(data.Array.Bytes, data.Offset, out _, out ushort id, out long time);
                                 data.Offset += Packagers.RPCSizeOf;
+
+                                handle.Ping = new TimeSpan(MyTimerSync.SyncTicks - time);
 
                                 if (RPC.RegisteredMethods.TryGetValue(id, out var func))
                                 {
@@ -391,13 +387,13 @@ namespace EMI
                             }
                             break;
                         default:
-                            LowDisconnect("bad package header (flags)");
+                            MyNetworkClient.Disconnect("bad package header (flags)");
                             break;
                     }
                     data.Array.Release();
                     break;
                 default:
-                    LowDisconnect("bad package header (PacketType)");
+                    MyNetworkClient.Disconnect("bad package header (PacketType)");
                     data.Array.Release();
                     break;
             }

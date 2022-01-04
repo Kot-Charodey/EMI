@@ -1,4 +1,4 @@
-﻿using System.IO;
+﻿using System;
 
 namespace EMI
 {
@@ -14,6 +14,6 @@ namespace EMI
         /// <summary>
         /// Пинг
         /// </summary>
-        public float Ping { get; internal set; }
+        public TimeSpan Ping { get; internal set; }
     }
 }
