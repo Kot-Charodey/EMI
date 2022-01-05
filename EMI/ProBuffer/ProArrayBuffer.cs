@@ -9,9 +9,9 @@ namespace EMI.ProBuffer
     /// </summary>
     public class ProArrayBuffer
     {
-        internal SemaphoreSlim Semaphore;
-        internal int FreeArrayID;
-        internal ReleasableArray[] Arrays;
+        private SemaphoreSlim Semaphore;
+        private int FreeArrayID;
+        private ReleasableArray[] Arrays;
         private int ArraySize;
 
         /// <summary>

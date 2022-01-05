@@ -64,6 +64,7 @@
     <Compile Include="Packet\Packagers.cs" />
     <Compile Include="Packet\PacketHeader.cs" />
     <Compile Include="Packet\PacketType.cs" />
+    <Compile Include="Packet\RPCReturnStatus.cs" />
     <Compile Include="ProBuffer\Array2Offser.cs" />
     <Compile Include="ProBuffer\ReleasableArray.cs" />
     <Compile Include="ProBuffer\IReleasableArray.cs" />
@@ -74,6 +75,7 @@
     <Compile Include="RPCFuncDelegate.cs" />
     <Compile Include="RPC.cs" />
     <Compile Include="Packet\RPCType.cs" />
+    <Compile Include="RPCInvokeInfo.cs" />
     <Compile Include="TaskUtilities.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TimerBuiltInSync.cs" />

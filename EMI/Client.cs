@@ -11,6 +11,7 @@ namespace EMI
     using Packet;
     using Network;
     using ProBuffer;
+    using Indicators;
     using MyException;
 
     /// <summary>
@@ -70,6 +71,8 @@ namespace EMI
         /// </summary>
         private TimerSync MyTimerSync;
         private CancellationTokenSource CancellationRun = new CancellationTokenSource();
+        private List<WaitHandle> RPCReturn;
+
 
         /// <summary>
         /// Инициализирует клиента но не подключает к серверу
@@ -124,6 +127,7 @@ namespace EMI
 
             TimerSyncInputTick = new InputSerialWaiter<Array2Offser>();
             TimerSyncInputInteg = new InputSerialWaiter<Array2Offser>();
+            RPCReturn = new List<WaitHandle>();
 
             MyRPCAdressing = new RPCAdressing();
 
@@ -217,6 +221,7 @@ namespace EMI
                 MyArrayBuffer.Reinit();
                 MyArrayBufferSend.Reinit();
                 MyRPCAdressing.Reinit();
+                RPCReturn.Clear();
             }
         }
 
@@ -358,48 +363,82 @@ namespace EMI
                     data.Array.Release();
                     break;
                 case PacketType.RPC:
-                    //switch ((RPCType)packetHeader.Flags)
-                    //{
-                    //    case RPCType.Simple:
-                    //        {
-                    //            Packagers.RPC.UnPack(data.Array.Bytes, data.Offset, out _, out ushort id, out long time);
-                    //            data.Offset += Packagers.RPCSizeOf;
-                    //
-                    //            handle.Ping = new TimeSpan(MyTimerSync.SyncTicks - time);
-                    //
-                    //            if (RPC.RegisteredMethods.TryGetValue(id, out var func))
-                    //            {
-                    //                await func(handle, data, false, token).ConfigureAwait(false);
-                    //            }
-                    //        }
-                    //        break;
-                    //    case RPCType.Returnded:
-                    //        {
-                    //            Packagers.RPC.UnPack(data.Array.Bytes, data.Offset, out _, out ushort id, out long time);
-                    //            data.Offset += Packagers.RPCSizeOf;
-                    //
-                    //            handle.Ping = new TimeSpan(MyTimerSync.SyncTicks - time);
-                    //
-                    //            if (RPC.RegisteredMethods.TryGetValue(id, out var func))
-                    //            {
-                    //                var outData = await func(handle, data, true, token).ConfigureAwait(false);
-                    //                if (token.IsCancellationRequested)
-                    //                    return;
-                    //                Packagers.RPCAnswer.PackUP(outData.Bytes, 0, new PacketHeader(PacketType.RPC, (byte)RPCType.ReturnAnswer), id);
-                    //                await MyNetworkClient.SendAsync(outData, true, token).ConfigureAwait(false);
-                    //                outData.Release();
-                    //            }
-                    //        }
-                    //        break;
-                    //    case RPCType.ReturnAnswer:
-                    //        {
-                    //
-                    //        }
-                    //        break;
-                    //    default:
-                    //        MyNetworkClient.Disconnect("bad package header (flags)");
-                    //        break;
-                    //}
+                    switch ((RPCType)packetHeader.Flags)
+                    {
+                        case RPCType.Simple:
+                            {
+                                Packagers.RPC.UnPack(data.Array.Bytes, data.Offset, out _, out ushort id, out long time);
+                                data.Offset += Packagers.RPCSizeOf;
+
+                                handle.Ping = new TimeSpan(MyTimerSync.SyncTicks - time);
+
+                                var func = RPC.TryGetRegisteredMethod(id);
+
+                                if (func != null)
+                                {
+                                    await func(handle, data, false, token).ConfigureAwait(false);
+                                }
+                            }
+                            break;
+                        case RPCType.NeedReturn:
+                            {
+                                Packagers.RPC.UnPack(data.Array.Bytes, data.Offset, out _, out ushort id, out long time);
+                                data.Offset += Packagers.RPCSizeOf;
+
+                                handle.Ping = new TimeSpan(MyTimerSync.SyncTicks - time);
+
+                                var func = RPC.TryGetRegisteredMethod(id);
+
+                                if (func != null)
+                                {
+                                    var outData = await func(handle, data, false, token).ConfigureAwait(false);
+                                    if (token.IsCancellationRequested)
+                                        return;
+                                    Packagers.RPCAnswer.PackUP(outData.Bytes, 0, new PacketHeader(PacketType.RPC, (byte)RPCType.ReturnAnswer), id, RPCReturnStatus.Good);
+                                    await MyNetworkClient.SendAsync(outData, true, token).ConfigureAwait(false);
+                                    outData.Release();
+                                }
+                                else
+                                {
+                                    var arraySend = await MyArrayBufferSend.AllocateArrayAsync(Packagers.RPCAnswerSizeOf, token).ConfigureAwait(false);
+                                    if (token.IsCancellationRequested)
+                                        return;
+                                    Packagers.RPCAnswer.PackUP(arraySend.Bytes, 0, new PacketHeader(PacketType.RPC, (byte)RPCType.ReturnAnswer), id, RPCReturnStatus.FunctionNotFound);
+                                    await MyNetworkClient.SendAsync(arraySend, true, token).ConfigureAwait(false);
+                                    arraySend.Release();
+                                }
+                            }
+                            break;
+                        case RPCType.ReturnAnswer:
+                            {
+                                Packagers.RPCAnswer.UnPack(data.Array.Bytes, data.Offset, out _, out ushort id, out RPCReturnStatus rrs);
+                                data.Offset += Packagers.RPCAnswerSizeOf;
+
+                                lock (RPCReturn)
+                                {
+                                    bool good = false;
+                                    for(int i = 0; i < RPCReturn.Count; i++)
+                                    {
+                                        if(RPCReturn[i].ID == id)
+                                        {
+                                            RPCReturn[i].InputData = data;
+                                            RPCReturn[i].RRS = rrs;
+                                            RPCReturn[i].Semaphore.Release();
+                                            good = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!good)
+                                    {
+                                        MyNetworkClient.Disconnect("bad package");
+                                    }
+                                }
+                            }
+                            break;
+                        default:
+                            MyNetworkClient.Disconnect("bad package header (flags)");
+                            break;
+                    }
                     data.Array.Release();
                     break;
                 default:
@@ -408,5 +447,84 @@ namespace EMI
                     break;
             }
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="indicator">Cсылка на метод</param>
+        /// <param name="invokeInfo">Информация о том как следует вызвать метод</param>
+        /// <returns>*выполнилась ли функция (если false значит она не была найдена) *если ожидания возврата функции не было то вернёт true)</returns>
+        /// <exception cref="Exception"></exception>
+        public async Task<bool> Invoke(Indicator indicator, RPCInvokeInfo invokeInfo)
+        {
+            var arraySend = await MyArrayBufferSend.AllocateArrayAsync(Packagers.RPCSizeOf, default).ConfigureAwait(false);
+
+            ushort? rID = 0;
+
+            lock (MyRPCAdressing)
+            {
+                rID = MyRPCAdressing.ReadresingID[indicator.ID];
+                if (rID == null)
+                {
+                    if (MyRPCAdressing.DoReaddressing(indicator.ID, indicator.Name))
+                    {
+                        rID = MyRPCAdressing.ReadresingID[indicator.ID];
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            Packagers.RPC.PackUP(arraySend.Bytes, 0, new PacketHeader(PacketType.RPC, (byte)RPCType.Simple), rID.Value, MyTimerSync.SyncTicks);
+            await MyNetworkClient.SendAsync(arraySend, invokeInfo == RPCInvokeInfo.Guarantee || invokeInfo == RPCInvokeInfo.GuaranteeAndWaitReturn, default).ConfigureAwait(false);
+            arraySend.Release();
+
+            if (invokeInfo == RPCInvokeInfo.GuaranteeAndWaitReturn)
+            {
+                WaitHandle wait = new WaitHandle()
+                {
+                    ID = rID.Value,
+                    Semaphore = new SemaphoreSlim(0, 1),
+                };
+                lock (RPCReturn)
+                {
+                    RPCReturn.Add(wait);
+                }
+                CancellationToken token = CancellationRun.Token;
+                await wait.Semaphore.WaitAsync(token).ConfigureAwait(false);
+
+                if (token.IsCancellationRequested)
+                    throw new ClientDisconnectException();
+
+                lock (RPCReturn)
+                {
+                    RPCReturn.Remove(wait);
+                }
+
+                if (wait.RRS == RPCReturnStatus.FunctionNotFound)
+                {
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                return true;
+            }
+        }
+    }
+
+
+    internal class WaitHandle
+    {
+        public ushort ID;
+        public SemaphoreSlim Semaphore;
+        public Array2Offser InputData;
+        public RPCReturnStatus RRS;
     }
 }

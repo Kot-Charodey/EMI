@@ -9,6 +9,7 @@ namespace EMI
 {
     using Packet;
     using ProBuffer;
+    using Indicators;
     using MyException;
     /// <summary>
     /// Позволяет производить удалённый вызов процедур
@@ -27,15 +28,32 @@ namespace EMI
         /// <summary>
         /// Зарегестрированные функции - используется при вызове
         /// </summary>
-        internal readonly MicroFunc[] RegisteredMethods = new MicroFunc[ushort.MaxValue];
+        private readonly MicroFunc[] RegisteredMethods = new MicroFunc[ushort.MaxValue];
         /// <summary>
         /// позволяет по имени найти адресс функции для вызовов
         /// </summary>
         internal readonly string[] RegisteredMethodsName = new string[ushort.MaxValue];
+        /// <summary>
+        /// Фабрика для создания ссылков на удалённые методы
+        /// </summary>
+        public IndicatorsFactory Factory { get; private set; } = new IndicatorsFactory();
 
         //internal event Action<>
         internal RPC()
         {
+        }
+
+        /// <summary>
+        /// Пытается получить функцию по айди - если не получиться вернёт null
+        /// </summary>
+        /// <param name="ID"></param>
+        /// <returns></returns>
+        internal MicroFunc TryGetRegisteredMethod(ushort ID)
+        {
+            lock (this)
+            {
+                return RegisteredMethods[ID];
+            }
         }
 
         /// <summary>
