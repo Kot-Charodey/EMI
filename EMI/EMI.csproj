@@ -50,10 +50,14 @@
   <ItemGroup>
     <Compile Include="Client.cs" />
     <Compile Include="Exception\ClientAlreadyException.cs" />
-    <Compile Include="Exception\RPCRegisterLimitException.cs" />
+    <Compile Include="Exception\RegisterLimitException.cs" />
+    <Compile Include="Exception\RPCRegisterNameException.cs" />
+    <Compile Include="Indicators\AIndicator.cs" />
+    <Compile Include="Indicators\Indicator.cs" />
+    <Compile Include="Indicators\IndicatorR.cs" />
     <Compile Include="InputSerialWaiter.cs" />
     <Compile Include="MethodHandle.cs" />
-    <Compile Include="MethodIndicator.cs" />
+    <Compile Include="Indicators\IndicatorsFactory.cs" />
     <Compile Include="Network\INetworkClient.cs" />
     <Compile Include="Network\INetworkServer.cs" />
     <Compile Include="Exception\ClientDisconnectException.cs" />
@@ -66,6 +70,7 @@
     <Compile Include="ProBuffer\ProArrayBuffer.cs" />
     <Compile Include="ProBuffer\WrapperArray.cs" />
     <Compile Include="Packet\RegisterMethodType.cs" />
+    <Compile Include="RPCAdressing.cs" />
     <Compile Include="RPCFuncDelegate.cs" />
     <Compile Include="RPC.cs" />
     <Compile Include="Packet\RPCType.cs" />

@@ -74,6 +74,6 @@ namespace EMI.Network
         /// </summary>
         /// <param name="token">токен отмены задачи</param>
         /// <returns>массив и смещение от куда можно начинать считывать данные</returns>
-        Task<Array2Offser> Accept(CancellationToken token);
+        Task<Array2Offser> AcceptAsync(CancellationToken token);
     }
 }

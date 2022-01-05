@@ -5,6 +5,7 @@ namespace EMI.Packet
 {
     internal static class Packagers
     {
+
         public static Packager.M<PacketHeader> PacketHeader = Packager.Create<PacketHeader>();
 
         public static Packager.M<PacketHeader, long> Ping = Packager.Create<PacketHeader, long>(); 
@@ -15,15 +16,11 @@ namespace EMI.Packet
         public static int TicksSizeOf = (int)Ticks.CalcNeedSize(default, default);
         public static int IntegSizeOf = (int)Integ.CalcNeedSize(default, default);
 
-        /// <summary>
-        /// MethodName
-        /// </summary>
-        public static Packager.M<PacketHeader, string> RegisterMethodRequest = Packager.Create<PacketHeader, string>();
-        /// <summary>
-        /// MethodID
-        /// </summary>
-        public static Packager.M<PacketHeader, ushort> RegisterMethodAnswer = Packager.Create<PacketHeader, ushort>();
-        public static int RegisterMethodAnswerSizeOf = (int)RegisterMethodAnswer.CalcNeedSize(default, default);
+        public static Packager.M<PacketHeader, ushort> RegisterMethodRemove = Packager.Create<PacketHeader, ushort>();
+        public static Packager.M<PacketHeader, ushort, string> RegisterMethodAdd = Packager.Create<PacketHeader, ushort, string>();
+        public static Packager.M<PacketHeader, ushort[], string[]> RegisterMethodList = Packager.Create<PacketHeader, ushort[], string[]>();
+
+        public static int RegisterMethodRemoveSizeOf = (int)RegisterMethodRemove.CalcNeedSize(default, default);
 
         /// <summary>
         /// ID,Ticks ... [array data]

@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
 
 namespace EMI.Packet
 {
@@ -20,21 +21,12 @@ namespace EMI.Packet
             set => _PacketType = PacketType |= value & NoFlagMask;
         }
 
-        public TimeSyncType TimeSyncType
+        /// <summary>
+        /// 3 крайних бита под флаги (3 флага [128,64,32])
+        /// </summary>
+        public byte Flags
         {
-            get => (TimeSyncType)(_PacketType & OnlyFlagMask);
-            set => _PacketType = PacketType | ((PacketType)value & OnlyFlagMask);
-        }
-
-        public RegisterMethodType RegisterMethodType
-        {
-            get => (RegisterMethodType)(_PacketType & OnlyFlagMask);
-            set => _PacketType = PacketType | ((PacketType)value & OnlyFlagMask);
-        }
-
-        public RPCType RPCType
-        {
-            get => (RPCType)(_PacketType & OnlyFlagMask);
+            get => (byte)(_PacketType & OnlyFlagMask);
             set => _PacketType = PacketType | ((PacketType)value & OnlyFlagMask);
         }
 

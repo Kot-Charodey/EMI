@@ -9,6 +9,7 @@ namespace EMI
 {
     using Packet;
     using ProBuffer;
+    using MyException;
     /// <summary>
     /// Позволяет производить удалённый вызов процедур
     /// </summary>
@@ -26,11 +27,11 @@ namespace EMI
         /// <summary>
         /// Зарегестрированные функции - используется при вызове
         /// </summary>
-        internal readonly Dictionary<ushort, MicroFunc> RegisteredMethods = new Dictionary<ushort, MicroFunc>();
+        internal readonly MicroFunc[] RegisteredMethods = new MicroFunc[ushort.MaxValue];
         /// <summary>
         /// позволяет по имени найти адресс функции для вызовов
         /// </summary>
-        internal readonly Dictionary<string, ushort> RegisteredMethodsName = new Dictionary<string, ushort>();
+        internal readonly string[] RegisteredMethodsName = new string[ushort.MaxValue];
 
         //internal event Action<>
         internal RPC()
@@ -43,14 +44,17 @@ namespace EMI
         /// <returns></returns>
         private ushort GetMethodID()
         {
-            ushort id = 0;
-            while (RegisteredMethods.ContainsKey(id))
+            lock (this)
             {
-                if (id == ushort.MaxValue)
-                    throw new MyException.RPCRegisterLimitException();
-                id++;
+                ushort id = 0;
+                while (RegisteredMethods[id] != null)
+                {
+                    if (id == ushort.MaxValue)
+                        throw new RegisterLimitException();
+                    id++;
+                }
+                return id;
             }
-            return id;
         }
 
         /// <summary>
@@ -65,10 +69,16 @@ namespace EMI
 
             lock (this)
             {
+                foreach(var n in RegisteredMethodsName) {
+                    if (n == name)
+                    {
+                        throw new RPCRegisterNameException();
+                    }
+                }
                 ushort id = GetMethodID();
-                RegisteredMethods.Add(id, micro);
-                RegisteredMethodsName.Add(name, id);
-                return new RemoveHandle(id, name, this);
+                RegisteredMethods[id] = micro;
+                RegisteredMethodsName[id] = name;
+                return new RemoveHandle(id, this);
             }
         }
 
@@ -188,13 +198,11 @@ namespace EMI
         public class RemoveHandle
         {
             private readonly ushort ID;
-            private readonly string Name;
             private readonly RPC RPC;
 
-            internal RemoveHandle(ushort id, string name, RPC rpc)
+            internal RemoveHandle(ushort id, RPC rpc)
             {
                 ID = id;
-                Name = name;
                 RPC = rpc;
             }
 
@@ -203,8 +211,8 @@ namespace EMI
             /// </summary>
             public void Remove()
             {
-                RPC.RegisteredMethods.Remove(ID);
-                RPC.RegisteredMethodsName.Remove(Name);
+                RPC.RegisteredMethods[ID] = null;
+                RPC.RegisteredMethodsName[ID] = null;
             }
         }
     }
