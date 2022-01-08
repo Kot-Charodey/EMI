@@ -13,7 +13,7 @@
         /// Массив (размер массива следует считывать из другого поля)
         /// </summary>
         public byte[] Bytes { get; private set; }
-        private ProArrayBuffer MyBuffer;
+        private readonly ProArrayBuffer MyBuffer;
         /// <summary>
         /// Необходимо вызвать после использования массива
         /// </summary>

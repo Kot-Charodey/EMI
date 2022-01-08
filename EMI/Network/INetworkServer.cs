@@ -2,6 +2,7 @@
 
 namespace EMI.Network
 {
+    using EMI.ProBuffer;
     /* Рекомендации по реализации интерфейса
      * address для сетевых подключений в виде текста localhost:port
      * address для других типов интерфейсов может быть описан свой
@@ -17,14 +18,19 @@ namespace EMI.Network
     public interface INetworkServer
     {
         /// <summary>
+        /// Конвеер для выдачи массивов "ИЗБЕГАТЬ создания объектов"
+        /// Устанавливается библиотекой при инициализации
+        /// </summary>
+        ProArrayBuffer ProArrayBuffer { set; }
+        /// <summary>
         /// Запустить сервер
         /// </summary>
         /// <param name="address">имя/аддрес интерфеса (и порта) для прослушки</param>
-        void StartListener(string address);
+        void StartServer(string address);
         /// <summary>
         /// Остановить сервер (все клиенты будут отключены)
         /// </summary>
-        void StopListner();
+        void StopServer();
         /// <summary>
         /// Возвращает клиента который успешно попытался подключиться к серверу
         /// </summary>
