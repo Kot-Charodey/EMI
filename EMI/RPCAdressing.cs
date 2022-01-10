@@ -44,6 +44,7 @@ namespace EMI
                                 throw new System.Exception(); //что то сломалось
 
                             ReadresingID[FromID] = info.ID;
+                            return true;
                         }
                     }
                 }
@@ -59,13 +60,13 @@ namespace EMI
                                 throw new System.Exception(); //что то сломалось
 
                             ReadresingID[FromID] = info.ID;
+                            return true;
                         }
                     }
                 }
                 return false;
             }
         }
-
 
         internal void Remove(ushort ID)
         {

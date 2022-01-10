@@ -31,7 +31,7 @@ namespace NetBaseTCP
         public void StartServer(string address)
         {
             if (TcpListener != null)
-                throw new ClientAlreadyException();
+                throw new AlreadyException();
             TcpListener = new TcpListener(Utilities.ParseAddress(address));
             TcpListener.Start();
         }

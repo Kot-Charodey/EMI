@@ -9,30 +9,34 @@ namespace EMI.Packet
     [StructLayout(LayoutKind.Explicit, Pack = 1, Size = SizeOf)]
     internal struct PacketHeader
     {
-        public const int SizeOf = 1;
-        public const PacketType NoFlagMask = (PacketType)0b00011111;
-        public const PacketType OnlyFlagMask = (PacketType)0b11100000;
+        public const int SizeOf = 2;
         [FieldOffset(0)]
-        private PacketType _PacketType;
+        public PacketType PacketType;
+        [FieldOffset(1)]
+        public byte Flags;
 
-        public PacketType PacketType
+        public PacketHeader(PacketType pt)
         {
-            get => _PacketType & NoFlagMask;
-            set => _PacketType = PacketType |= value & NoFlagMask;
+            PacketType = pt;
+            Flags = 0;
         }
 
-        /// <summary>
-        /// 3 крайних бита под флаги (3 флага [128,64,32])
-        /// </summary>
-        public byte Flags
+        public PacketHeader(RPCType flag)
         {
-            get => (byte)(_PacketType & OnlyFlagMask);
-            set => _PacketType = PacketType | ((PacketType)value & OnlyFlagMask);
+            PacketType = PacketType.RPC;
+            Flags = (byte)flag;
         }
 
-        public PacketHeader(PacketType pt, byte flag)
+        public PacketHeader(TimeSyncType flag)
         {
-            _PacketType = pt | (PacketType)flag;
+            PacketType = PacketType.TimeSync;
+            Flags = (byte)flag;
+        }
+
+        public PacketHeader(RegisterMethodType flag)
+        {
+            PacketType = PacketType.RegisterMethod;
+            Flags = (byte)flag;
         }
     }
 }

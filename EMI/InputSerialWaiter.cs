@@ -24,7 +24,7 @@ namespace EMI
 
         public void Reset()
         {
-            Semaphore.Release();
+            Semaphore.Dispose();
             Semaphore = new Semaphore(0, 1);
             Date = default;
         }

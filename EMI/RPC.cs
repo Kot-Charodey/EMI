@@ -8,6 +8,7 @@ using SmartPackager;
 namespace EMI
 {
     using Packet;
+    using Network;
     using ProBuffer;
     using Indicators;
     using MyException;
@@ -38,7 +39,10 @@ namespace EMI
         /// </summary>
         public IndicatorsFactory Factory { get; private set; } = new IndicatorsFactory();
 
-        //internal event Action<>
+
+        internal event RPCfunc<string, ushort> DoRegisterMethod;
+        internal event RPCfunc<ushort> DoUnregisterMethod;
+
         internal RPC()
         {
         }
@@ -96,6 +100,7 @@ namespace EMI
                 ushort id = GetMethodID();
                 RegisteredMethods[id] = micro;
                 RegisteredMethodsName[id] = name;
+                DoRegisterMethod?.Invoke(name, id);
                 return new RemoveHandle(id, this);
             }
         }
@@ -229,8 +234,13 @@ namespace EMI
             /// </summary>
             public void Remove()
             {
-                RPC.RegisteredMethods[ID] = null;
-                RPC.RegisteredMethodsName[ID] = null;
+                lock (RPC)
+                {
+                    RPC.DoUnregisterMethod?.Invoke(ID);
+
+                    RPC.RegisteredMethods[ID] = null;
+                    RPC.RegisteredMethodsName[ID] = null;
+                }
             }
         }
     }

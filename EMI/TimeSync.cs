@@ -10,13 +10,22 @@ namespace EMI
     {
         internal Client Client;
 
+        /// <summary>
+        /// Инициализация
+        /// </summary>
+        /// <param name="client"></param>
+        public TimerSync(Client client)
+        {
+            Client = client;
+        }
+
 #pragma warning disable CS1591 // Отсутствует комментарий XML для открытого видимого типа или члена
         protected override void SendTicks(long ticks)
         {
             var array = Client.MyArrayBufferSend.AllocateArray(Packagers.TicksSizeOf);
 
             Packagers.Ticks.PackUP(array.Bytes, 0,
-                new PacketHeader(PacketType.TimeSync, (byte)TimeSyncType.Ticks),
+                new PacketHeader(TimeSyncType.Ticks),
                 ticks);
             Client.MyNetworkClient.Send(array, true);
             array.Release();
@@ -25,7 +34,7 @@ namespace EMI
         protected override long GetTicks()
         {
             var data = Client.TimerSyncInputTick.Get();
-            Packagers.Ticks.UnPack(data.Array.Bytes, data.Offset,out _, out var ticks);
+            Packagers.Ticks.UnPack(data.Array.Bytes, data.Offset, out _, out var ticks);
             data.Array.Release();
             return ticks;
         }
@@ -34,8 +43,8 @@ namespace EMI
         {
             var array = Client.MyArrayBufferSend.AllocateArray(Packagers.IntegSizeOf);
 
-            Packagers.Integ.PackUP(array.Bytes, 0, 
-                new PacketHeader(PacketType.TimeSync, (byte)TimeSyncType.Integ),
+            Packagers.Integ.PackUP(array.Bytes, 0,
+                new PacketHeader(TimeSyncType.Integ),
                 count);
             Client.MyNetworkClient.Send(array, true);
             array.Release();
@@ -44,7 +53,7 @@ namespace EMI
         protected override ushort GetIntegrations()
         {
             var data = Client.TimerSyncInputInteg.Get();
-            Packagers.Integ.UnPack(data.Array.Bytes, data.Offset,out _, out var integ);
+            Packagers.Integ.UnPack(data.Array.Bytes, data.Offset, out _, out var integ);
             data.Array.Release();
             return integ;
         }

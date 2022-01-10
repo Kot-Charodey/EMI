@@ -5,7 +5,12 @@ namespace EMI
 {
     internal class TimerBuiltInSync : TimerSync
     {
-        private static double Freq = TimeSpan.TicksPerSecond / Stopwatch.Frequency;
+        private static readonly decimal Freq = (decimal)TimeSpan.TicksPerSecond / Stopwatch.Frequency;
+
+        public TimerBuiltInSync(Client client) : base(client)
+        {
+        }
+
         public override long Ticks => (long)(Stopwatch.GetTimestamp() * Freq);
     }
 }

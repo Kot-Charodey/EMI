@@ -61,7 +61,7 @@ namespace Test1
                           Console.WriteLine(Encoding.Unicode.GetString(array.Bytes, 0, array.Length));
                           array.Release();
                       }
-                      catch(Exception e)
+                      catch
                       {
                       }
                   }

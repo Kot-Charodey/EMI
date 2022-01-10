@@ -124,6 +124,8 @@ namespace NetBaseTCP
 
         public void Disconnect(string user_error)
         {
+            Console.WriteLine("public void Disconnect");
+
             if (IsServerSide)
             {
                 lock (Server.TCPClients)
@@ -158,13 +160,13 @@ namespace NetBaseTCP
 
             unsafe
             {
-                fixed (byte* headerBufferPtr = &AcceptHeaderBuffer[0])
+                fixed (byte* headerBufferPtr = &SendHeaderBuffer[0])
                 {
                     *((DataGramInfo*)headerBufferPtr) = header;
                 }
             }
 
-            NetworkStream.Write(AcceptHeaderBuffer, 0, AcceptHeaderBuffer.Length);
+            NetworkStream.Write(SendHeaderBuffer, 0, SendHeaderBuffer.Length);
 
             for (int i = 0; i < array.Length; i += MaxOneSendSize)
             {
@@ -183,7 +185,7 @@ namespace NetBaseTCP
 
             unsafe
             {
-                fixed (byte* headerBufferPtr = &AcceptHeaderBuffer[0])
+                fixed (byte* headerBufferPtr = &SendHeaderBuffer[0])
                 {
                     *((DataGramInfo*)headerBufferPtr) = header;
                 }

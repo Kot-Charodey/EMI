@@ -26,6 +26,16 @@ namespace EMI.Indicators
         {
 
         }
+
+        /// <summary>
+        /// Создаёт новую ссылку на функцию
+        /// </summary>
+        /// <param name="factory">фабрика индикаторов (ищи в Client.RPC)</param>
+        /// <param name="func">функция которая будет вызываться удалённо</param>
+        public Indicator(IndicatorsFactory factory, RPCfunc<MethodHandle> func) : base(factory, func.Method)
+        {
+
+        }
     }
 
     /// <summary>
@@ -51,6 +61,16 @@ namespace EMI.Indicators
         /// <param name="factory">фабрика индикаторов (ищи в Client.RPC)</param>
         /// <param name="func">функция которая будет вызываться удалённо</param>
         public Indicator(IndicatorsFactory factory, RPCfunc<T1> func) : base(factory, func.Method)
+        {
+
+        }
+
+        /// <summary>
+        /// Создаёт новую ссылку на функцию
+        /// </summary>
+        /// <param name="factory">фабрика индикаторов (ищи в Client.RPC)</param>
+        /// <param name="func">функция которая будет вызываться удалённо</param>
+        public Indicator(IndicatorsFactory factory, RPCfunc<MethodHandle,T1> func) : base(factory, func.Method)
         {
 
         }

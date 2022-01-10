@@ -3,15 +3,15 @@
     /// <summary>
     /// Возникает если действие уже было выполнено
     /// </summary>
-    public class ClientAlreadyException : System.Exception
+    public class AlreadyException : System.Exception
     {
         /// <summary>
         /// Возникает если действие уже было выполнено
         /// </summary>
-        public ClientAlreadyException() { }
+        public AlreadyException() { }
         /// <summary>
         /// Возникает если действие уже было выполнено
         /// </summary>
-        public ClientAlreadyException(string message) : base(message) { }
+        public AlreadyException(string message) : base(message) { }
     }
 }
