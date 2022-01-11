@@ -57,7 +57,7 @@ namespace Test1
                   {
                       try
                       {
-                          var array = (await client.AcceptAsync(default)).Array;
+                          var array = (await client.AcceptAsync(default));
                           Console.WriteLine(Encoding.Unicode.GetString(array.Bytes, 0, array.Length));
                           array.Release();
                       }

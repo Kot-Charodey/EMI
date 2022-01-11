@@ -14,9 +14,16 @@
         /// </summary>
         public byte[] Bytes { get; private set; }
         /// <summary>
+        /// Смещение - от куда следует считывать
+        /// </summary>
+        public int Offset { get; set; }
+        /// <summary>
         /// Необходимо вызвать после использования массива
         /// </summary>
-        public void Release(){}
+        public void Release()
+        {
+            Offset = 0;
+        }
 
         /// <summary>
         /// Инициализировать массив указанного размера
@@ -24,6 +31,7 @@
         /// <param name="size"></param>
         public WrapperArray(int size)
         {
+            Offset = 0;
             Bytes = new byte[size];
         }
 
@@ -33,6 +41,7 @@
         /// <param name="array"></param>
         public WrapperArray(byte[] array)
         {
+            Offset = 0;
             Bytes = array;
         }
     }

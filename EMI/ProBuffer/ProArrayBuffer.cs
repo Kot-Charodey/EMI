@@ -62,8 +62,6 @@ namespace EMI.ProBuffer
             {
                 //если произойдёт дедлок (долго освобождают массив - мы выделим новый массив)
                 var wait = await Semaphore.WaitAsync(10000, cancellationToken).ConfigureAwait(false);
-                if (cancellationToken.IsCancellationRequested)
-                    return default;
                 if (wait)
                 {
                     lock (Arrays)

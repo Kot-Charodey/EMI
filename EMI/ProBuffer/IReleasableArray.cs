@@ -14,6 +14,10 @@
         /// </summary>
         byte[] Bytes { get; }
         /// <summary>
+        /// Смещение - от куда следует считывать
+        /// </summary>
+        int Offset { get; set; }
+        /// <summary>
         /// Необходимо вызвать после использования массива
         /// </summary>
         void Release();

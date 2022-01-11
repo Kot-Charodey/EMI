@@ -8,7 +8,6 @@ using SmartPackager;
 
 namespace EMI
 {
-    using Packet;
     using Network;
     using ProBuffer;
     using Indicators;
@@ -32,17 +31,13 @@ namespace EMI
         /// </summary>
         public bool IsServerSide { get; private set; } = false;
         /// <summary>
-        /// Точность синхронизации времени при подключении клиента к серверу для измерения пинга(только для клиента)
+        /// Ping
         /// </summary>
-        public TimeSync.TimeSyncAccuracy TimeSyncAccuracy = TimeSync.TimeSyncAccuracy.Hight;
-        /// <summary>
-        /// Задержка отправки сообщений (не путать с ping (ping = Ping05 * 2)) (обновляется раз в секунду)
-        /// </summary>
-        public TimeSpan Ping05 = new TimeSpan(0);
+        public TimeSpan Ping = new TimeSpan(0);
         /// <summary>
         /// Время после которого будет произведено отключение
         /// </summary>
-        public TimeSpan PingTimeout = new TimeSpan(0, 1, 0);
+        public TimeSpan PingTimeout = new TimeSpan(0, 1000, 0);
         /// <summary>
         /// Вызывается если неуспешный Connect или произошло отключение
         /// </summary>
@@ -52,12 +47,6 @@ namespace EMI
         internal ProArrayBuffer MyArrayBuffer;
         internal ProArrayBuffer MyArrayBufferSend;
 
-        //для работы TimerSync
-        internal InputSerialWaiter<Array2Offser> TimerSyncInputTick;
-        internal InputSerialWaiter<Array2Offser> TimerSyncInputInteg;
-
-        internal RPCAdressing MyRPCAdressing;
-
         /// <summary>
         /// Интерфейс отправки/считывания датаграмм
         /// </summary>
@@ -66,27 +55,18 @@ namespace EMI
         /// Когда приходил прошлый запрос о пинге (для time out)
         /// </summary>
         private DateTime LastPing;
-        /// <summary>
-        /// Таймер времени - позволяет измерять пинг
-        /// </summary>
-        private TimerSync MyTimerSync;
-        private CancellationTokenSource CancellationRun = new CancellationTokenSource();
-        private List<WaitHandle> RPCReturn;
-        /// <summary>
-        /// Токен вызывающий сброс когда получен и обработан SendList
-        /// </summary>
-        private CancellationTokenSource WaitAcceptSendList;
+        internal CancellationTokenSource CancellationRun = new CancellationTokenSource();
+        internal Dictionary<int, RCWaitHandle> RPCReturn;
+        private Server Server;
 
 
         /// <summary>
         /// Инициализирует клиента но не подключает к серверу
         /// </summary>
         /// <param name="network">интерфейс подключения</param>
-        /// <param name="timer">таймер времени (если null изпользует стандартный)</param>
-        public Client(INetworkService network, TimerSync timer = null)
+        public Client(INetworkService network)
         {
             MyNetworkClient = network.GetNewClient();
-            MyTimerSync = timer;
             RPC = new RPC();
             Init();
         }
@@ -102,31 +82,20 @@ namespace EMI
         /// Для сосздания клиента на стороне сервера
         /// </summary>
         /// <param name="network"></param>
-        /// <param name="timer"></param>
         /// <param name="rpc"></param>
+        /// <param name="server"></param>
         /// <returns></returns>
-        internal static Client CreateClinetServerSide(INetworkClient network, TimerSync timer, RPC rpc)
+        internal static Client CreateClinetServerSide(INetworkClient network, RPC rpc,Server server)
         {
             Client client = new Client()
             {
                 MyNetworkClient = network,
-                MyTimerSync = timer,
                 RPC = rpc,
+                Server = server
             };
             client.IsServerSide = true;
             client.Init();
-
-            rpc.DoRegisterMethod += client.RPCReg;
-            rpc.DoUnregisterMethod += client.RPCUNreg;
-
-            client.WaitAcceptSendList = new CancellationTokenSource();
-
             client.RunProcces();
-            client.MyTimerSync.SendSync(); 
-
-            client.SendRPCList();
-
-            try { Task.Delay(-1, client.WaitAcceptSendList.Token).Wait(); } catch { }
 
             return client;
         }
@@ -136,17 +105,9 @@ namespace EMI
         /// </summary>
         private void Init()
         {
-            if (MyTimerSync == null)
-                MyTimerSync = new TimerBuiltInSync(this);
-
-            MyArrayBuffer = new ProArrayBuffer(30, 1024 * 50);
-            MyArrayBufferSend = new ProArrayBuffer(30, 1024 * 50);
-
-            TimerSyncInputTick = new InputSerialWaiter<Array2Offser>();
-            TimerSyncInputInteg = new InputSerialWaiter<Array2Offser>();
-            RPCReturn = new List<WaitHandle>();
-
-            MyRPCAdressing = new RPCAdressing();
+            MyArrayBuffer = new ProArrayBuffer(10, 1024 * 25);
+            MyArrayBufferSend = new ProArrayBuffer(10, 1024 * 25);
+            RPCReturn = new Dictionary<int, RCWaitHandle>();
 
             MyNetworkClient.Disconnected += LowDisconnect;
             MyNetworkClient.ProArrayBuffer = MyArrayBuffer;
@@ -163,59 +124,14 @@ namespace EMI
             if (IsConnect)
                 throw new AlreadyException();
 
-            try { CancellationRun.Cancel(); } catch { }
             CancellationRun = new CancellationTokenSource();
-            
+
             var status = await MyNetworkClient.Сonnect(address, token).ConfigureAwait(false);
 
             if (status == true)
             {
-                RPC.DoRegisterMethod += RPCReg;
-                RPC.DoUnregisterMethod += RPCUNreg;
-
-                
-
-                CancellationTokenSource cts = new CancellationTokenSource();
-
-                if (WaitAcceptSendList != null)
-                    WaitAcceptSendList.Dispose();
-                WaitAcceptSendList = new CancellationTokenSource();
-
-                token.Register(() => TaskUtilities.Try(() => cts.Cancel()));
-                token.Register(() => TaskUtilities.Try(() => WaitAcceptSendList.Cancel()));
-
-
                 RunProcces();
-
-                if (token.IsCancellationRequested)
-                {
-                    MyNetworkClient.Disconnect("Сonnection canceled");
-                    return false;
-                }
-
-                await TaskUtilities.InvokeAsync(() =>
-                {
-                    MyTimerSync.DoSync(TimeSyncAccuracy);
-                }, cts).ConfigureAwait(false);
-
-                if (token.IsCancellationRequested)
-                {
-                    MyNetworkClient.Disconnect("Сonnection canceled");
-                    return false;
-                }
-
-                Console.WriteLine("wait ...");
-                    SendRPCList();
-                //ожидат завершение синхронизации SendList
-                try { await Task.Delay(-1, WaitAcceptSendList.Token).ConfigureAwait(false);}catch { }
-
-                Console.WriteLine("done");
-
-                if (token.IsCancellationRequested)
-                {
-                    MyNetworkClient.Disconnect("Сonnection canceled");
-                    return false;
-                }
+                token.ThrowIfCancellationRequested();
 
                 return true;
             }
@@ -223,50 +139,6 @@ namespace EMI
             {
                 return false;
             }
-        }
-
-        private void SendRPCList()
-        {
-            lock (RPC)
-            {
-                List<ushort> IDs = new List<ushort>();
-                List<string> names = new List<string>();
-
-                for (ushort i = 0; i < RPC.RegisteredMethodsName.Length; i++)
-                {
-                    if (RPC.RegisteredMethodsName[i] != null)
-                    {
-                        IDs[i] = i;
-                        names[i] = RPC.RegisteredMethodsName[i];
-                    }
-                }
-
-                var array = new WrapperArray(Packagers.RegisterMethodList.PackUP(new PacketHeader(RegisterMethodType.SendList), IDs.ToArray(), names.ToArray()));
-                MyNetworkClient.Send(array, true);
-                array.Release();
-            }
-        }
-
-        private void RPCReg(string name, ushort id)
-        {
-            Task.Run(async () =>
-            {
-                var array = await MyArrayBufferSend.AllocateArrayAsync((int)Packagers.RegisterMethodAdd.CalcNeedSize(default, default, name), default).ConfigureAwait(false);
-                Packagers.RegisterMethodAdd.PackUP(array.Bytes, 0, new PacketHeader(RegisterMethodType.Add), id, name);
-                await MyNetworkClient.SendAsync(array, true, default).ConfigureAwait(false);
-                array.Release();
-            });
-        }
-
-        private void RPCUNreg(ushort id)
-        {
-            Task.Run(async () =>
-            {
-                var array = await MyArrayBufferSend.AllocateArrayAsync(Packagers.RegisterMethodRemoveSizeOf,default).ConfigureAwait(false);
-                Packagers.RegisterMethodRemove.PackUP(array.Bytes, 0, new PacketHeader(RegisterMethodType.Remove), id);
-                await MyNetworkClient.SendAsync(array, true, default).ConfigureAwait(false);
-                array.Release();
-            });
         }
 
         /// <summary>
@@ -289,18 +161,17 @@ namespace EMI
         private void LowDisconnect(string error)
         {
             Disconnected?.Invoke(error);
-
-            TaskUtilities.Try(() => RPC.DoRegisterMethod -= RPCReg);
-            TaskUtilities.Try(() => RPC.DoUnregisterMethod -= RPCUNreg);
+            try
+            {
+                CancellationRun.Cancel();
+            }
+            catch { }
 
             //сброс компонентов для реиспользования клиента
             if (!IsServerSide)
             {
-                TimerSyncInputTick.Reset();
-                TimerSyncInputInteg.Reset();
                 MyArrayBuffer.Reinit();
                 MyArrayBufferSend.Reinit();
-                MyRPCAdressing.Reinit();
                 RPCReturn.Clear();
             }
         }
@@ -325,26 +196,50 @@ namespace EMI
             factory.StartNew(async () =>
             {
                 LastPing = DateTime.UtcNow;
-                while (true)
+                const int size = DPack.sizeof_DRPC + 1;
+
+                async Task pingTask()
                 {
-                    await Task.Delay(1000).ConfigureAwait(false);
-                    if (token.IsCancellationRequested)
-                    {
-                        break;
-                    }
-                    else
+                    try
                     {
                         if (DateTime.UtcNow - LastPing > PingTimeout)
                         {
                             MyNetworkClient.Disconnect($"Timeout (Timeout = {PingTimeout.Milliseconds} ms)");
+                            if (IsServerSide)
+                                lock (Server)
+                                    Server.PingSend -= pingTask;
+                            return;
                         }
                         else
                         {
-                            IReleasableArray array = await MyArrayBufferSend.AllocateArrayAsync(Packagers.PingSizeOf, token).ConfigureAwait(false);
-                            Packagers.Ping.PackUP(array.Bytes, 0, new PacketHeader(PacketType.Ping05), MyTimerSync.SyncTicks);
+                            IReleasableArray array = await MyArrayBufferSend.AllocateArrayAsync(size, token).ConfigureAwait(false);
+                            array.Bytes[0] = (byte)PacketType.Ping_Send;
+                            DPack.DPing.PackUP(array.Bytes, 1, DateTime.UtcNow);
                             await MyNetworkClient.SendAsync(array, false, token).ConfigureAwait(false);
                             array.Release();
                         }
+                    }
+                    catch
+                    {
+                        MyNetworkClient.Disconnect($"Connection close");
+                        if (IsServerSide)
+                            lock (Server)
+                                Server.PingSend -= pingTask;
+                        return;
+                    }
+                }
+
+                if (IsServerSide)
+                {
+                    lock (Server)
+                        Server.PingSend += pingTask;
+                }
+                else
+                {
+                    while (!token.IsCancellationRequested)
+                    {
+                        await Task.Delay(1000).ConfigureAwait(false);
+                        await pingTask().ConfigureAwait(false);
                     }
                 }
             });
@@ -360,259 +255,104 @@ namespace EMI
             SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
             for (int i = 0; i < 5; i++)
             {
-                MethodHandle handle = new MethodHandle
-                {
-                    Client = this
-                };
                 factory.StartNew(async () =>
                 {
                     while (true)
                     {
                         await semaphore.WaitAsync(token).ConfigureAwait(false);
-                        if (token.IsCancellationRequested)
-                        {
-                            break;
-                        }
-                        else
-                        {
-                            await ProccesAccept(token, handle).ConfigureAwait(false);
-                            semaphore.Release();
-                        }
+                        await ProccesAccept(token).ConfigureAwait(false);
+                        semaphore.Release();
                     }
                 });
             }
         }
 
-        private async Task ProccesAccept(CancellationToken token, MethodHandle handle)
+        private async Task ProccesAccept(CancellationToken token)
         {
-            Array2Offser data = await MyNetworkClient.AcceptAsync(token).ConfigureAwait(false);
-            PacketHeader packetHeader;
-            unsafe
+            var array = await MyNetworkClient.AcceptAsync(token).ConfigureAwait(false);
+            PacketType packetType = (PacketType)array.Bytes[array.Offset];
+            array.Offset += 1;
+            switch (packetType)
             {
-                fixed (byte* ptr = &data.Array.Bytes[data.Offset])
-                {
-                    packetHeader = *(PacketHeader*)ptr;
-                }
-            }
-
-            if ((byte)packetHeader.PacketType > (byte)PacketType.TimeSync)
-                Console.WriteLine(packetHeader.PacketType);
-            switch (packetHeader.PacketType)
-            {
-                case PacketType.Ping05:
-                    Packagers.Ping.UnPack(data.Array.Bytes, data.Offset, out _, out long ticks);
-                    Ping05 = new TimeSpan(MyTimerSync.SyncTicks - ticks);
-                    data.Array.Release();
+                case PacketType.Ping_Send:
+                    array.Bytes[array.Offset - 1] = (byte)PacketType.Ping_Receive;
+                    await MyNetworkClient.SendAsync(array, false, token).ConfigureAwait(false);
+                    array.Release();
+                    break;
+                case PacketType.Ping_Receive:
+                    DPack.DPing.UnPack(array.Bytes, array.Offset, out var time);
+                    if (LastPing < time)
+                        Ping = DateTime.UtcNow - time;
                     LastPing = DateTime.UtcNow;
+                    array.Release();
                     break;
-                case PacketType.TimeSync:
-                    switch ((TimeSyncType)packetHeader.Flags)
+                case PacketType.RPC_Simple:
                     {
-                        case TimeSyncType.Ticks:
-                            TimerSyncInputTick.Set(data);
-                            break;
-                        case TimeSyncType.Integ:
-                            TimerSyncInputInteg.Set(data);
-                            break;
-                        default:
-                            MyNetworkClient.Disconnect("bad package header (flags)");
-                            break;
+                        await RPCRun(false, array, token);
                     }
                     break;
-                case PacketType.RegisterMethod:
-                    switch ((RegisterMethodType)packetHeader.Flags)
+                case PacketType.RPC_Return:
                     {
-                        case RegisterMethodType.Add:
-                            Packagers.RegisterMethodAdd.UnPack(data.Array.Bytes, data.Offset, out _, out ushort RegID, out string nameMethod);
-                            MyRPCAdressing.Add(RegID, nameMethod);
-                            break;
-                        case RegisterMethodType.Remove:
-                            Packagers.RegisterMethodRemove.UnPack(data.Array.Bytes, data.Offset, out _, out ushort methodID);
-                            MyRPCAdressing.Remove(methodID);
-                            break;
-                        case RegisterMethodType.SendList:
-
-                            Packagers.RegisterMethodList.UnPack(data.Array.Bytes, data.Offset, out _, out ushort[] RegIDs, out string[] nameMethods);
-                            for (int i = 0; i < RegIDs.Length; i++)
-                            {
-                                if (RegIDs.Length != nameMethods.Length)
-                                    MyNetworkClient.Disconnect("bad package data (RegisterMethodType.SendList)");
-
-                                MyRPCAdressing.Add(RegIDs[i], nameMethods[i]);
-                            }
-
-                            TaskUtilities.Try(() => WaitAcceptSendList.Cancel());
-                            break;
-                        default:
-                            MyNetworkClient.Disconnect("bad package header (flags)");
-                            break;
+                        await RPCRun(true, array, token);
                     }
-                    data.Array.Release();
                     break;
-                case PacketType.RPC:
-                    switch ((RPCType)packetHeader.Flags)
+                case PacketType.RPC_Returned:
                     {
-                        case RPCType.Simple:
+                        DPack.DRPC.UnPack(array.Bytes, array.Offset, out var id);
+                        array.Offset += sizeof(int);
+
+                        RCWaitHandle handle = null;
+                        lock (RPCReturn) {
+                            if (!RPCReturn.TryGetValue(id, out handle))
                             {
-                                Packagers.RPC.UnPack(data.Array.Bytes, data.Offset, out _, out ushort id, out long time);
-                                data.Offset += Packagers.RPCSizeOf;
-
-                                handle.Ping = new TimeSpan(MyTimerSync.SyncTicks - time);
-                                var func = RPC.TryGetRegisteredMethod(id);
-
-                                if (func != null)
-                                {
-                                    await func(handle, data, false, token).ConfigureAwait(false);
-                                }
+                                MyNetworkClient.Disconnect("Bad packet header data");
                             }
-                            break;
-                        case RPCType.NeedReturn:
-                            {
-                                Packagers.RPC.UnPack(data.Array.Bytes, data.Offset, out _, out ushort id, out long time);
-                                data.Offset += Packagers.RPCSizeOf;
-
-                                handle.Ping = new TimeSpan(MyTimerSync.SyncTicks - time);
-
-                                var func = RPC.TryGetRegisteredMethod(id);
-
-                                if (func != null)
-                                {
-                                    var outData = await func(handle, data, false, token).ConfigureAwait(false);
-                                    if (token.IsCancellationRequested)
-                                        return;
-                                    Packagers.RPCAnswer.PackUP(outData.Bytes, 0, new PacketHeader(RPCType.ReturnAnswer), id, RPCReturnStatus.Good);
-                                    await MyNetworkClient.SendAsync(outData, true, token).ConfigureAwait(false);
-                                    outData.Release();
-                                }
-                                else
-                                {
-                                    var arraySend = await MyArrayBufferSend.AllocateArrayAsync(Packagers.RPCAnswerSizeOf, token).ConfigureAwait(false);
-                                    if (token.IsCancellationRequested)
-                                        return;
-                                    Packagers.RPCAnswer.PackUP(arraySend.Bytes, 0, new PacketHeader(RPCType.ReturnAnswer), id, RPCReturnStatus.FunctionNotFound);
-                                    await MyNetworkClient.SendAsync(arraySend, true, token).ConfigureAwait(false);
-                                    arraySend.Release();
-                                }
-                            }
-                            break;
-                        case RPCType.ReturnAnswer:
-                            {
-                                Packagers.RPCAnswer.UnPack(data.Array.Bytes, data.Offset, out _, out ushort id, out RPCReturnStatus rrs);
-                                data.Offset += Packagers.RPCAnswerSizeOf;
-
-                                lock (RPCReturn)
-                                {
-                                    bool good = false;
-                                    for (int i = 0; i < RPCReturn.Count; i++)
-                                    {
-                                        if (RPCReturn[i].ID == id)
-                                        {
-                                            RPCReturn[i].InputData = data;
-                                            RPCReturn[i].RRS = rrs;
-                                            RPCReturn[i].Semaphore.Release();
-                                            good = true;
-                                            break;
-                                        }
-                                    }
-                                    if (!good)
-                                    {
-                                        MyNetworkClient.Disconnect("bad package");
-                                    }
-                                }
-                            }
-                            break;
-                        default:
-                            MyNetworkClient.Disconnect("bad package header (flags)");
-                            break;
+                            RPCReturn.Remove(id);
+                        }
+                        handle.Array = array;
+                        handle.Semaphore.Release();
                     }
-                    data.Array.Release();
                     break;
                 default:
-                    Console.WriteLine("Bad");
-                    MyNetworkClient.Disconnect("bad package header (PacketType)");
-                    data.Array.Release();
+                    MyNetworkClient.Disconnect("Bad packet type");
                     break;
             }
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="indicator">Cсылка на метод</param>
-        /// <param name="invokeInfo">Информация о том как следует вызвать метод</param>
-        /// <returns>*выполнилась ли функция (если false значит она не была найдена) *если ожидания возврата функции не было то вернёт true)</returns>
-        /// <exception cref="Exception"></exception>
-        public async Task<bool> Invoke(Indicator indicator, RPCInvokeInfo invokeInfo)
+        private async Task RPCRun(bool needReturn, IReleasableArray array, CancellationToken token)
         {
-            var arraySend = await MyArrayBufferSend.AllocateArrayAsync(Packagers.RPCSizeOf, default).ConfigureAwait(false);
+            DPack.DRPC.UnPack(array.Bytes, array.Offset, out var id);
+            array.Offset += sizeof(int);
+            var funcs = RPC.TryGetRegisteredMethod(id);
 
-            ushort? rID = 0;
-
-            lock (MyRPCAdressing)
+            if (funcs != null)
             {
-                rID = MyRPCAdressing.ReadresingID[indicator.ID];
-                if (rID == null)
+                if (needReturn)
                 {
-                    if (MyRPCAdressing.DoReaddressing(indicator.ID, indicator.Name))
+                    var @return = funcs.Invoke(array);
+                    const int bsize= DPack.sizeof_DRPC + 1;
+                    int size = bsize;
+                    if (@return != null)
+                        size += @return.PackSize;
+
+                    var sendArray = await MyArrayBufferSend.AllocateArrayAsync(size, token);
+                    sendArray.Bytes[0] = (byte)PacketType.RPC_Returned;
+                    DPack.DRPC.PackUP(sendArray.Bytes, 1, id);
+                    if (@return != null)
                     {
-                        rID = MyRPCAdressing.ReadresingID[indicator.ID];
+                        sendArray.Offset += bsize;
+                        @return.PackUp(sendArray);
                     }
-                    else
-                    {
-                        return false;
-                    }
-                }
-            }
-
-            Packagers.RPC.PackUP(arraySend.Bytes, 0, new PacketHeader(RPCType.Simple), rID.Value, MyTimerSync.SyncTicks);
-            Console.WriteLine(MyTimerSync.SyncTicks);
-            await MyNetworkClient.SendAsync(arraySend, invokeInfo == RPCInvokeInfo.Guarantee || invokeInfo == RPCInvokeInfo.GuaranteeAndWaitReturn, default).ConfigureAwait(false);
-            arraySend.Release();
-
-            if (invokeInfo == RPCInvokeInfo.GuaranteeAndWaitReturn)
-            {
-                WaitHandle wait = new WaitHandle()
-                {
-                    ID = rID.Value,
-                    Semaphore = new SemaphoreSlim(0, 1),
-                };
-                lock (RPCReturn)
-                {
-                    RPCReturn.Add(wait);
-                }
-                CancellationToken token = CancellationRun.Token;
-                await wait.Semaphore.WaitAsync(token).ConfigureAwait(false);
-
-                if (token.IsCancellationRequested)
-                    throw new ClientDisconnectException();
-
-                lock (RPCReturn)
-                {
-                    RPCReturn.Remove(wait);
-                }
-
-                if (wait.RRS == RPCReturnStatus.FunctionNotFound)
-                {
-                    return false;
+                    await MyNetworkClient.SendAsync(sendArray, true, token);
+                    sendArray.Release();
                 }
                 else
                 {
-                    return true;
+                    funcs.Invoke(array);
                 }
             }
-            else
-            {
-                return true;
-            }
+
+            array.Release();
         }
-    }
-
-
-    internal class WaitHandle
-    {
-        public ushort ID;
-        public SemaphoreSlim Semaphore;
-        public Array2Offser InputData;
-        public RPCReturnStatus RRS;
     }
 }

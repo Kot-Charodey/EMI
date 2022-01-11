@@ -16,6 +16,8 @@ namespace EMI.Network
     * при использовании сетевых сокетов и подобных проверять от того ли адреса приходят данные (для функции Accept) - посторонние данные отбрасывать
     * Disconnect по возможности должен собеседнику сообщать об отключении
     * EMI сам управляет отключением если клиент долго не отвечает
+    * Send игнорирует свойство offset массива и начинает с нуля
+    * Disconnect - может быть нечайно вызван несколько раз - игнорировать
     */
     /// <summary>
     /// Делегат для INetworkClient - вызывается когда клиент был отключен
@@ -70,6 +72,6 @@ namespace EMI.Network
         /// </summary>
         /// <param name="token">токен отмены задачи</param>
         /// <returns>массив и смещение от куда можно начинать считывать данные</returns>
-        Task<Array2Offser> AcceptAsync(CancellationToken token);
+        Task<IReleasableArray> AcceptAsync(CancellationToken token);
     }
 }

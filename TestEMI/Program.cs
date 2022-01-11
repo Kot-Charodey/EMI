@@ -19,8 +19,8 @@ namespace TestEMI
             //client
             if (args.Length == 0)
             {
-                //System.Diagnostics.Debugger.Launch();
                 client = new Client(NetBaseTCPService.Service);
+                client.Disconnected += Client_Disconnected;
             reconect:
                 Console.WriteLine("Попытка подключиться...");
                 var status = client.Connect("31.10.114.169#25566", default).Result;
@@ -38,23 +38,33 @@ namespace TestEMI
                 server.Start("any#25566");
                 Console.WriteLine("Ожидание клиента");
                 client = server.Accept().Result;
+                client.Disconnected += Client_Disconnected;
                 Console.WriteLine("Готово");
             }
 
-            client.RPC.RegisterMethod(MSG);
-            Indicator msg = new Indicator(client.RPC.Factory, MSG);
-
+            client.RPC.RegisterMethod<string>(MSG);
+            var msg = new Indicator<string>(MSG);
 
             while (true)
             {
                 string txt = Console.ReadLine();
-                client.Invoke(msg, RPCInvokeInfo.Guarantee).Wait();
+                if (txt == "exit")
+                {
+                    client.Disconnect("я так захотел");
+                    break;
+                }
+                msg.RCall(txt, client).Wait();
             }
         }
 
-        static void MSG(MethodHandle handle)
+        private static void Client_Disconnected(string error)
         {
-            Console.WriteLine($"Пинг:{handle.Ping.TotalMilliseconds}");
+            Console.WriteLine("Client_Disconnected => " + error);
+        }
+
+        static void MSG(string txt)
+        {
+            Console.WriteLine($"Сообщение: {txt}");
         }
     }
 }

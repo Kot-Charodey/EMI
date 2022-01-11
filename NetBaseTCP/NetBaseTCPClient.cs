@@ -14,7 +14,7 @@ namespace NetBaseTCP
     {
         public ProArrayBuffer ProArrayBuffer { get; set; }
 
-        public bool IsConnect => TcpClient.Connected;
+        public bool IsConnect { get; private set; }
 
         public event INetworkClientDisconnected Disconnected;
 
@@ -32,19 +32,31 @@ namespace NetBaseTCP
         private SemaphoreSlim SemaphoreRead;
         private SemaphoreSlim SemaphoreWrite;
 
+        /// <summary>
+        /// On server side
+        /// </summary>
+        /// <param name="server"></param>
+        /// <param name="tcpClient"></param>
         internal NetBaseTCPClient(NetBaseTCPServer server, TcpClient tcpClient)
         {
-            ProArrayBuffer = server.ProArrayBuffer;
-            TcpClient = tcpClient;
-            NetworkStream = TcpClient.GetStream();
-            Server = server;
-            Init();
+            lock (this)
+            {
+                ProArrayBuffer = server.ProArrayBuffer;
+                TcpClient = tcpClient;
+                NetworkStream = TcpClient.GetStream();
+                Server = server;
+                Init();
+                IsConnect = true;
+            }
         }
 
         public NetBaseTCPClient()
         {
-            TcpClient = new TcpClient();
-            Init();
+            lock (this)
+            {
+                TcpClient = new TcpClient();
+                Init();
+            }
         }
 
         private void Init()
@@ -70,25 +82,26 @@ namespace NetBaseTCP
             }
         }
 
-        //вернёт false если была произведенна отмена
-        private async Task<bool> AcceptLow(byte[] buffer, int count, CancellationToken token)
+        private async Task AcceptLow(byte[] buffer, int count, CancellationToken token)
         {
-            while (count > 0 && !token.IsCancellationRequested)
+            try
             {
-                count -= await NetworkStream.ReadAsync(buffer, 0, count, token).ConfigureAwait(false);
+                while (count > 0)
+                {
+                    count -= await NetworkStream.ReadAsync(buffer, 0, count, token).ConfigureAwait(false);
+                }
             }
-            return count == 0;
+            catch (Exception e)
+            {
+                Disconnect(e.Message);
+            }
         }
 
-        public async Task<Array2Offser> AcceptAsync(CancellationToken token)
+        public async Task<IReleasableArray> AcceptAsync(CancellationToken token)
         {
             await SemaphoreRead.WaitAsync(token).ConfigureAwait(false);
-            if (token.IsCancellationRequested)
-                throw new ClientDisconnectException();
 
-            bool status = await AcceptLow(AcceptHeaderBuffer, DataGramInfo.SizeOf, token).ConfigureAwait(false);
-            if (status == false)
-                throw new ClientDisconnectException();
+            await AcceptLow(AcceptHeaderBuffer, DataGramInfo.SizeOf, token).ConfigureAwait(false);
 
             DataGramInfo header;
             unsafe
@@ -99,78 +112,60 @@ namespace NetBaseTCP
                 }
             }
 
-            if (header.GetIsDisconnectMessage())//пришло сообщение что мы должны отключиться
-            {
-                byte[] messageByte = new byte[header.GetSize()];
-                await AcceptLow(messageByte, messageByte.Length, default).ConfigureAwait(false);
-                Disconnected?.Invoke(Encoding.Default.GetString(messageByte));
-                TcpClient.Close();
-                throw new ClientDisconnectException();
-            }
-            else
-            {
-                var array = await ProArrayBuffer.AllocateArrayAsync(header.GetSize(), token).ConfigureAwait(false);
-                token.ThrowIfCancellationRequested();
+            var array = await ProArrayBuffer.AllocateArrayAsync(header.GetSize(), token).ConfigureAwait(false);
+            token.ThrowIfCancellationRequested();
 
-                status = await AcceptLow(array.Bytes, array.Length, token).ConfigureAwait(false);
-                SemaphoreRead.Release();
-                if (!status)
-                {
-                    return default;
-                }
-                return new Array2Offser(array, 0);
-            }
+            await AcceptLow(array.Bytes, array.Length, token).ConfigureAwait(false);
+            SemaphoreRead.Release();
+            return array;
         }
 
         public void Disconnect(string user_error)
         {
-            Console.WriteLine("public void Disconnect");
-
-            if (IsServerSide)
+            lock (this)
             {
-                lock (Server.TCPClients)
-                    Server.TCPClients.Remove(this);
-            }
-
-            Task.Run(async () =>
-            {
-                if (TcpClient.Connected)
+                if (IsConnect)
                 {
-                    try //отправляет ошибку удалённому клиенту и разрывает соединение
+                    IsConnect = false;
+
+                    if (IsServerSide)
                     {
-                        byte[] bytes = Encoding.Unicode.GetBytes(user_error);
-                        WrapperArray wa = new WrapperArray(bytes);
-                        await SendAsync(wa, true, new CancellationTokenSource(2000).Token).ConfigureAwait(false);
-                        await Task.Delay(2000).ConfigureAwait(false);
+                        lock (Server.TCPClients)
+                            Server.TCPClients.Remove(this);
                     }
-                    catch { }
 
-                    TcpClient.Close();
+                    try { TcpClient.Close(); } catch { }
+
+                    Disconnected?.Invoke(user_error);
                 }
-            });
-
-            Disconnected?.Invoke(user_error);
+            }
         }
-        
+
         public void Send(IReleasableArray array, bool guaranteed)
         {
             SemaphoreWrite.Wait();
-            
-            DataGramInfo header = new DataGramInfo(array.Length, false);
-
-            unsafe
+            try
             {
-                fixed (byte* headerBufferPtr = &SendHeaderBuffer[0])
+                DataGramInfo header = new DataGramInfo(array.Length, false);
+
+                unsafe
                 {
-                    *((DataGramInfo*)headerBufferPtr) = header;
+                    fixed (byte* headerBufferPtr = &SendHeaderBuffer[0])
+                    {
+                        *((DataGramInfo*)headerBufferPtr) = header;
+                    }
+                }
+
+                NetworkStream.Write(SendHeaderBuffer, 0, SendHeaderBuffer.Length);
+
+                for (int i = 0; i < array.Length; i += MaxOneSendSize)
+                {
+                    NetworkStream.Write(array.Bytes, i, Math.Min(array.Length - i, MaxOneSendSize));
                 }
             }
-
-            NetworkStream.Write(SendHeaderBuffer, 0, SendHeaderBuffer.Length);
-
-            for (int i = 0; i < array.Length; i += MaxOneSendSize)
+            catch (Exception e)
             {
-                NetworkStream.Write(array.Bytes, i, Math.Min(array.Length - i, MaxOneSendSize));
+                Disconnect(e.Message);
             }
             SemaphoreWrite.Release();
         }
@@ -178,24 +173,28 @@ namespace NetBaseTCP
         public async Task SendAsync(IReleasableArray array, bool guaranteed, CancellationToken token)
         {
             await SemaphoreWrite.WaitAsync(token).ConfigureAwait(false);
-            if (token.IsCancellationRequested)
-                return;
-
-            DataGramInfo header = new DataGramInfo(array.Length, false);
-
-            unsafe
+            try
             {
-                fixed (byte* headerBufferPtr = &SendHeaderBuffer[0])
+                DataGramInfo header = new DataGramInfo(array.Length, false);
+
+                unsafe
                 {
-                    *((DataGramInfo*)headerBufferPtr) = header;
+                    fixed (byte* headerBufferPtr = &SendHeaderBuffer[0])
+                    {
+                        *((DataGramInfo*)headerBufferPtr) = header;
+                    }
+                }
+
+                await NetworkStream.WriteAsync(SendHeaderBuffer, 0, SendHeaderBuffer.Length).ConfigureAwait(false);
+
+                for (int i = 0; i < array.Length; i += MaxOneSendSize)
+                {
+                    await NetworkStream.WriteAsync(array.Bytes, i, Math.Min(array.Length - i, MaxOneSendSize)).ConfigureAwait(false);
                 }
             }
-
-            await NetworkStream.WriteAsync(SendHeaderBuffer, 0, SendHeaderBuffer.Length).ConfigureAwait(false);
-
-            for (int i = 0; i < array.Length; i += MaxOneSendSize)
+            catch (Exception e)
             {
-                await NetworkStream.WriteAsync(array.Bytes, i, Math.Min(array.Length - i, MaxOneSendSize)).ConfigureAwait(false);
+                Disconnect(e.Message);
             }
             SemaphoreWrite.Release();
         }
@@ -218,10 +217,13 @@ namespace NetBaseTCP
                     }, cts).ConfigureAwait(false);
 
                     NetworkStream = TcpClient.GetStream();
+                    IsConnect = true;
                     return true;
                 }
                 catch (Exception e)
                 {
+                    try { TcpClient.Close(); } catch { }
+                    IsConnect = false;
                     Disconnected?.Invoke(e.ToString());
                     return false;
                 }

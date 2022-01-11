@@ -6,8 +6,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-using TimeSync;
-
 namespace EMI
 {
     using Network;
@@ -31,18 +29,19 @@ namespace EMI
         private List<Client> Clients;
         private readonly INetworkService Service;
         private readonly INetworkServer LowServer;
-        private readonly TimerSync MyTimerSync;
+        /// <summary>
+        /// Вызывается раз в секунду для проверки пинга
+        /// </summary>
+        internal event RPCfuncOut<Task> PingSend;
 
         /// <summary>
         /// Создаёт новую копию сервера
         /// </summary>
         /// <param name="service">интерфейс подключения</param>
-        /// <param name="timer">таймер времени (если null изпользует стандартный)</param>
-        public Server(INetworkService service, TimerSync timer = null)
+        public Server(INetworkService service)
         {
             Service = service;
             LowServer = Service.GetNewServer();
-            MyTimerSync = timer;
         }
 
         /// <summary>
@@ -56,11 +55,14 @@ namespace EMI
             {
                 if (IsRun)
                     throw new AlreadyException();
+                PingSend = null;
                 IsRun = true;
                 Clients = new List<Client>();
                 CancellationTokenSource = new CancellationTokenSource();
 
                 LowServer.StartServer(address);
+
+                PingProcessStart();
             }
         }
 
@@ -86,6 +88,20 @@ namespace EMI
             }
         }
 
+        private void PingProcessStart()
+        {
+            Task.Run(async () =>
+            {
+                var token = CancellationTokenSource.Token;
+                while (!token.IsCancellationRequested)
+                {
+                    await Task.Delay(1000).ConfigureAwait(false);
+                    if (PingSend != null)
+                        await PingSend().ConfigureAwait(false);
+                }
+            });
+        }
+
         /// <summary>
         /// Ожидает подключение игрока
         /// </summary>
@@ -103,19 +119,14 @@ namespace EMI
                 token = CancellationTokenSource.Token;
             }
             var LowClient = await LowServer.AcceptClient().ConfigureAwait(false);
-            if (token.IsCancellationRequested)
-            {
-                try { LowClient.Disconnect("Server is closed"); } catch { }
-
-                return null;
-            }
+            token.ThrowIfCancellationRequested();
             Client client = null;
 
             CancellationTokenSource cts = new CancellationTokenSource();
             token.Register(() => cts.Cancel());
             await TaskUtilities.InvokeAsync(() =>
             {
-                client = Client.CreateClinetServerSide(LowClient, MyTimerSync, RPC);
+                client = Client.CreateClinetServerSide(LowClient, RPC, this);
             }, cts).ConfigureAwait(false);
 
             var list = Clients;
