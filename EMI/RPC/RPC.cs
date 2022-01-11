@@ -142,6 +142,32 @@ namespace EMI
                 return @out;
             });
         }
+
+        /// <summary>
+        /// Регестрирует метод для возможности вызвать его
+        /// </summary>
+        /// <param name="method">метод</param>
+        public RemoveHandle RegisterMethod<Tout,T1>(RPCfuncOut<Tout,T1> method)
+        {
+            var packager = Packager.Create<T1>();
+            var @out = RPCReturn<Tout>.Create();
+            return RegisterMethodHelp(method, (IReleasableArray array) =>
+            {
+                packager.UnPack(array.Bytes, array.Offset, out T1 t1);
+                Tout data;
+                try
+                {
+                    data = method(t1);
+                }
+                catch (Exception e)
+                {
+                    data = default;
+                    Console.WriteLine("EMI RPC => " + e);
+                }
+                @out.Set(data);
+                return @out;
+            });
+        }
         #endregion
 
         /// <summary>

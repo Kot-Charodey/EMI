@@ -32,24 +32,6 @@ namespace EMI.Indicators
         /// <param name="array"></param>
         protected internal abstract void UnPack(IReleasableArray array);
 
-        /// <summary>
-        /// Создаёт новую ссылку на функцию
-        /// </summary>
-        /// <param name="methodName">имя метода на который ссылается ссылка (функция не будет вызвана если имя указано не полностью)(namespace.class.method)</param>
-        internal AIndicator(string methodName)
-        {
-            ID = methodName.DeterministicGetHashCode();
-        }
-
-        /// <summary>
-        /// Создаёт новую ссылку на функцию
-        /// </summary>
-        /// <param name="method"></param>
-        internal AIndicator(Delegate method)
-        {
-            ID = RPC.GetDelegateName(method).DeterministicGetHashCode();
-        }
-
         internal async Task RCallLow(Client client, RCType type,CancellationToken token)
         {
             const int bsize = DPack.sizeof_DRPC + 1;

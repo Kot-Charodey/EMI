@@ -43,7 +43,7 @@ namespace TestEMI
             }
 
             client.RPC.RegisterMethod<string>(MSG);
-            var msg = new Indicator<string>(MSG);
+            var msg = Indicators.Create<string>(MSG);
 
             while (true)
             {
