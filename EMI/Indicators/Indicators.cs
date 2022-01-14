@@ -64,7 +64,7 @@ namespace EMI.Indicators
             /// <param name="token">токен отмены операции</param>
             /// <param name="type">тип вызова</param>
             /// <returns></returns>
-            public async Task RCall(Client client, CancellationToken token = default, RCType type = RCType.Guaranteed)
+            public async Task RCall(Client client, RCType type = RCType.Guaranteed, CancellationToken token = default)
             {
                 await RCallLow(client, type, token).ConfigureAwait(false);
             }
@@ -102,7 +102,7 @@ namespace EMI.Indicators
             /// <param name="token">токен отмены операции</param>
             /// <param name="type">тип вызова</param>
             /// <returns></returns>
-            public async Task RCall(T1 t1, Client client, CancellationToken token = default, RCType type = RCType.Guaranteed)
+            public async Task RCall(T1 t1, Client client, RCType type = RCType.Guaranteed, CancellationToken token = default)
             {
                 Dt1 = t1;
                 await RCallLow(client, type, token).ConfigureAwait(false);
@@ -143,7 +143,7 @@ namespace EMI.Indicators
             /// <param name="token">токен отмены операции</param>
             /// <param name="type">тип вызова</param>
             /// <returns></returns>
-            public async Task<TOut> RCall(Client client, CancellationToken token = default, RCType type = RCType.ReturnWait)
+            public async Task<TOut> RCall(Client client, RCType type = RCType.ReturnWait, CancellationToken token = default)
             {
                 Dtout = default;
                 await RCallLow(client, type, token).ConfigureAwait(false);
@@ -185,7 +185,7 @@ namespace EMI.Indicators
             /// <param name="token">токен отмены операции</param>
             /// <param name="type">тип вызова</param>
             /// <returns></returns>
-            public async Task<TOut> RCall(T1 t1, Client client, CancellationToken token = default, RCType type = RCType.ReturnWait)
+            public async Task<TOut> RCall(T1 t1, Client client, RCType type = RCType.ReturnWait, CancellationToken token = default)
             {
                 Dt1 = t1;
                 Dtout = default;

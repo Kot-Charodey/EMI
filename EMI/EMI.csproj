@@ -23,6 +23,8 @@
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DocumentationFile>bin\Debug\EMI.xml</DocumentationFile>
+    <CodeAnalysisRuleSet>
+    </CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -33,6 +35,9 @@
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DocumentationFile>bin\Release\EMI.xml</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>false</SignAssembly>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="SpeedByteConvector">
@@ -55,10 +60,10 @@
     <Compile Include="Exception\RegisterLimitException.cs" />
     <Compile Include="Exception\RPCRegisterNameException.cs" />
     <Compile Include="Indicators\AIndicator.cs" />
-    <Compile Include="Indicators\Func.cs" />
-    <Compile Include="Indicators\IndicatorOut.cs" />
+    <Compile Include="Indicators\Indicators.cs" />
     <Compile Include="RCType.cs" />
     <Compile Include="RCWaitHandle.cs" />
+    <Compile Include="RPC\IRPCRemoveHandle.cs" />
     <Compile Include="RPC\IRPCReturn.cs" />
     <Compile Include="Network\INetworkService.cs" />
     <Compile Include="Network\INetworkClient.cs" />

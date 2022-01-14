@@ -14,5 +14,8 @@ namespace EMI
 
         public static Packager.M<int> DRPC = Packager.Create<int>();
         public const int sizeof_DRPC = 4;
+
+        public static Packager.M<bool,int> DForwarding = Packager.Create<bool,int>();
+        public const int sizeof_DForwarding = 5;
     }
 }

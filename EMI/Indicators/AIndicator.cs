@@ -1,13 +1,9 @@
-﻿using System;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
-
-using SmartPackager;
 
 namespace EMI.Indicators
 {
     using ProBuffer;
-    using MyException;
     /// <summary>
     /// Ссылка на удалённый метод
     /// </summary>
@@ -20,7 +16,7 @@ namespace EMI.Indicators
         /// <summary>
         /// Размер необходимый для упаковки параметров
         /// </summary>
-        protected internal abstract int Size { get;}
+        protected internal abstract int Size { get; }
         /// <summary>
         /// Упаковщик
         /// </summary>
@@ -32,17 +28,40 @@ namespace EMI.Indicators
         /// <param name="array"></param>
         protected internal abstract void UnPack(IReleasableArray array);
 
-        internal async Task RCallLow(Client client, RCType type,CancellationToken token)
+        internal async Task RCallLow(Client client, RCType type, CancellationToken token)
         {
-            const int bsize = DPack.sizeof_DRPC + 1;
-            int size = bsize + Size;
-            var sendArray = await client.MyArrayBufferSend.AllocateArrayAsync(size, token).ConfigureAwait(false);
-            sendArray.Bytes[0] = type == RCType.ReturnWait ? (byte)PacketType.RPC_Return : (byte)PacketType.RPC_Simple;
-            DPack.DRPC.PackUP(sendArray.Bytes, 1, ID);
-            sendArray.Offset += bsize;
+            bool guarant = type != RCType.Fast && type != RCType.FastForwarding;
+            byte packetType;
+            if (type == RCType.ReturnWait) {
+                packetType = (byte)PacketType.RPC_Return;
+            }
+            else if (type == RCType.FastForwarding || type == RCType.Forwarding) {
+                packetType = (byte)PacketType.RPC_Forwarding;
+            }
+            else {
+                packetType = (byte)PacketType.RPC_Simple;
+            }
+
+            IReleasableArray sendArray;
+            if (packetType == (byte)PacketType.RPC_Forwarding) //PACK HEADER, init array
+            {
+                const int bsize = DPack.sizeof_DForwarding + 1;
+                sendArray = await client.MyArrayBufferSend.AllocateArrayAsync(bsize + Size, token).ConfigureAwait(false);
+                DPack.DForwarding.PackUP(sendArray.Bytes, 1, guarant, ID);
+                sendArray.Offset += bsize;
+            }
+            else
+            {
+                const int bsize = DPack.sizeof_DRPC + 1;
+                sendArray = await client.MyArrayBufferSend.AllocateArrayAsync(bsize + Size, token).ConfigureAwait(false);
+                DPack.DRPC.PackUP(sendArray.Bytes, 1, ID);
+                sendArray.Offset += bsize;
+            }
+            sendArray.Bytes[0] = packetType;
+
             PackUp(sendArray);
 
-            await client.MyNetworkClient.SendAsync(sendArray, type != RCType.Fast, token).ConfigureAwait(false);
+            await client.MyNetworkClient.SendAsync(sendArray, guarant, token).ConfigureAwait(false);
             if (type == RCType.ReturnWait)
             {
                 RCWaitHandle handle = new RCWaitHandle();

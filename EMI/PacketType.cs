@@ -9,6 +9,7 @@
 
         RPC_Simple,
         RPC_Return,
-        RPC_Returned
+        RPC_Returned,
+        RPC_Forwarding,
     }
 }

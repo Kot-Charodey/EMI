@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("EMI")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Microsoft")]
+[assembly: AssemblyCompany("MG Team")]
 [assembly: AssemblyProduct("EMI")]
 [assembly: AssemblyCopyright("")]
 [assembly: AssemblyTrademark("")]

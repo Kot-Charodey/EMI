@@ -37,7 +37,7 @@ namespace EMI
         /// <summary>
         /// Время после которого будет произведено отключение
         /// </summary>
-        public TimeSpan PingTimeout = new TimeSpan(0, 1000, 0);
+        public TimeSpan PingTimeout = new TimeSpan(0, 1, 0);
         /// <summary>
         /// Вызывается если неуспешный Connect или произошло отключение
         /// </summary>
@@ -85,7 +85,7 @@ namespace EMI
         /// <param name="rpc"></param>
         /// <param name="server"></param>
         /// <returns></returns>
-        internal static Client CreateClinetServerSide(INetworkClient network, RPC rpc,Server server)
+        internal static Client CreateClinetServerSide(INetworkClient network, RPC rpc, Server server)
         {
             Client client = new Client()
             {
@@ -302,7 +302,8 @@ namespace EMI
                         array.Offset += sizeof(int);
 
                         RCWaitHandle handle = null;
-                        lock (RPCReturn) {
+                        lock (RPCReturn)
+                        {
                             if (!RPCReturn.TryGetValue(id, out handle))
                             {
                                 MyNetworkClient.Disconnect("Bad packet header data");
@@ -311,6 +312,40 @@ namespace EMI
                         }
                         handle.Array = array;
                         handle.Semaphore.Release();
+                    }
+                    break;
+                case PacketType.RPC_Forwarding:
+                    if (!IsServerSide)
+                    {
+                        MyNetworkClient.Disconnect("Bad packet type (forwarding not supported on clients)");
+                    }
+                    else
+                    {
+                        //*при RPC_Forwarding отправляется сообщение на сервер содержащие флаг - гарантированное ли было сообщение, а после она рассылается как обычное сообщение*//
+                        DPack.DForwarding.UnPack(array.Bytes, array.Offset, out var guarant, out var id);
+                        array.Offset++;
+                        var forwardingInfo = RPC.TryGetRegisteredForwarding(id);
+                        if (forwardingInfo != null)
+                        {
+                            var clients = forwardingInfo(this);
+                            var arraySend = await MyArrayBufferSend.AllocateArrayAsync(array.Length - 1, token).ConfigureAwait(false);
+
+                            arraySend.Bytes[0] = (byte)PacketType.RPC_Simple;
+                            Buffer.BlockCopy(array.Bytes, array.Offset, arraySend.Bytes, 1, arraySend.Length - 1);
+
+                            for (int i = 0; i < clients.Length; i++)
+                            {
+                                if (clients[i] != null)
+                                {
+                                    await clients[i].MyNetworkClient.SendAsync(arraySend, guarant, token).ConfigureAwait(false);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("EMI RC => Not found forwarding!");
+                        }
+                        array.Release();
                     }
                     break;
                 default:
@@ -330,7 +365,7 @@ namespace EMI
                 if (needReturn)
                 {
                     var @return = funcs.Invoke(array);
-                    const int bsize= DPack.sizeof_DRPC + 1;
+                    const int bsize = DPack.sizeof_DRPC + 1;
                     int size = bsize;
                     if (@return != null)
                         size += @return.PackSize;
@@ -350,6 +385,10 @@ namespace EMI
                 {
                     funcs.Invoke(array);
                 }
+            }
+            else
+            {
+                Console.WriteLine("EMI RC => Not found method!");
             }
 
             array.Release();

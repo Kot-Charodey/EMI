@@ -65,7 +65,9 @@ namespace NetBaseTCP
             SemaphoreWrite = new SemaphoreSlim(1, 1);
             TcpClient.NoDelay = true;
             TcpClient.ReceiveTimeout = 15;
-            TcpClient.SendTimeout = 15;
+            TcpClient.SendTimeout = 60000;
+            TcpClient.ReceiveBufferSize = 100000;
+            TcpClient.SendBufferSize = 100000;
 
             Disconnected += NetBaseTCPClient_Disconnected;
         }
