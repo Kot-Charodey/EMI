@@ -16,7 +16,11 @@ namespace EMI
     public class Client
     {
         /// <summary>
-        /// Отвечает за регистрирование удалённых процедур для последующего вызова
+        /// Отвечает за регистрирование удалённых процедур для последующего вызова [локальный - вызов будет произведён только у этого клиента]
+        /// </summary>
+        public readonly RPC LocalRPC = new RPC();
+        /// <summary>
+        /// Отвечает за регистрирование удалённых процедур для последующего вызова [глобальный]
         /// </summary>
         public RPC RPC { get; private set; }
         /// <summary>
@@ -64,7 +68,7 @@ namespace EMI
         public Client(INetworkService network)
         {
             MyNetworkClient = network.GetNewClient();
-            RPC = new RPC();
+            RPC = LocalRPC;
             Init();
         }
 
@@ -322,6 +326,12 @@ namespace EMI
                         DPack.DForwarding.UnPack(array.Bytes, array.Offset, out var guarant, out var id);
                         array.Offset++;
                         var forwardingInfo = RPC.TryGetRegisteredForwarding(id);
+
+                        if (forwardingInfo == null)
+                        {
+                            forwardingInfo = RPC.TryGetRegisteredForwarding(id);
+                        }
+
                         if (forwardingInfo != null)
                         {
                             var clients = forwardingInfo(this);
@@ -356,6 +366,11 @@ namespace EMI
             DPack.DRPC.UnPack(array.Bytes, array.Offset, out var id);
             array.Offset += sizeof(int);
             var funcs = RPC.TryGetRegisteredMethod(id);
+
+            if(funcs==null)
+            {
+                funcs = LocalRPC.TryGetRegisteredMethod(id);
+            }
 
             if (funcs != null)
             {
