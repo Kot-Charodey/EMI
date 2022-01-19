@@ -13,7 +13,7 @@ namespace EMI
     using MyException;
     using RPCInternal;
     /// <summary>
-    /// Позволяет производить удалённый вызов процедур
+    /// Отвечает за регистрирование удалённых процедур для последующего вызова
     /// </summary>
     public class RPC
     {

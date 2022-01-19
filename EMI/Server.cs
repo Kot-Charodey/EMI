@@ -17,7 +17,7 @@ namespace EMI
     public class Server
     {
         /// <summary>
-        /// RPC
+        /// Отвечает за регистрирование удалённых процедур для последующего вызова
         /// </summary>
         public RPC RPC { get; private set; } = new RPC();
         /// <summary>

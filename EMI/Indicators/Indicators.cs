@@ -24,6 +24,15 @@ namespace EMI.Indicators
         /// </summary>
         /// <param name="fucnc"></param>
         /// <returns></returns>
+        public static Func Create(FunctionRef fucnc)
+        {
+            return new Func(fucnc.Ref.DeterministicGetHashCode());
+        }
+        /// <summary>
+        /// Позволяет создать ссылку на удалённый метод
+        /// </summary>
+        /// <param name="fucnc"></param>
+        /// <returns></returns>
         public static Func<T> Create<T>(RPCfunc<T> fucnc)
         {
             return new Func<T>(RPC.GetDelegateName(fucnc).DeterministicGetHashCode());
@@ -33,7 +42,16 @@ namespace EMI.Indicators
         /// </summary>
         /// <param name="fucnc"></param>
         /// <returns></returns>
-        public static FuncOut<TOut> Create<TOut>(RPCfuncOut<TOut> fucnc)
+        public static Func<T> Create<T>(FunctionRef fucnc)
+        {
+            return new Func<T>(fucnc.Ref.DeterministicGetHashCode());
+        }
+        /// <summary>
+        /// Позволяет создать ссылку на удалённый метод
+        /// </summary>
+        /// <param name="fucnc"></param>
+        /// <returns></returns>
+        public static FuncOut<TOut> CreateOut<TOut>(RPCfuncOut<TOut> fucnc)
         {
             return new FuncOut<TOut>(RPC.GetDelegateName(fucnc).DeterministicGetHashCode());
         }
@@ -42,9 +60,27 @@ namespace EMI.Indicators
         /// </summary>
         /// <param name="fucnc"></param>
         /// <returns></returns>
-        public static FuncOut<TOut,T1> Create<TOut,T1>(RPCfuncOut<TOut,T1> fucnc)
+        public static FuncOut<TOut> CreateOut<TOut>(FunctionRef fucnc)
+        {
+            return new FuncOut<TOut>(fucnc.Ref.DeterministicGetHashCode());
+        }
+        /// <summary>
+        /// Позволяет создать ссылку на удалённый метод
+        /// </summary>
+        /// <param name="fucnc"></param>
+        /// <returns></returns>
+        public static FuncOut<TOut,T1> CreateOut<TOut,T1>(RPCfuncOut<TOut,T1> fucnc)
         {
             return new FuncOut<TOut,T1>(RPC.GetDelegateName(fucnc).DeterministicGetHashCode());
+        }
+        /// <summary>
+        /// Позволяет создать ссылку на удалённый метод
+        /// </summary>
+        /// <param name="fucnc"></param>
+        /// <returns></returns>
+        public static FuncOut<TOut, T1> CreateOut<TOut, T1>(FunctionRef fucnc)
+        {
+            return new FuncOut<TOut, T1>(fucnc.Ref.DeterministicGetHashCode());
         }
 
         /// <summary>
@@ -213,4 +249,5 @@ namespace EMI.Indicators
 #pragma warning restore CS1591 // Отсутствует комментарий XML для открытого видимого типа или члена
         }
     }
+
 }

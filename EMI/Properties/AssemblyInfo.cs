@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // набора атрибутов. Измените значения этих атрибутов для изменения сведений,
 // связанные со сборкой.
 [assembly: AssemblyTitle("EMI")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Implements client-server data exchange between applications")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("MG Team")]
 [assembly: AssemblyProduct("EMI")]
@@ -32,5 +32,5 @@ using System.Runtime.InteropServices;
 // Можно задать все значения или принять номера сборки и редакции по умолчанию 
 // используя "*", как показано ниже:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("5.0.0.0")]
-[assembly: AssemblyFileVersion("5.0.0.0")]
+[assembly: AssemblyVersion("5.0.2.1")]
+[assembly: AssemblyFileVersion("5.0.2.1")]

@@ -16,7 +16,7 @@ namespace EMI
     public class Client
     {
         /// <summary>
-        /// RPC
+        /// Отвечает за регистрирование удалённых процедур для последующего вызова
         /// </summary>
         public RPC RPC { get; private set; }
         /// <summary>
