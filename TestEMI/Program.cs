@@ -42,7 +42,7 @@ namespace TestEMI
                 Console.WriteLine("Готово");
             }
 
-            var msg = Indicators.Create<string>("MSG");
+            var msg = Indicator.Create<string>("MSG");
             client.RPC.RegisterMethod<string>(MSG, msg);
             client.RPC.RegisterForwarding(msg, (Client cc) => { return new Client[] { cc }; });
 

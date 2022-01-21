@@ -8,7 +8,7 @@ namespace EMI.Indicators
     /// <summary>
     /// Позволяет создать ссылку на удалённый метод
     /// </summary>
-    public static class Indicators
+    public static class Indicator
     {
         /// <summary>
         /// Позволяет создать ссылку на удалённый метод

@@ -116,7 +116,7 @@ namespace EMI
         /// </summary>
         /// <param name="method">метод</param>
         /// <param name="indicator">имя ключа</param>
-        public IRPCRemoveHandle RegisterMethod(RPCfunc method, AIndicator indicator)
+        public IRPCRemoveHandle RegisterMethod(RPCfunc method, Indicator.Func indicator)
         {
             return RegisterMethodHelp(indicator.ID, (IReleasableArray array) =>
              {
@@ -137,7 +137,7 @@ namespace EMI
         /// </summary>
         /// <param name="method">метод</param>
         /// <param name="indicator">ссылка на метод</param>
-        public IRPCRemoveHandle RegisterMethod<T1>(RPCfunc<T1> method, AIndicator indicator)
+        public IRPCRemoveHandle RegisterMethod<T1>(RPCfunc<T1> method, Indicator.Func<T1> indicator)
         {
             var packager = Packager.Create<T1>();
             return RegisterMethodHelp(indicator.ID, (IReleasableArray array) =>
@@ -161,7 +161,7 @@ namespace EMI
         /// </summary>
         /// <param name="method">метод</param>
         /// <param name="indicator">ссылка на метод</param>
-        public IRPCRemoveHandle RegisterMethod<Tout>(RPCfuncOut<Tout> method, AIndicator indicator)
+        public IRPCRemoveHandle RegisterMethod<Tout>(RPCfuncOut<Tout> method, Indicator.FuncOut<Tout> indicator)
         {
             var @out = RPCReturn<Tout>.Create();
             return RegisterMethodHelp(indicator.ID, (IReleasableArray array) =>
@@ -186,7 +186,7 @@ namespace EMI
         /// </summary>
         /// <param name="method">метод</param>
         /// <param name="indicator">ссылка на метод</param>
-        public IRPCRemoveHandle RegisterMethod<Tout, T1>(RPCfuncOut<Tout, T1> method, AIndicator indicator)
+        public IRPCRemoveHandle RegisterMethod<Tout, T1>(RPCfuncOut<Tout, T1> method, Indicator.FuncOut<Tout,T1> indicator)
         {
             var packager = Packager.Create<T1>();
             var @out = RPCReturn<Tout>.Create();
