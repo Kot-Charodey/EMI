@@ -67,21 +67,15 @@ namespace EMI
             }
         }
 
-        internal static string GetDelegateName(Delegate deleg)
-        {
-            return $"{deleg.Method.DeclaringType.FullName}.{deleg.Method.Name}";
-        }
-
         /// <summary>
         /// Производит основную регистрацию метода (остаётся только написать микрофункцию)
         /// </summary>
-        /// <param name="method"></param>
+        /// <param name="regName"></param>
         /// <param name="micro"></param>
         /// <returns></returns>
-        private IRPCRemoveHandle RegisterMethodHelp(Delegate method, MicroFunc micro)
+        private IRPCRemoveHandle RegisterMethodHelp(int regName, MicroFunc micro)
         {
-            string name = GetDelegateName(method);
-            int id = name.DeterministicGetHashCode();
+            int id = regName;
             lock (this)
             {
                 if (RegisteredMethods.ContainsKey(id))
@@ -121,30 +115,32 @@ namespace EMI
         /// Регестрирует метод для возможности вызвать его
         /// </summary>
         /// <param name="method">метод</param>
-        public IRPCRemoveHandle RegisterMethod(RPCfunc method)
+        /// <param name="indicator">имя ключа</param>
+        public IRPCRemoveHandle RegisterMethod(RPCfunc method, AIndicator indicator)
         {
-            return RegisterMethodHelp(method, (IReleasableArray array) =>
-            {
-                try
-                {
-                    method();
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine("EMI RPC => " + e);
-                }
-                return null;
-            });
+            return RegisterMethodHelp(indicator.ID, (IReleasableArray array) =>
+             {
+                 try
+                 {
+                     method();
+                 }
+                 catch (Exception e)
+                 {
+                     Console.WriteLine("EMI RPC => " + e);
+                 }
+                 return null;
+             });
         }
 
         /// <summary>
         /// Регестрирует метод для возможности вызвать его
         /// </summary>
         /// <param name="method">метод</param>
-        public IRPCRemoveHandle RegisterMethod<T1>(RPCfunc<T1> method)
+        /// <param name="indicator">ссылка на метод</param>
+        public IRPCRemoveHandle RegisterMethod<T1>(RPCfunc<T1> method, AIndicator indicator)
         {
             var packager = Packager.Create<T1>();
-            return RegisterMethodHelp(method, (IReleasableArray array) =>
+            return RegisterMethodHelp(indicator.ID, (IReleasableArray array) =>
              {
                  packager.UnPack(array.Bytes, array.Offset, out T1 t1);
                  try
@@ -164,10 +160,11 @@ namespace EMI
         /// Регестрирует метод для возможности вызвать его
         /// </summary>
         /// <param name="method">метод</param>
-        public IRPCRemoveHandle RegisterMethod<Tout>(RPCfuncOut<Tout> method)
+        /// <param name="indicator">ссылка на метод</param>
+        public IRPCRemoveHandle RegisterMethod<Tout>(RPCfuncOut<Tout> method, AIndicator indicator)
         {
             var @out = RPCReturn<Tout>.Create();
-            return RegisterMethodHelp(method, (IReleasableArray array) =>
+            return RegisterMethodHelp(indicator.ID, (IReleasableArray array) =>
             {
                 Tout data;
                 try
@@ -188,11 +185,12 @@ namespace EMI
         /// Регестрирует метод для возможности вызвать его
         /// </summary>
         /// <param name="method">метод</param>
-        public IRPCRemoveHandle RegisterMethod<Tout, T1>(RPCfuncOut<Tout, T1> method)
+        /// <param name="indicator">ссылка на метод</param>
+        public IRPCRemoveHandle RegisterMethod<Tout, T1>(RPCfuncOut<Tout, T1> method, AIndicator indicator)
         {
             var packager = Packager.Create<T1>();
             var @out = RPCReturn<Tout>.Create();
-            return RegisterMethodHelp(method, (IReleasableArray array) =>
+            return RegisterMethodHelp(indicator.ID, (IReleasableArray array) =>
             {
                 packager.UnPack(array.Bytes, array.Offset, out T1 t1);
                 Tout data;

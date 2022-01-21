@@ -60,7 +60,6 @@
     <Compile Include="Exception\RegisterLimitException.cs" />
     <Compile Include="Exception\RPCRegisterNameException.cs" />
     <Compile Include="Indicators\AIndicator.cs" />
-    <Compile Include="Indicators\FunctionRef.cs" />
     <Compile Include="Indicators\Indicators.cs" />
     <Compile Include="RCType.cs" />
     <Compile Include="RCWaitHandle.cs" />

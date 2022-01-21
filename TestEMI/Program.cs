@@ -42,8 +42,8 @@ namespace TestEMI
                 Console.WriteLine("Готово");
             }
 
-            client.RPC.RegisterMethod<string>(MSG);
-            var msg = Indicators.Create<string>(MSG);
+            var msg = Indicators.Create<string>("MSG");
+            client.RPC.RegisterMethod<string>(MSG, msg);
             client.RPC.RegisterForwarding(msg, (Client cc) => { return new Client[] { cc }; });
 
             while (true)
@@ -54,7 +54,7 @@ namespace TestEMI
                     client.Disconnect("я так захотел");
                     break;
                 }
-                msg.RCall(txt, client,RCType.Forwarding).Wait();
+                msg.RCall(txt, client, RCType.Forwarding).Wait();
             }
         }
 
