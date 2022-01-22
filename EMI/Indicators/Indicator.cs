@@ -11,50 +11,18 @@ namespace EMI.Indicators
     public static class Indicator
     {
         /// <summary>
-        /// Позволяет создать ссылку на удалённый метод
-        /// </summary>
-        /// <param name="name">имя ключа</param>
-        /// <returns></returns>
-        public static Func Create(string name)
-        {
-            return new Func(name.DeterministicGetHashCode());
-        }
-        /// <summary>
-        /// Позволяет создать ссылку на удалённый метод
-        /// </summary>
-        /// <param name="name">имя ключа</param>
-        /// <returns></returns>
-        public static Func<T> Create<T>(string name)
-        {
-            return new Func<T>(name.DeterministicGetHashCode());
-        }
-        /// <summary>
-        /// Позволяет создать ссылку на удалённый метод
-        /// </summary>
-        /// <param name="name">имя ключа</param>
-        /// <returns></returns>
-        public static FuncOut<TOut> CreateOut<TOut>(string name)
-        {
-            return new FuncOut<TOut>(name.DeterministicGetHashCode());
-        }
-        /// <summary>
-        /// Позволяет создать ссылку на удалённый метод
-        /// </summary>
-        /// <param name="name">имя ключа</param>
-        /// <returns></returns>
-        public static FuncOut<TOut,T1> CreateOut<TOut,T1>(string name)
-        {
-            return new FuncOut<TOut,T1>(name.DeterministicGetHashCode());
-        }
-
-        /// <summary>
         /// Ссылка на удалённый метод
         /// </summary>
         public sealed class Func : AIndicator
         {
-            internal Func(int id)
+            /// <summary>
+            /// Позволяет создать ссылку на удалённый метод
+            /// </summary>
+            /// <param name="name">имя ключа</param>
+            /// <returns></returns>
+            public Func(string name)
             {
-                ID = id;
+                ID = name.DeterministicGetHashCode();
             }
 
             /// <summary>
@@ -89,9 +57,14 @@ namespace EMI.Indicators
         /// </summary>
         public sealed class Func<T1> : AIndicator
         {
-            internal Func(int id)
+            /// <summary>
+            /// Позволяет создать ссылку на удалённый метод
+            /// </summary>
+            /// <param name="name">имя ключа</param>
+            /// <returns></returns>
+            public Func(string name)
             {
-                ID = id;
+                ID = name.DeterministicGetHashCode();
             }
 
             /// <summary>
@@ -131,9 +104,14 @@ namespace EMI.Indicators
         /// </summary>
         public sealed class FuncOut<TOut> : AIndicator
         {
-            internal FuncOut(int id)
+            /// <summary>
+            /// Позволяет создать ссылку на удалённый метод
+            /// </summary>
+            /// <param name="name">имя ключа</param>
+            /// <returns></returns>
+            public FuncOut(string name)
             {
-                ID = id;
+                ID = name.DeterministicGetHashCode();
             }
 
             /// <summary>
@@ -172,9 +150,14 @@ namespace EMI.Indicators
         /// </summary>
         public sealed class FuncOut<TOut, T1> : AIndicator
         {
-            internal FuncOut(int id)
+            /// <summary>
+            /// Позволяет создать ссылку на удалённый метод
+            /// </summary>
+            /// <param name="name">имя ключа</param>
+            /// <returns></returns>
+            public FuncOut(string name)
             {
-                ID = id;
+                ID = name.DeterministicGetHashCode();
             }
 
             /// <summary>
