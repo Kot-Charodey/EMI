@@ -19,7 +19,7 @@ namespace NetBaseTCP
         public event INetworkClientDisconnected Disconnected;
 
         private NetworkStream NetworkStream;
-        private readonly TcpClient TcpClient;
+        private TcpClient TcpClient;
         private readonly NetBaseTCPServer Server;
         private const int MaxOneSendSize = 1024;
         private bool IsServerSide => Server != null;
@@ -46,17 +46,14 @@ namespace NetBaseTCP
                 NetworkStream = TcpClient.GetStream();
                 Server = server;
                 Init();
+                Disconnected += NetBaseTCPClient_Disconnected;
                 IsConnect = true;
             }
         }
 
         public NetBaseTCPClient()
         {
-            lock (this)
-            {
-                TcpClient = new TcpClient();
-                Init();
-            }
+            Disconnected += NetBaseTCPClient_Disconnected;
         }
 
         private void Init()
@@ -68,8 +65,6 @@ namespace NetBaseTCP
             TcpClient.SendTimeout = 60000;
             TcpClient.ReceiveBufferSize = 100000;
             TcpClient.SendBufferSize = 100000;
-
-            Disconnected += NetBaseTCPClient_Disconnected;
         }
 
         private void NetBaseTCPClient_Disconnected(string error)
@@ -213,6 +208,9 @@ namespace NetBaseTCP
                 token.Register(() => cts.Cancel());
                 try
                 {
+                    TcpClient = new TcpClient();
+                    Init();
+
                     bool wait = await EMI.TaskUtilities.InvokeAsync(() =>
                     {
                         TcpClient.Connect(Utilities.ParseAddress(address));

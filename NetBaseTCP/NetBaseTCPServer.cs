@@ -30,15 +30,22 @@ namespace NetBaseTCP
 
         public void StartServer(string address)
         {
-            if (TcpListener != null)
-                throw new AlreadyException();
-            TcpListener = new TcpListener(Utilities.ParseAddress(address));
-            TcpListener.Start();
+            lock (this)
+            {
+                if (TcpListener != null)
+                    throw new AlreadyException();
+                TcpListener = new TcpListener(Utilities.ParseAddress(address));
+                TcpListener.Start();
+            }
         }
 
         public void StopServer()
         {
-            TcpListener.Stop();
+            lock (this)
+            {
+                TcpListener.Stop();
+                TcpListener = null;
+            }
         }
     }
 }

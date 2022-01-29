@@ -30,7 +30,7 @@ namespace TestEMI
                     goto reconect;
                 }
                 Console.WriteLine("Успех");
-
+                Chat(client);
             }//server
             else
             {
@@ -40,11 +40,15 @@ namespace TestEMI
                 client = server.Accept().Result;
                 client.Disconnected += Client_Disconnected;
                 Console.WriteLine("Готово");
+                Chat(client);
             }
+        }
 
-            var msg = Indicator.Create<string>("MSG");
-            client.RPC.RegisterMethod<string>(MSG, msg);
-            client.RPC.RegisterForwarding(msg, (Client cc) => { return new Client[] { cc }; });
+        private static void Chat(Client client)
+        {
+            var msg = new Indicator.Func<string>("MSG");
+            client.RPC.RegisterMethod(MSG, msg);
+            msg.RCall("боба", client).Wait();
 
             while (true)
             {
@@ -54,7 +58,7 @@ namespace TestEMI
                     client.Disconnect("я так захотел");
                     break;
                 }
-                msg.RCall(txt, client, RCType.Forwarding).Wait();
+                msg.RCall(txt, client).Wait();
             }
         }
 
