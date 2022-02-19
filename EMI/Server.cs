@@ -90,16 +90,16 @@ namespace EMI
 
         private void PingProcessStart()
         {
-            Task.Run(async () =>
+            Task.Factory.StartNew(async () =>
             {
                 var token = CancellationTokenSource.Token;
-                while (!token.IsCancellationRequested)
-                {
-                    await Task.Delay(1000).ConfigureAwait(false);
-                    if (PingSend != null)
-                        await PingSend().ConfigureAwait(false);
-                }
-            });
+                    while (!token.IsCancellationRequested)
+                    {
+                        await Task.Delay(1000).ConfigureAwait(false);
+                        if (PingSend != null)
+                            await PingSend().ConfigureAwait(false);
+                    }
+            }, TaskCreationOptions.LongRunning);
         }
 
         /// <summary>

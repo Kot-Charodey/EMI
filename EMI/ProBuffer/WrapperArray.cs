@@ -22,7 +22,7 @@
         /// </summary>
         public void Release()
         {
-            Offset = 0;
+            Bytes = null;
         }
 
         /// <summary>

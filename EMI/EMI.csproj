@@ -57,6 +57,7 @@
     <Compile Include="Deterministic.cs" />
     <Compile Include="DPack.cs" />
     <Compile Include="Exception\AlreadyException.cs" />
+    <Compile Include="Exception\InvalidInterfaceException.cs" />
     <Compile Include="Exception\RegisterLimitException.cs" />
     <Compile Include="Exception\RPCRegisterNameException.cs" />
     <Compile Include="Indicators\AIndicator.cs" />
@@ -78,6 +79,7 @@
     <Compile Include="RPC\RPC.cs" />
     <Compile Include="RPC\RPCReturn.cs" />
     <Compile Include="Server.cs" />
+    <Compile Include="SyncInterface.cs" />
     <Compile Include="TaskUtilities.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

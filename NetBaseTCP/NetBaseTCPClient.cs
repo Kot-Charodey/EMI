@@ -14,7 +14,10 @@ namespace NetBaseTCP
     {
         public ProArrayBuffer ProArrayBuffer { get; set; }
 
-        public bool IsConnect { get; private set; }
+        public bool IsConnect { 
+            get; 
+            private set;
+        }
 
         public event INetworkClientDisconnected Disconnected;
 
@@ -69,8 +72,8 @@ namespace NetBaseTCP
 
         private void NetBaseTCPClient_Disconnected(string error)
         {
-            SemaphoreRead.Dispose();
-            SemaphoreWrite.Dispose();
+            //SemaphoreRead.Release();
+            //SemaphoreWrite.Release();
 
             if (!IsServerSide)
             {
@@ -83,9 +86,12 @@ namespace NetBaseTCP
         {
             try
             {
+                int offset = 0;
                 while (count > 0)
                 {
-                    count -= await NetworkStream.ReadAsync(buffer, 0, count, token).ConfigureAwait(false);
+                    int size = await NetworkStream.ReadAsync(buffer, offset, count, token).ConfigureAwait(false);
+                    count-=size;
+                    offset += size;
                 }
             }
             catch (Exception e)
@@ -119,6 +125,7 @@ namespace NetBaseTCP
 
         public void Disconnect(string user_error)
         {
+            System.Diagnostics.Debug.WriteLine("Disconnect: "+user_error);
             lock (this)
             {
                 if (IsConnect)

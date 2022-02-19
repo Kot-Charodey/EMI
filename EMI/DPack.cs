@@ -10,7 +10,7 @@ namespace EMI
     internal static class DPack
     {
         public static Packager.M<DateTime> DPing = Packager.Create<DateTime>();
-        public const int sizeof_DPing = 4;
+        public const int sizeof_DPing = 8;
 
         public static Packager.M<int> DRPC = Packager.Create<int>();
         public const int sizeof_DRPC = 4;

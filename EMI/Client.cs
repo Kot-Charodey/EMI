@@ -106,8 +106,8 @@ namespace EMI
         /// </summary>
         private void Init()
         {
-            MyArrayBuffer = new ProArrayBuffer(10, 1024 * 25);
-            MyArrayBufferSend = new ProArrayBuffer(10, 1024 * 25);
+            MyArrayBuffer = new ProArrayBuffer(200, 1024);
+            MyArrayBufferSend = new ProArrayBuffer(200, 1024);
             RPCReturn = new Dictionary<int, RCWaitHandle>();
 
             MyNetworkClient.Disconnected += LowDisconnect;
@@ -197,15 +197,16 @@ namespace EMI
             factory.StartNew(async () =>
             {
                 LastPing = DateTime.UtcNow;
-                const int size = DPack.sizeof_DRPC + 1;
+                const int size = DPack.sizeof_DPing + 1;
 
                 async Task pingTask()
                 {
                     try
                     {
+                        //Console.WriteLine(DateTime.UtcNow - LastPing);
                         if (DateTime.UtcNow - LastPing > PingTimeout)
                         {
-                            MyNetworkClient.Disconnect($"Timeout (Timeout = {PingTimeout.Milliseconds} ms)");
+                            MyNetworkClient.Disconnect($"Timeout (Timeout = {(DateTime.UtcNow - LastPing).TotalMilliseconds} ms)");
                             if (IsServerSide)
                                 lock (Server)
                                     Server.PingSend -= pingTask;
@@ -253,16 +254,26 @@ namespace EMI
         /// <param name="token"></param>
         private void RunProccesAccept(TaskFactory factory, CancellationToken token)
         {
-            SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
-            for (int i = 0; i < 5; i++)
+            //SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
+            for (int i = 0; i < 20; i++)
             {
                 factory.StartNew(async () =>
                 {
                     while (true)
                     {
-                        await semaphore.WaitAsync(token).ConfigureAwait(false);
-                        await ProccesAccept(token).ConfigureAwait(false);
-                        semaphore.Release();
+                        //await semaphore.WaitAsync(token).ConfigureAwait(false);
+                        try
+                        {
+                            await ProccesAccept(token).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException e)
+                        {
+                            throw e;
+                        }catch(Exception e)
+                        {
+                            Console.WriteLine(e);
+                        }
+                        //semaphore.Release();
                     }
                 });
             }
@@ -303,12 +314,23 @@ namespace EMI
                         array.Offset += sizeof(int);
 
                         RCWaitHandle handle = null;
-                        lock (RPCReturn)
+
+                        CancellationTokenSource source = new CancellationTokenSource(new TimeSpan(0, 5, 0));
+
+                        while (!RPCReturn.TryGetValue(id, out handle))
                         {
-                            if (!RPCReturn.TryGetValue(id, out handle))
+                            if (source.IsCancellationRequested)
                             {
                                 MyNetworkClient.Disconnect("Bad packet header data");
+                                return;
                             }
+                            await Task.Yield();
+                        }
+
+                        source.Dispose();
+
+                        lock (RPCReturn)
+                        {
                             RPCReturn.Remove(id);
                         }
                         handle.Array = array;
@@ -329,7 +351,7 @@ namespace EMI
 
                         if (forwardingInfo == null)
                         {
-                            forwardingInfo = RPC.TryGetRegisteredForwarding(id);
+                            forwardingInfo = LocalRPC.TryGetRegisteredForwarding(id);
                         }
 
                         if (forwardingInfo != null)
@@ -342,9 +364,13 @@ namespace EMI
 
                             for (int i = 0; i < clients.Length; i++)
                             {
-                                if (clients[i] != null)
+                                if (clients[i] != null && clients[i].IsConnect)
                                 {
-                                    await clients[i].MyNetworkClient.SendAsync(arraySend, guarant, token).ConfigureAwait(false);
+                                    try
+                                    {
+                                        await clients[i].MyNetworkClient.SendAsync(arraySend, guarant, token).ConfigureAwait(false);
+                                    }
+                                    catch { }
                                 }
                             }
                         }
