@@ -5,6 +5,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
+using System.Reflection.Emit;
 
 namespace EMI
 {
@@ -13,7 +15,16 @@ namespace EMI
     /// </summary>
     public static class SyncInterface
     {
-        private static AssemblyName AssemblySyncInterface = new AssemblyName("EMI.SyncInterface");
+        private static ModuleBuilder MBuilder;
+
+        static SyncInterface()
+        {
+            AssemblyName aName = new AssemblyName("EMI.SyncInterface");
+            AppDomain appDomain = Thread.GetDomain();
+            AssemblyBuilder aBuilder = appDomain.DefineDynamicAssembly(aName, AssemblyBuilderAccess.Run);
+            
+            MBuilder = aBuilder.DefineDynamicModule(aName.Name);
+        }
 
         /// <summary>
         /// Не реализованно
@@ -26,10 +37,21 @@ namespace EMI
         /// <exception cref="NotImplementedException"></exception>
         public static T CreateIndicator<T>(Client client,string name) where T:class
         {
-            if (!typeof(T).IsInterface)
+            Type interfaceType = typeof(T);
+            if (!interfaceType.IsInterface)
             {
                 throw new InvalidInterfaceException("A generic type is not an interface");
             }
+
+            TypeBuilder tBuilder = MBuilder.DefineType(name, TypeAttributes.Public | TypeAttributes.Class);
+            tBuilder.AddInterfaceImplementation(interfaceType);
+            var methods = interfaceType.GetMethods();
+            foreach(var method in methods)
+            {
+                var atr = method.Attributes;
+                var methBuilder = tBuilder.DefineMethod(method.Name, method.Attributes);
+            }
+
             throw new NotImplementedException();
         }
 

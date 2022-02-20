@@ -19,18 +19,21 @@ namespace TestEMI
             //client
             if (args.Length == 0)
             {
+                System.Diagnostics.Process.Start("server.bat");
+
                 client = new Client(NetBaseTCPService.Service);
                 client.Disconnected += Client_Disconnected;
             reconect:
-                Console.WriteLine("Попытка подключиться...");
-                var status = client.Connect("31.10.114.169#25566", default).Result;
+                Console.WriteLine("Попытка подключиться...");//"31.10.114.169#25566"
+                var status = client.Connect("127.0.0.1#25566", default).Result;
                 if (status == false)
                 {
                     Console.WriteLine("Не удалось подключиться...");
                     goto reconect;
                 }
                 Console.WriteLine("Успех");
-                Chat(client);
+                TestSynsInteface.InitFull(client);
+                //Chat(client);
             }//server
             else
             {
@@ -40,7 +43,8 @@ namespace TestEMI
                 client = server.Accept().Result;
                 client.Disconnected += Client_Disconnected;
                 Console.WriteLine("Готово");
-                Chat(client);
+                TestSynsInteface.InitFull(client);
+                //Chat(client);
             }
         }
 

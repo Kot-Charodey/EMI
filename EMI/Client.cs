@@ -378,6 +378,7 @@ namespace EMI
                         {
                             Console.WriteLine("EMI RC => Not found forwarding!");
                         }
+
                         array.Release();
                     }
                     break;
