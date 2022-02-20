@@ -54,6 +54,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Client.cs" />
+    <Compile Include="CurrentTime.cs" />
     <Compile Include="Deterministic.cs" />
     <Compile Include="DPack.cs" />
     <Compile Include="Exception\AlreadyException.cs" />

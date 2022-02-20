@@ -15,7 +15,7 @@ namespace EMI.ProBuffer
         private int ArraySize;
 
         /// <summary>
-        /// 
+        /// Позволяет реиспользовать массивне выделяя новую память
         /// </summary>
         /// <param name="count">кол-во буферов</param>
         /// <param name="size">размер буфера (если потребуется буфер более большого размера то будет создан новый временный массив)</param>

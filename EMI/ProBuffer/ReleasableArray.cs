@@ -1,4 +1,6 @@
-﻿namespace EMI.ProBuffer
+﻿using System;
+
+namespace EMI.ProBuffer
 {
     /// <summary>
     /// Массив выделенный ProArrayBuffer
@@ -17,6 +19,11 @@
         /// Смещение - от куда следует считывать
         /// </summary>
         public int Offset { get; set; }
+        /// <summary>
+        /// Хранит время когда начал или прекратил использоваться
+        /// </summary>
+        internal DateTime TimeAllocate;
+
 
         private readonly ProArrayBuffer MyBuffer;
         /// <summary>
@@ -38,6 +45,7 @@
             MyBuffer = myBuffer;
             Offset = 0;
             Length = 0;
+            TimeAllocate = CurrentTime.Now;
         }
     }
 }

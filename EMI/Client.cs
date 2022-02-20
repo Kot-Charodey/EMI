@@ -196,17 +196,16 @@ namespace EMI
         {
             factory.StartNew(async () =>
             {
-                LastPing = DateTime.UtcNow;
+                LastPing = CurrentTime.Now;
                 const int size = DPack.sizeof_DPing + 1;
 
                 async Task pingTask()
                 {
                     try
                     {
-                        //Console.WriteLine(DateTime.UtcNow - LastPing);
-                        if (DateTime.UtcNow - LastPing > PingTimeout)
+                        if (CurrentTime.Now - LastPing > PingTimeout)
                         {
-                            MyNetworkClient.Disconnect($"Timeout (Timeout = {(DateTime.UtcNow - LastPing).TotalMilliseconds} ms)");
+                            MyNetworkClient.Disconnect($"Timeout (Timeout = {(CurrentTime.Now - LastPing).TotalMilliseconds} ms)");
                             if (IsServerSide)
                                 lock (Server)
                                     Server.PingSend -= pingTask;
@@ -216,7 +215,7 @@ namespace EMI
                         {
                             IReleasableArray array = await MyArrayBufferSend.AllocateArrayAsync(size, token).ConfigureAwait(false);
                             array.Bytes[0] = (byte)PacketType.Ping_Send;
-                            DPack.DPing.PackUP(array.Bytes, 1, DateTime.UtcNow);
+                            DPack.DPing.PackUP(array.Bytes, 1, CurrentTime.Now);
                             await MyNetworkClient.SendAsync(array, false, token).ConfigureAwait(false);
                             array.Release();
                         }
@@ -294,8 +293,8 @@ namespace EMI
                 case PacketType.Ping_Receive:
                     DPack.DPing.UnPack(array.Bytes, array.Offset, out var time);
                     if (LastPing < time)
-                        Ping = DateTime.UtcNow - time;
-                    LastPing = DateTime.UtcNow;
+                        Ping = CurrentTime.Now - time;
+                    LastPing = CurrentTime.Now;
                     array.Release();
                     break;
                 case PacketType.RPC_Simple:
