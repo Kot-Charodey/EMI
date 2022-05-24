@@ -115,7 +115,7 @@ namespace NetBaseTCP
                 }
             }
 
-            var array = await ProArrayBuffer.AllocateArrayAsync(header.GetSize(), token).ConfigureAwait(false);
+            var array = ProArrayBuffer.AllocateArray(header.GetSize());
             token.ThrowIfCancellationRequested();
 
             await AcceptLow(array.Bytes, array.Length, token).ConfigureAwait(false);
@@ -198,7 +198,7 @@ namespace NetBaseTCP
             }
             catch (Exception e)
             {
-                Disconnect(e.Message);
+                Disconnect(e.ToString());
             }
             SemaphoreWrite.Release();
         }

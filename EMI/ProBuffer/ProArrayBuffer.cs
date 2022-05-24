@@ -1,6 +1,9 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Threading;
+using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace EMI.ProBuffer
 {
@@ -9,108 +12,70 @@ namespace EMI.ProBuffer
     /// </summary>
     public class ProArrayBuffer
     {
-        internal SemaphoreSlim Semaphore;
-        internal int FreeArrayID;
-        internal ReleasableArray[] Arrays;
-        private int ArraySize;
+        internal static TimeSpan ReleasableArrayLifetime = new TimeSpan(0, 1, 0);
+        internal static TimeSpan AllocadedArrayMaxLifetime = new TimeSpan(0, 5, 0);
+
+        internal List<ReleasableArray> ReleasableArrays = new List<ReleasableArray>();
+        internal event Action ForceRelese;
 
         /// <summary>
         /// Позволяет реиспользовать массивне выделяя новую память
         /// </summary>
-        /// <param name="count">кол-во буферов</param>
-        /// <param name="size">размер буфера (если потребуется буфер более большого размера то будет создан новый временный массив)</param>
-        public ProArrayBuffer(int count, int size)
+        public ProArrayBuffer()
         {
-            Init(count, size);
         }
 
         /// <summary>
-        /// Пересоздаёт весь буфер заново
+        /// Очищает буфер
         /// </summary>
-        public void Reinit()
+        public void Clear()
         {
-            Semaphore.Dispose();
-            Init(Arrays.Length, ArraySize);
-        }
-
-        private void Init(int count, int size)
-        {
-            Semaphore = new SemaphoreSlim(count, count);
-            FreeArrayID = count - 1;
-            Arrays = new ReleasableArray[count];
-            ArraySize = size;
-
-            for (int i = 0; i < count; i++)
+            lock (this)
             {
-                Arrays[i] = new ReleasableArray(this, size);
+                ForceRelese?.Invoke();
+                ForceRelese = null;
+                ReleasableArrays.Clear();
             }
         }
-
+#if DEBUG
         /// <summary>
-        /// Выделить массивы указанной длинны (поток будет ожидать если все массивы заняты)
+        /// Выделить массивы указанной длинны
         /// </summary>
         /// <param name="size">размер массива</param>
-        /// <param name="cancellationToken">токен отмены операции</param>
+        /// <param name="lineNumber"></param>
+        /// <param name="caller"></param>
         /// <returns></returns>
-        public async Task<IReleasableArray> AllocateArrayAsync(int size, CancellationToken cancellationToken)
-        {
-            if (ArraySize < size)
-            {
-                return new WrapperArray(size);
-            }
-            else
-            {
-                //если произойдёт дедлок (долго освобождают массив - мы выделим новый массив)
-                var wait = await Semaphore.WaitAsync(1, cancellationToken).ConfigureAwait(false);
-                if (wait)
-                {
-                    lock (Arrays)
-                    {
-                        var array = Arrays[FreeArrayID--];
-                        array.Length = size;
-                        return array;
-                    }
-                }
-                else
-                {
-#if DEBUG
-                    Debug.WriteLine("WARING: произошёл дедлок из за нехватки свободных массивов!");
-#endif
-                    return new WrapperArray(size);
-                }
-            }
-        }
-
+#else
         /// <summary>
-        /// Выделить массивы указанной длинны (поток заблокируется если все массивы заняты)
+        /// Выделить массивы указанной длинны
         /// </summary>
         /// <param name="size">размер массива</param>
         /// <returns></returns>
-        public IReleasableArray AllocateArray(int size)
+#endif
+        public IReleasableArray AllocateArray(int size
+            #if DEBUG
+            ,[CallerLineNumber] int lineNumber = 0,
+            [CallerMemberName] string caller = null
+#endif
+            )
         {
-            if (ArraySize < size)
+            lock (ReleasableArrays)
             {
-                return new WrapperArray(size);
-            }
-            else
-            {
-                //если произойдёт дедлок (долго освобождают массив - мы выделим новый массив)
-                if (Semaphore.Wait(10000))
+                for(int i = 0; i < ReleasableArrays.Count; i++)
                 {
-                    lock (Arrays)
+                    if (ReleasableArrays[i].Bytes.Length>=size)
                     {
-                        var array = Arrays[FreeArrayID--];
-                        array.Length = size;
-                        return array;
+                        var arr = ReleasableArrays[i];
+                        ReleasableArrays.RemoveAt(i);
+                        arr.Allocate(size);
+                        return arr;
                     }
                 }
-                else
-                {
+                var ra = new ReleasableArray(this, size, false);
 #if DEBUG
-                    Debug.WriteLine("WARING: произошёл дедлок из за нехватки свободных массивов!");
+                ra.DEBUG_NAME = $" at line {lineNumber} ({caller})";
 #endif
-                    return new WrapperArray(size);
-                }
+                return ra;
             }
         }
     }

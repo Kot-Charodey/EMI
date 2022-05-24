@@ -18,7 +18,7 @@ namespace EMI
         /// </summary>
         public static DateTime Now => new DateTime(TimerPoint + Stopwatch.Elapsed.Ticks);
         private static long TimerPoint;
-        private static Stopwatch Stopwatch;
+        private readonly static Stopwatch Stopwatch;
 
         static CurrentTime()
         {

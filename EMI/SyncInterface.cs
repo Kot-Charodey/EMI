@@ -15,7 +15,7 @@ namespace EMI
     /// </summary>
     public static class SyncInterface
     {
-        private static ModuleBuilder MBuilder;
+        private readonly static ModuleBuilder MBuilder;
 
         static SyncInterface()
         {

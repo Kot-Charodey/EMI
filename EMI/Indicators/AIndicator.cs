@@ -46,14 +46,14 @@ namespace EMI.Indicators
             if (packetType == (byte)PacketType.RPC_Forwarding) //PACK HEADER, init array
             {
                 const int bsize = DPack.sizeof_DForwarding + 1;
-                sendArray = await client.MyArrayBufferSend.AllocateArrayAsync(bsize + Size, token).ConfigureAwait(false);
+                sendArray = client.MyArrayBufferSend.AllocateArray(bsize + Size);
                 DPack.DForwarding.PackUP(sendArray.Bytes, 1, guarant, ID);
                 sendArray.Offset += bsize;
             }
             else
             {
                 const int bsize = DPack.sizeof_DRPC + 1;
-                sendArray = await client.MyArrayBufferSend.AllocateArrayAsync(bsize + Size, token).ConfigureAwait(false);
+                sendArray = client.MyArrayBufferSend.AllocateArray(bsize + Size);
                 DPack.DRPC.PackUP(sendArray.Bytes, 1, ID);
                 sendArray.Offset += bsize;
             }

@@ -23,7 +23,7 @@ namespace TestEMI
 
                 client = new Client(NetBaseTCPService.Service);
                 client.Disconnected += Client_Disconnected;
-            reconect:
+                reconect:
                 Console.WriteLine("Попытка подключиться...");//"31.10.114.169#25566"
                 var status = client.Connect("127.0.0.1#25566", default).Result;
                 if (status == false)

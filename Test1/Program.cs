@@ -15,7 +15,7 @@ namespace Test1
     {
         static void Main(string[] args)
         {
-            EMI.ProBuffer.ProArrayBuffer ProArray = new EMI.ProBuffer.ProArrayBuffer(10, 1024);
+            EMI.ProBuffer.ProArrayBuffer ProArray = new EMI.ProBuffer.ProArrayBuffer();
 
             //client
             if (args.Length == 0)

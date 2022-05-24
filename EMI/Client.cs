@@ -106,8 +106,8 @@ namespace EMI
         /// </summary>
         private void Init()
         {
-            MyArrayBuffer = new ProArrayBuffer(200, 1024);
-            MyArrayBufferSend = new ProArrayBuffer(200, 1024);
+            MyArrayBuffer = new ProArrayBuffer();
+            MyArrayBufferSend = new ProArrayBuffer();
             RPCReturn = new Dictionary<int, RCWaitHandle>();
 
             MyNetworkClient.Disconnected += LowDisconnect;
@@ -148,6 +148,9 @@ namespace EMI
         /// <param name="user_error">что сообщить клиенту при отключении</param>
         public void Disconnect(string user_error = "unknown")
         {
+#if DEBUG
+            Console.WriteLine(DebugUtil.GetStackTrace());
+#endif
             if (!IsConnect)
             {
                 throw new AlreadyException();
@@ -161,6 +164,9 @@ namespace EMI
         /// <param name="error"></param>
         private void LowDisconnect(string error)
         {
+#if DEBUG
+            Console.WriteLine(DebugUtil.GetStackTrace());
+#endif
             Disconnected?.Invoke(error);
             try
             {
@@ -171,8 +177,8 @@ namespace EMI
             //сброс компонентов для реиспользования клиента
             if (!IsServerSide)
             {
-                MyArrayBuffer.Reinit();
-                MyArrayBufferSend.Reinit();
+                MyArrayBuffer.Clear();
+                MyArrayBufferSend.Clear();
                 RPCReturn.Clear();
             }
         }
@@ -198,6 +204,7 @@ namespace EMI
             {
                 LastPing = CurrentTime.Now;
                 const int size = DPack.sizeof_DPing + 1;
+                var array = new WrapperArray(new byte[size]);
 
                 async Task pingTask()
                 {
@@ -213,11 +220,11 @@ namespace EMI
                         }
                         else
                         {
-                            IReleasableArray array = await MyArrayBufferSend.AllocateArrayAsync(size, token).ConfigureAwait(false);
+                            //IReleasableArray array = MyArrayBufferSend.AllocateArray(size);
                             array.Bytes[0] = (byte)PacketType.Ping_Send;
                             DPack.DPing.PackUP(array.Bytes, 1, CurrentTime.Now);
                             await MyNetworkClient.SendAsync(array, false, token).ConfigureAwait(false);
-                            array.Release();
+                            //array.Release();
                         }
                     }
                     catch
@@ -312,7 +319,7 @@ namespace EMI
                         DPack.DRPC.UnPack(array.Bytes, array.Offset, out var id);
                         array.Offset += sizeof(int);
 
-                        RCWaitHandle handle = null;
+                        RCWaitHandle handle;
 
                         CancellationTokenSource source = new CancellationTokenSource(new TimeSpan(0, 5, 0));
 
@@ -356,7 +363,7 @@ namespace EMI
                         if (forwardingInfo != null)
                         {
                             var clients = forwardingInfo(this);
-                            var arraySend = await MyArrayBufferSend.AllocateArrayAsync(array.Length - 1, token).ConfigureAwait(false);
+                            var arraySend = MyArrayBufferSend.AllocateArray(array.Length - 1);
 
                             arraySend.Bytes[0] = (byte)PacketType.RPC_Simple;
                             Buffer.BlockCopy(array.Bytes, array.Offset, arraySend.Bytes, 1, arraySend.Length - 1);
@@ -372,6 +379,8 @@ namespace EMI
                                     catch { }
                                 }
                             }
+
+                            arraySend.Release();
                         }
                         else
                         {
@@ -408,7 +417,7 @@ namespace EMI
                     if (@return != null)
                         size += @return.PackSize;
 
-                    var sendArray = await MyArrayBufferSend.AllocateArrayAsync(size, token);
+                    var sendArray = MyArrayBufferSend.AllocateArray(size);
                     sendArray.Bytes[0] = (byte)PacketType.RPC_Returned;
                     DPack.DRPC.PackUP(sendArray.Bytes, 1, id);
                     if (@return != null)
