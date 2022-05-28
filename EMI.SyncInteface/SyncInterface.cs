@@ -19,8 +19,8 @@ namespace EMI.SyncInterface
         private readonly static Dictionary<Type, InterfaceTypes> CachedInterfaces = new Dictionary<Type, InterfaceTypes>();
 
         private InterfaceTypes Types;
-        private List<MarkeredMethod> ServerMethods=new List<MarkeredMethod>();
-        private List<MarkeredMethod> ClientMethods=new List<MarkeredMethod>();
+        private List<MarkeredMethod> ServerMethods = new List<MarkeredMethod>();
+        private List<MarkeredMethod> ClientMethods = new List<MarkeredMethod>();
 
         public SyncInterface(string name)
         {
@@ -81,7 +81,7 @@ namespace EMI.SyncInterface
                             methodsList.Add(new MarkeredMethod(method, inst));
 
                             var fieldRCType = tBuilder.DefineField(Utils.FieldNameCreate(ref NameID), typeof(RCType), fieldAttributes);
-                            
+
                             ilCode.DeclareLocal(typeof(CancellationToken));
 
                             ilCode.Emit(OpCodes.Ldarg_0);                  //0
@@ -114,9 +114,9 @@ namespace EMI.SyncInterface
                                 }
                                 else
                                 {
-                                    //var taskWait = typeof(Task).GetMethod(nameof(Task.g), new Type[] { });
-                                    //ilCode.Emit(OpCodes.Callvirt, taskWait);
-                                    throw new NotImplementedException();
+                                    var TaskResultMethod = typeof(Task<>).MakeGenericType(method.ReturnType).GetProperty(nameof(Task<int>.Result)).GetGetMethod();
+                                    ilCode.Emit(OpCodes.Callvirt, TaskResultMethod); //РАБОТАЕТ НЕ КОРРЕКТНО
+                                    //throw new NotImplementedException();
                                 }
                                 //ilCode.Emit(OpCodes.Pop);
                                 ilCode.Emit(OpCodes.Ret);
@@ -205,19 +205,21 @@ namespace EMI.SyncInterface
             RegisterClass(server.RPC, Class, ClientMethods);
         }
 
-        private void RegisterClass(RPC rpc,T Class, List<MarkeredMethod> methods)
+        private void RegisterClass(RPC rpc, T Class, List<MarkeredMethod> methods)
         {
             foreach (var mMethod in methods)
             {
                 var method = mMethod.MethodInfo;
                 var mParameters = method.GetParametersType();
-                Type delegateType;
+                Delegate runDelegate;
+                if (method.ReturnType == typeof(void))
+                    runDelegate = Utils.MakeRPCDelegate(mParameters, Class, method);
+                else
+                    runDelegate = Utils.MakeRPCDelegateOut(method.ReturnType, mParameters, Class, method);
+
+                Type delegateType = runDelegate.GetType();
                 Type genericDelegateType;
                 Type genericIndicatorType = mMethod.Indicator.GetType();
-                if (method.ReturnType == typeof(void))
-                    delegateType = Utils.GetRPCDelegate(mParameters);
-                else
-                    delegateType = Utils.GetRPCDelegateOut(method.ReturnType, mParameters);
 
                 if (delegateType.IsGenericType)
                     genericDelegateType = delegateType.GetGenericTypeDefinition();
@@ -227,11 +229,12 @@ namespace EMI.SyncInterface
                 if (genericIndicatorType.IsGenericType)
                     genericIndicatorType = genericIndicatorType.GetGenericTypeDefinition();
 
-                //TODO НЕ ИЩЕТ МЕТОД
-                MethodInfo RegMethod = typeof(RPC).GetMethod(nameof(rpc.RegisterMethod), new Type[] { genericDelegateType, genericIndicatorType });
-                
-                //RPCfunc
-                //RPCfuncOut
+                //TODO мб можно ускорить
+                MethodInfo RegMethod = typeof(RPC).FindMethodPro(nameof(rpc.RegisterMethod), new Type[] { genericDelegateType, genericIndicatorType });
+                if(RegMethod.IsGenericMethod)
+                    RegMethod = RegMethod.MakeGenericMethod(delegateType.GetGenericArguments());
+
+                RegMethod.Invoke(rpc, new object[] { runDelegate, mMethod.Indicator });
             }
         }
     }

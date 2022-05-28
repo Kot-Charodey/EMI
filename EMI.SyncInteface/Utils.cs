@@ -56,6 +56,28 @@ namespace EMI.SyncInterface
             throw new KeyNotFoundException();
         }
 
+        public static MethodInfo FindMethodPro(this Type type,string name, Type[] types)
+        {
+            foreach(var method in type.GetMethods())
+            {
+                if (method.Name == name)
+                {
+                    var param = method.GetParametersType();
+                    if (param.Length == types.Length)
+                    {
+                        for (int i = 0; i < param.Length; i++)
+                        {
+                            if (param[i].Name != types[i].Name)
+                                goto skip;
+                        }
+                        return method;
+                    }
+                }
+            skip:;
+            }
+            throw new KeyNotFoundException();
+        }
+
         public static bool IsReturnData(this MethodInfo method)
         {
             var type = method.ReturnType;
@@ -118,36 +140,36 @@ namespace EMI.SyncInterface
             return mParameters;
         }
 
-        public static Type GetRPCDelegate(Type[] types)
+        public static Delegate MakeRPCDelegate(Type[] types,object context,MethodInfo mi)
         {
             switch (types.Length)
             {
-                case 0: return typeof(RPCfunc);
-                case 1: return typeof(RPCfunc<>).MakeGenericType(types);
-                case 2: return typeof(RPCfunc<,>).MakeGenericType(types);
-                case 3: return typeof(RPCfunc<,,>).MakeGenericType(types);
-                case 4: return typeof(RPCfunc<,,,>).MakeGenericType(types);
-                case 5: return typeof(RPCfunc<,,,,>).MakeGenericType(types);
-                case 6: return typeof(RPCfunc<,,,,,>).MakeGenericType(types);
-                case 7: return typeof(RPCfunc<,,,,,,>).MakeGenericType(types);
-                case 8: return typeof(RPCfunc<,,,,,,,>).MakeGenericType(types);
-                case 9: return typeof(RPCfunc<,,,,,,,,>).MakeGenericType(types);
-                case 10: return typeof(RPCfunc<,,,,,,,,,>).MakeGenericType(types);
-                case 11: return typeof(RPCfunc<,,,,,,,,,,>).MakeGenericType(types);
-                case 12: return typeof(RPCfunc<,,,,,,,,,,,>).MakeGenericType(types);
-                case 13: return typeof(RPCfunc<,,,,,,,,,,,,>).MakeGenericType(types);
-                case 14: return typeof(RPCfunc<,,,,,,,,,,,,,>).MakeGenericType(types);
-                case 15: return typeof(RPCfunc<,,,,,,,,,,,,,,>).MakeGenericType(types);
-                case 16: return typeof(RPCfunc<,,,,,,,,,,,,,,,>).MakeGenericType(types);
-                case 17: return typeof(RPCfunc<,,,,,,,,,,,,,,,,>).MakeGenericType(types);
-                case 18: return typeof(RPCfunc<,,,,,,,,,,,,,,,,,>).MakeGenericType(types);
-                case 19: return typeof(RPCfunc<,,,,,,,,,,,,,,,,,,>).MakeGenericType(types);
-                case 20: return typeof(RPCfunc<,,,,,,,,,,,,,,,,,,,>).MakeGenericType(types);
+                case 0: return Delegate.CreateDelegate(typeof(RPCfunc),context,mi);
+                case 1: return Delegate.CreateDelegate(typeof(RPCfunc<>).MakeGenericType(types), context,mi);
+                case 2: return Delegate.CreateDelegate(typeof(RPCfunc<,>).MakeGenericType(types),context,mi);
+                case 3: return Delegate.CreateDelegate(typeof(RPCfunc<,,>).MakeGenericType(types),context,mi);
+                case 4: return Delegate.CreateDelegate(typeof(RPCfunc<,,,>).MakeGenericType(types),context,mi);
+                case 5: return Delegate.CreateDelegate(typeof(RPCfunc<,,,,>).MakeGenericType(types),context,mi);
+                case 6: return Delegate.CreateDelegate(typeof(RPCfunc<,,,,,>).MakeGenericType(types),context,mi);
+                case 7: return Delegate.CreateDelegate(typeof(RPCfunc<,,,,,,>).MakeGenericType(types),context,mi);
+                case 8: return Delegate.CreateDelegate(typeof(RPCfunc<,,,,,,,>).MakeGenericType(types),context,mi);
+                case 9: return Delegate.CreateDelegate(typeof(RPCfunc<,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 10: return Delegate.CreateDelegate(typeof(RPCfunc<,,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 11: return Delegate.CreateDelegate(typeof(RPCfunc<,,,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 12: return Delegate.CreateDelegate(typeof(RPCfunc<,,,,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 13: return Delegate.CreateDelegate(typeof(RPCfunc<,,,,,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 14: return Delegate.CreateDelegate(typeof(RPCfunc<,,,,,,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 15: return Delegate.CreateDelegate(typeof(RPCfunc<,,,,,,,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 16: return Delegate.CreateDelegate(typeof(RPCfunc<,,,,,,,,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 17: return Delegate.CreateDelegate(typeof(RPCfunc<,,,,,,,,,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 18: return Delegate.CreateDelegate(typeof(RPCfunc<,,,,,,,,,,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 19: return Delegate.CreateDelegate(typeof(RPCfunc<,,,,,,,,,,,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 20: return Delegate.CreateDelegate(typeof(RPCfunc<,,,,,,,,,,,,,,,,,,,>).MakeGenericType(types),context,mi);
                 default: throw new IndexOutOfRangeException();
             }
         }
 
-        public static Type GetRPCDelegateOut(Type outType, Type[] inTypes)
+        public static Delegate MakeRPCDelegateOut(Type outType, Type[] inTypes, object context, MethodInfo mi)
         {
             var types = new Type[inTypes.Length + 1];
             types[0] = outType;
@@ -155,26 +177,26 @@ namespace EMI.SyncInterface
                 types[i + 1] = inTypes[i];
             switch (types.Length)
             {
-                case 1: return typeof(RPCfuncOut<>).MakeGenericType(types);
-                case 2: return typeof(RPCfuncOut<,>).MakeGenericType(types);
-                case 3: return typeof(RPCfuncOut<,,>).MakeGenericType(types);
-                case 4: return typeof(RPCfuncOut<,,,>).MakeGenericType(types);
-                case 5: return typeof(RPCfuncOut<,,,,>).MakeGenericType(types);
-                case 6: return typeof(RPCfuncOut<,,,,,>).MakeGenericType(types);
-                case 7: return typeof(RPCfuncOut<,,,,,,>).MakeGenericType(types);
-                case 8: return typeof(RPCfuncOut<,,,,,,,>).MakeGenericType(types);
-                case 9: return typeof(RPCfuncOut<,,,,,,,,>).MakeGenericType(types);
-                case 10: return typeof(RPCfuncOut<,,,,,,,,,>).MakeGenericType(types);
-                case 11: return typeof(RPCfuncOut<,,,,,,,,,,>).MakeGenericType(types);
-                case 12: return typeof(RPCfuncOut<,,,,,,,,,,,>).MakeGenericType(types);
-                case 13: return typeof(RPCfuncOut<,,,,,,,,,,,,>).MakeGenericType(types);
-                case 14: return typeof(RPCfuncOut<,,,,,,,,,,,,,>).MakeGenericType(types);
-                case 15: return typeof(RPCfuncOut<,,,,,,,,,,,,,,>).MakeGenericType(types);
-                case 16: return typeof(RPCfuncOut<,,,,,,,,,,,,,,,>).MakeGenericType(types);
-                case 17: return typeof(RPCfuncOut<,,,,,,,,,,,,,,,,>).MakeGenericType(types);
-                case 18: return typeof(RPCfuncOut<,,,,,,,,,,,,,,,,,>).MakeGenericType(types);
-                case 19: return typeof(RPCfuncOut<,,,,,,,,,,,,,,,,,,>).MakeGenericType(types);
-                case 20: return typeof(RPCfuncOut<,,,,,,,,,,,,,,,,,,,>).MakeGenericType(types);
+                case 1: return Delegate.CreateDelegate(typeof(RPCfuncOut<>).MakeGenericType(types),context,mi);
+                case 2: return Delegate.CreateDelegate(typeof(RPCfuncOut<,>).MakeGenericType(types),context,mi);
+                case 3: return Delegate.CreateDelegate(typeof(RPCfuncOut<,,>).MakeGenericType(types),context,mi);
+                case 4: return Delegate.CreateDelegate(typeof(RPCfuncOut<,,,>).MakeGenericType(types),context,mi);
+                case 5: return Delegate.CreateDelegate(typeof(RPCfuncOut<,,,,>).MakeGenericType(types),context,mi);
+                case 6: return Delegate.CreateDelegate(typeof(RPCfuncOut<,,,,,>).MakeGenericType(types),context,mi);
+                case 7: return Delegate.CreateDelegate(typeof(RPCfuncOut<,,,,,,>).MakeGenericType(types),context,mi);
+                case 8: return Delegate.CreateDelegate(typeof(RPCfuncOut<,,,,,,,>).MakeGenericType(types),context,mi);
+                case 9: return Delegate.CreateDelegate(typeof(RPCfuncOut<,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 10: return Delegate.CreateDelegate(typeof(RPCfuncOut<,,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 11: return Delegate.CreateDelegate(typeof(RPCfuncOut<,,,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 12: return Delegate.CreateDelegate(typeof(RPCfuncOut<,,,,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 13: return Delegate.CreateDelegate(typeof(RPCfuncOut<,,,,,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 14: return Delegate.CreateDelegate(typeof(RPCfuncOut<,,,,,,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 15: return Delegate.CreateDelegate(typeof(RPCfuncOut<,,,,,,,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 16: return Delegate.CreateDelegate(typeof(RPCfuncOut<,,,,,,,,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 17: return Delegate.CreateDelegate(typeof(RPCfuncOut<,,,,,,,,,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 18: return Delegate.CreateDelegate(typeof(RPCfuncOut<,,,,,,,,,,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 19: return Delegate.CreateDelegate(typeof(RPCfuncOut<,,,,,,,,,,,,,,,,,,>).MakeGenericType(types),context,mi);
+                case 20: return Delegate.CreateDelegate(typeof(RPCfuncOut<,,,,,,,,,,,,,,,,,,,>).MakeGenericType(types),context,mi);
                 default: throw new IndexOutOfRangeException();
             }
         }

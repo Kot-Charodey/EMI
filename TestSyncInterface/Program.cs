@@ -12,14 +12,15 @@ namespace TestSyncInterface
     public interface ITest
     {
         [OnlyClient]
-        void WaitAndGet(int a);
+        int WaitAndGet();
     }
 
     class MyTest : ITest
     {
-        public void WaitAndGet(int a)
+        public int WaitAndGet()
         {
-            Console.WriteLine("Ждём");
+            Console.WriteLine("return");
+            return 404;
         }
     }
 
@@ -38,21 +39,6 @@ namespace TestSyncInterface
             //client
             if (args.Length == 0)
             {
-                Server server = new Server(NetBaseTCPService.Service);
-                server.Start("any#25566");
-
-                MyTest test = new MyTest();
-                sync.RegisterClass(server, test);
-
-                Console.WriteLine("Ожидание клиента");
-                client = server.Accept().Result;
-                client.Disconnected += Client_Disconnected;
-                Console.WriteLine("Готово");
-
-                Console.ReadLine();
-            }//server
-            else
-            {
                 System.Diagnostics.Process.Start("server.bat");
 
                 client = new Client(NetBaseTCPService.Service);
@@ -69,9 +55,25 @@ namespace TestSyncInterface
 
                 var ob = sync.NewIndicator(client);
                 Console.WriteLine("Ждём");
-                ob.WaitAndGet(15);
+                int a = ob.WaitAndGet();
+                Console.WriteLine(a);
                 Console.ReadLine();
-                //Console.WriteLine(data);
+            }//server
+            else
+            {
+                Server server = new Server(NetBaseTCPService.Service);
+                server.Start("any#25566");
+
+                MyTest test = new MyTest();
+                sync.RegisterClass(server, test);
+
+                Console.WriteLine("Ожидание клиента");
+                client = server.Accept().Result;
+                client.Disconnected += Client_Disconnected;
+                Console.WriteLine("Готово");
+
+                
+                Console.ReadLine();
             }
         }
 
