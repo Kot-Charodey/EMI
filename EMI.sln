@@ -13,7 +13,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetBaseTCP", "NetBaseTCP\Ne
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestEMI", "TestEMI\TestEMI.csproj", "{57F3D130-C1FD-451B-9698-967305D84D35}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EMI.SynsInteface", "EMI.SynsInteface\EMI.SynsInteface.csproj", "{F0668ED0-3407-49C9-9C96-C32408E10C9F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EMI.SyncInterface", "EMI.SyncInteface\EMI.SyncInterface.csproj", "{F0668ED0-3407-49C9-9C96-C32408E10C9F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

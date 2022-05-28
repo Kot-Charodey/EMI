@@ -25,6 +25,11 @@ namespace EMI.Indicators
                 ID = name.DeterministicGetHashCode();
             }
 
+            private Func()
+            {
+
+            }
+
             /// <summary>
             /// Вызвать удалённый метод на указанном клиенте
             /// </summary>

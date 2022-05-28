@@ -1,31 +1,29 @@
-﻿using EMI.MyException;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Linq;
+using System.Linq.Expressions;
 
-namespace EMI.SynsInteface
+namespace EMI.SyncInterface
 {
     using Indicators;
+    using MyException;
 
-    public class SynsInterface<T> where T : class
+    public class SyncInterface<T> where T : class
     {
         private readonly static ModuleBuilder MBuilder = Utils.InitModuleBuilder();
         private readonly static Dictionary<Type, InterfaceTypes> CachedInterfaces = new Dictionary<Type, InterfaceTypes>();
 
-        private const string FieldClientName = "Client";
-
         private InterfaceTypes Types;
 
-        public SynsInterface(string name)
+        public SyncInterface(string name)
         {
             Type interfaceType = typeof(T);
             if (!interfaceType.IsInterface)
-                throw new InvalidInterfaceException("A generic type is not an interface");
+                throw new InvalidInterfaceException("A generic type is not an interface!");
 
 
             if (!CachedInterfaces.TryGetValue(interfaceType, out InterfaceTypes types))
@@ -34,13 +32,14 @@ namespace EMI.SynsInteface
                 const FieldAttributes fieldAttributes = FieldAttributes.Private | FieldAttributes.SpecialName;
 
                 const TypeAttributes tBuilderAttributes = TypeAttributes.Public | TypeAttributes.Class;
-                TypeBuilder tBuilderServer = MBuilder.DefineType("SynsInterfaceServerSide::" + name, tBuilderAttributes);
-                TypeBuilder tBuilderClient = MBuilder.DefineType("SynsInterfaceClientSide::" + name, tBuilderAttributes);
+                TypeBuilder tBuilderServer = MBuilder.DefineType("SyncInterfaceServerSide::" + name, tBuilderAttributes);
+                TypeBuilder tBuilderClient = MBuilder.DefineType("SyncInterfaceClientSide::" + name, tBuilderAttributes);
                 tBuilderClient.AddInterfaceImplementation(interfaceType);
                 tBuilderServer.AddInterfaceImplementation(interfaceType);
 
-                var fieldClientClient = tBuilderClient.DefineField(Utils.FieldNameCreate(FieldClientName), typeof(Client), fieldAttributes);
-                var fieldClientServer = tBuilderServer.DefineField(Utils.FieldNameCreate(FieldClientName), typeof(Client), fieldAttributes);
+                int NameID = 0; // используется для наименования переменных
+                var fieldClientClient = tBuilderClient.DefineField(Utils.FieldNameCreate(ref NameID), typeof(Client), fieldAttributes);
+                var fieldClientServer = tBuilderServer.DefineField(Utils.FieldNameCreate(ref NameID), typeof(Client), fieldAttributes);
                 var ServerFields = new List<FieldList>();
                 var ClientFields = new List<FieldList>();
 
@@ -48,7 +47,7 @@ namespace EMI.SynsInteface
 
                 foreach (var method in methods)
                 {
-                    if (method.Attributes.HasFlag(MethodAttributes.SpecialName))
+                    if (method.Attributes.HasFlag(MethodAttributes.SpecialName)) //пропуск спецтодов по типу ToString()
                         continue;
 
                     var mParametersInfo = method.GetParameters();
@@ -68,57 +67,44 @@ namespace EMI.SynsInteface
                         else
                         {
                             var indicatorType = Utils.GetIndicatorFunc(method);
+                            if (indicatorType.IsGenericType)
+                                indicatorType = Utils.CreateGenericIndicator(indicatorType, method);
+
                             var indicatorMethods = indicatorType.GetMethods();
+                            var func = indicatorMethods.FindMethod(nameof(Indicator.Func.RCall));
+                            var funParam = func.GetParameters();
 
-                            //for (int i = 0; i < mParameters.Length; i++)
-                            //    ilCode.Emit(OpCodes.Ldarg, i + 1);
+                            var fieldIndicatorInst = tBuilder.DefineField(Utils.FieldNameCreate(ref NameID), indicatorType, fieldAttributes);
+                            string indicatorName = $"{tBuilder.Name}#{method}";
+                            var inst = Activator.CreateInstance(indicatorType, new object[] { indicatorName });
 
-                            //if (method.ReturnType == typeof(void))
-                            //{
+                            var fieldRCType = tBuilder.DefineField(Utils.FieldNameCreate(ref NameID), typeof(RCType), fieldAttributes);
 
-                                var funcTemplate = indicatorMethods.FindMethod(nameof(Indicator.Func.RCall));
-                                MethodInfo func;
-                                if (funcTemplate.IsGenericMethod)
-                                    func = funcTemplate.MakeGenericMethod(mParameters);
-                                else
-                                    func = funcTemplate;
 
-                                var funParam = func.GetParameters();
-                                string indicatorName = Utils.FieldNameCreate(method, "Indicator");//TODO сделать имя детермированым
-                                var fieldIndicatorInst = tBuilder.DefineField(indicatorName, func.DeclaringType, fieldAttributes);
-                                var inst = Activator.CreateInstance(func.DeclaringType, indicatorName);
+                            ilCode.DeclareLocal(typeof(CancellationToken));
 
-                                var fieldRCType = tBuilder.DefineField(indicatorName, typeof(RCType), fieldAttributes);
+                            ilCode.Emit(OpCodes.Ldarg_0);                  //0
+                            ilCode.Emit(OpCodes.Ldfld, fieldIndicatorInst);//1 вызываймый метод
 
-                                ilCode.DeclareLocal(typeof(CancellationToken));
+                            for (int i = 0; i < mParameters.Length; i++)   //
+                                ilCode.Emit(OpCodes.Ldarg, i + 1);         //входные аргументы
 
-                                ilCode.Emit(OpCodes.Ldarg_0);
-                                ilCode.Emit(OpCodes.Ldfld, fieldIndicatorInst);
-                                ilCode.Emit(OpCodes.Ldarg_0);
-                                ilCode.Emit(OpCodes.Ldfld, clientField);
-                                ilCode.Emit(OpCodes.Ldarg_0);
-                                ilCode.Emit(OpCodes.Ldfld, fieldRCType);
-                                ilCode.Emit(OpCodes.Ldloca, 0);
-                                ilCode.Emit(OpCodes.Initobj, typeof(CancellationToken));
-                                ilCode.Emit(OpCodes.Ldloc, 0);
+                            ilCode.Emit(OpCodes.Ldarg_0);                  //
+                            ilCode.Emit(OpCodes.Ldfld, clientField);       //Client загрзука параметра в аргумент
 
-                                ilCode.Emit(OpCodes.Callvirt, func);
+                            ilCode.Emit(OpCodes.Ldarg_0);                  //
+                            ilCode.Emit(OpCodes.Ldfld, fieldRCType);       //RCType загрузка параметра в аргумент
 
-                                fieldsClass.Add(new FieldList() { Type = fieldIndicatorInst.FieldType, FieldInfo = fieldIndicatorInst, Content = inst });
-                                fieldsClass.Add(new FieldList() { Type = fieldRCType.FieldType, FieldInfo = fieldRCType, Content = funParam[funParam.Length - 2].DefaultValue });
-                            //}
-                            //else
-                            //{
-                            //    var funcTemplate = indicatorMethods.FindMethod(nameof(Indicator.FuncOut<int>.RCall));
-                            //    var func = funcTemplate.MakeGenericMethod(Utils.GenericOutList(method.ReturnType, mParameters));
-                            //
-                            //
-                            //    ilCode.Emit(OpCodes.Callvirt, func);
-                            //
-                            //    throw new NotSupportedException();
-                            //    //fieldsClass.Add(new FieldList() { Type = fieldFunc.FieldType, FieldInfo = fieldFunc, 
-                            //    //    Content = Convert.ChangeType(indicatorObject, indicatorType) });
-                            //}
+                            ilCode.Emit(OpCodes.Ldloca, 0);                         //
+                            ilCode.Emit(OpCodes.Initobj, typeof(CancellationToken));//
+                            ilCode.Emit(OpCodes.Ldloc, 0);                          //default CancellationToken
+
+                            ilCode.Emit(OpCodes.Callvirt, func);
+
+
+                            fieldsClass.Add(new FieldList() { Type = fieldIndicatorInst.FieldType, FieldInfo = fieldIndicatorInst, Content = inst });
+                            fieldsClass.Add(new FieldList() { Type = fieldRCType.FieldType, FieldInfo = fieldRCType, Content = funParam[funParam.Length - 2].DefaultValue });
+
                             ilCode.Emit(OpCodes.Pop);
                             ilCode.Emit(OpCodes.Ret);
                         }
@@ -127,22 +113,23 @@ namespace EMI.SynsInteface
 
                     var isServer = method.GetCustomAttribute<OnlyServerAttribute>() != null;
                     var isClient = method.GetCustomAttribute<OnlyClientAttribute>() != null;
+                    var allSide = !isServer & !isClient;
 
-                    build(tBuilderClient, fieldClientClient, ClientFields, isClient);
-                    build(tBuilderServer, fieldClientServer, ServerFields, isServer);
+                    build(tBuilderClient, fieldClientClient, ClientFields, isClient | allSide);
+                    build(tBuilderServer, fieldClientServer, ServerFields, isServer | allSide);
                 }
 
                 var fields = interfaceType.GetProperties();
                 foreach (var field in fields)
                 {
-                    
+
                 }
 
                 //конструктор
-                void createConstructor(TypeBuilder tBuilder,FieldInfo ClientField, List<FieldList> fieldsClass)
+                void createConstructor(TypeBuilder tBuilder, FieldInfo ClientField, List<FieldList> fieldsClass)
                 {
                     var constructorArguments = new List<Type> { typeof(Client) };
-                    foreach(var arg in fieldsClass)
+                    foreach (var arg in fieldsClass)
                         constructorArguments.Add(arg.Type);
 
                     const MethodAttributes constAttributes = MethodAttributes.Public | MethodAttributes.NewSlot | MethodAttributes.HideBySig;
@@ -186,7 +173,7 @@ namespace EMI.SynsInteface
                     args.Add(arg.Content);
                 return (T)Activator.CreateInstance(Types.Client, args.ToArray(), null);
             }
-                
+
         }
     }
 }

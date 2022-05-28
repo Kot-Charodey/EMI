@@ -7,8 +7,8 @@
     <ProjectGuid>{F0668ED0-3407-49C9-9C96-C32408E10C9F}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>EMI.SynsInteface</RootNamespace>
-    <AssemblyName>EMI.SynsInteface</AssemblyName>
+    <RootNamespace>EMI.SyncInterface</RootNamespace>
+    <AssemblyName>EMI.SynsInterface</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -44,7 +44,7 @@
     <Compile Include="Exception\InvalidInterfaceException.cs" />
     <Compile Include="FieldList.cs" />
     <Compile Include="InterfaceTypes.cs" />
-    <Compile Include="SynsInterface.cs" />
+    <Compile Include="SyncInterface.cs" />
     <Compile Include="OnlyClientAttribute.cs" />
     <Compile Include="OnlyServerAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -52,6 +52,10 @@
     <Compile Include="Utils.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\SmartPackager\SmartPackager\SmartPackager.csproj">
+      <Project>{7bb03a3c-b5ed-474d-89b0-c457630c5cfe}</Project>
+      <Name>SmartPackager</Name>
+    </ProjectReference>
     <ProjectReference Include="..\EMI\EMI.csproj">
       <Project>{e73775b8-58dd-45a6-a686-bd5878f7e5ca}</Project>
       <Name>EMI</Name>

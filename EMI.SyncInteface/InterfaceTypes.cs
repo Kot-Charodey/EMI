@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace EMI.SynsInteface
+namespace EMI.SyncInterface
 {
     internal struct InterfaceTypes
     {

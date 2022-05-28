@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace EMI.SynsInteface
+namespace EMI.SyncInterface
 {
     using EMI;
 

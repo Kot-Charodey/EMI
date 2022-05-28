@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Reflection;
 
-namespace EMI.SynsInteface
+namespace EMI.SyncInterface
 {
     internal struct FieldList
     {
