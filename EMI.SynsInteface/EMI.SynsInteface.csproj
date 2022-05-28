@@ -4,17 +4,16 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{57F3D130-C1FD-451B-9698-967305D84D35}</ProjectGuid>
-    <OutputType>Exe</OutputType>
-    <RootNamespace>TestEMI</RootNamespace>
-    <AssemblyName>TestEMI</AssemblyName>
+    <ProjectGuid>{F0668ED0-3407-49C9-9C96-C32408E10C9F}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>EMI.SynsInteface</RootNamespace>
+    <AssemblyName>EMI.SynsInteface</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -24,7 +23,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -43,25 +41,20 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Program.cs" />
+    <Compile Include="Exception\InvalidInterfaceException.cs" />
+    <Compile Include="FieldList.cs" />
+    <Compile Include="InterfaceTypes.cs" />
+    <Compile Include="SynsInterface.cs" />
+    <Compile Include="OnlyClientAttribute.cs" />
+    <Compile Include="OnlyServerAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TestSynsInteface.cs" />
+    <Compile Include="RCTypeOptionAttribute.cs" />
+    <Compile Include="Utils.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\EMI.SynsInteface\EMI.SynsInteface.csproj">
-      <Project>{f0668ed0-3407-49c9-9c96-c32408e10c9f}</Project>
-      <Name>EMI.SynsInteface</Name>
-    </ProjectReference>
     <ProjectReference Include="..\EMI\EMI.csproj">
       <Project>{e73775b8-58dd-45a6-a686-bd5878f7e5ca}</Project>
       <Name>EMI</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\NetBaseTCP\NetBaseTCP.csproj">
-      <Project>{fe1deb7c-fa5e-4da1-b2e2-58530b36f40a}</Project>
-      <Name>NetBaseTCP</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

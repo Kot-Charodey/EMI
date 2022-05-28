@@ -59,7 +59,6 @@
     <Compile Include="Deterministic.cs" />
     <Compile Include="DPack.cs" />
     <Compile Include="Exception\AlreadyException.cs" />
-    <Compile Include="Exception\InvalidInterfaceException.cs" />
     <Compile Include="Exception\RegisterLimitException.cs" />
     <Compile Include="Exception\RPCRegisterNameException.cs" />
     <Compile Include="Indicators\AIndicator.cs" />

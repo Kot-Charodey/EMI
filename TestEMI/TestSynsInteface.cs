@@ -1,22 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using EMI;
+﻿using EMI;
+using EMI.SynsInteface;
+using System;
 
 namespace TestEMI
 {
     public interface IChat
     {
-        void SMS(string text);
+        //int a { get; set; }
+
+        [OnlyClient]
+        void SMS();
     }
 
     public class Chat : IChat
     {
-        public void SMS(string txt)
+        //public int a { get => 1; set => throw new NotImplementedException(); }
+
+        public void SMS()
         {
-            Console.WriteLine($"Сообщение: {txt}");
+            Console.WriteLine($"Сообщение:");
         }
     }
 
@@ -24,9 +26,12 @@ namespace TestEMI
     {
         public static IChat InitFull(Client cc)
         {
-            var chat = SyncInterface.CreateIndicator<IChat>(cc, "MyChat");
-            SyncInterface.RegisterInterface<IChat>(new Chat(), cc.RPC, "MyChat");
-            return chat;
+
+            var chatIndicator = new SynsInterface<IChat>("MyChat");
+            var chat = chatIndicator.NewIndicator(cc);
+            chat.SMS();
+            //SyncInterface.RegisterInterface<IChat>(new Chat(), cc.RPC, "MyChat");
+            return null;
         }
     }
 }

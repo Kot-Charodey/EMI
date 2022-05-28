@@ -175,25 +175,33 @@ namespace EMI.Indicators
                 await RCallLow(client, type, token).ConfigureAwait(false);
                 return Dtout;
             }
-
-#pragma warning disable CS1591 // Отсутствует комментарий XML для открытого видимого типа или члена
-            protected internal override int Size => (int)DPackUp.CalcNeedSize(Dt1);
+            /// <summary>
+            /// Расчитывает размер необходимый для упаковки
+            /// </summary>
+            protected internal override int Size => DPackUp.CalcNeedSize(Dt1);
 
             private readonly static Packager.M<TOut> DUnPack = Packager.Create<TOut>();
             private TOut Dtout;
             private readonly static Packager.M<T1> DPackUp = Packager.Create<T1>();
             private T1 Dt1;
 
+            /// <summary>
+            /// Упаковка
+            /// </summary>
+            /// <param name="array">массив для упаковки</param>
             protected internal override void PackUp(IReleasableArray array)
             {
                 DPackUp.PackUP(array.Bytes, array.Offset, Dt1);
             }
 
+            /// <summary>
+            /// Разпаковка
+            /// </summary>
+            /// <param name="array">массив для распаковки</param>
             protected internal override void UnPack(IReleasableArray array)
             {
                 DUnPack.UnPack(array.Bytes, array.Offset, out Dtout);
             }
-#pragma warning restore CS1591 // Отсутствует комментарий XML для открытого видимого типа или члена
         }
     }
 
