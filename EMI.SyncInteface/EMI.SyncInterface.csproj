@@ -41,9 +41,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AsyncCompileAttribute.cs" />
     <Compile Include="Exception\InvalidInterfaceException.cs" />
     <Compile Include="FieldList.cs" />
     <Compile Include="InterfaceTypes.cs" />
+    <Compile Include="MarkeredMethod.cs" />
     <Compile Include="SyncInterface.cs" />
     <Compile Include="OnlyClientAttribute.cs" />
     <Compile Include="OnlyServerAttribute.cs" />

@@ -15,7 +15,6 @@ namespace TestEMI
         static void Main(string[] args)
         {
             Client client = new Client(NetBaseTCPService.Service);
-            TestSynsInteface.InitFull(client);
 
             //client
             if (args.Length == 0)

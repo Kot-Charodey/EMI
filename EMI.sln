@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.2.32516.85
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestNetBaseTCP", "Test1\TestNetBaseTCP.csproj", "{4CFE6EA2-8683-41EA-A596-5C9CCC5CB3C1}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EMI", "EMI\EMI.csproj", "{E73775B8-58DD-45A6-A686-BD5878F7E5CA}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartPackager", "..\SmartPackager\SmartPackager\SmartPackager.csproj", "{7BB03A3C-B5ED-474D-89B0-C457630C5CFE}"
@@ -15,16 +13,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestEMI", "TestEMI\TestEMI.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EMI.SyncInterface", "EMI.SyncInteface\EMI.SyncInterface.csproj", "{F0668ED0-3407-49C9-9C96-C32408E10C9F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestSyncInterface", "TestSyncInterface\TestSyncInterface.csproj", "{9E1B1F62-C2F4-4F84-9523-4842B014289D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestNetBaseTCP", "TestNetBaseTCP\TestNetBaseTCP.csproj", "{4CFE6EA2-8683-41EA-A596-5C9CCC5CB3C1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{4CFE6EA2-8683-41EA-A596-5C9CCC5CB3C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4CFE6EA2-8683-41EA-A596-5C9CCC5CB3C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4CFE6EA2-8683-41EA-A596-5C9CCC5CB3C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4CFE6EA2-8683-41EA-A596-5C9CCC5CB3C1}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E73775B8-58DD-45A6-A686-BD5878F7E5CA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E73775B8-58DD-45A6-A686-BD5878F7E5CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E73775B8-58DD-45A6-A686-BD5878F7E5CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -45,6 +43,14 @@ Global
 		{F0668ED0-3407-49C9-9C96-C32408E10C9F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F0668ED0-3407-49C9-9C96-C32408E10C9F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F0668ED0-3407-49C9-9C96-C32408E10C9F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9E1B1F62-C2F4-4F84-9523-4842B014289D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E1B1F62-C2F4-4F84-9523-4842B014289D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E1B1F62-C2F4-4F84-9523-4842B014289D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E1B1F62-C2F4-4F84-9523-4842B014289D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4CFE6EA2-8683-41EA-A596-5C9CCC5CB3C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4CFE6EA2-8683-41EA-A596-5C9CCC5CB3C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4CFE6EA2-8683-41EA-A596-5C9CCC5CB3C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4CFE6EA2-8683-41EA-A596-5C9CCC5CB3C1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 
 namespace EMI.SyncInterface
 {
@@ -18,6 +19,8 @@ namespace EMI.SyncInterface
         private readonly static Dictionary<Type, InterfaceTypes> CachedInterfaces = new Dictionary<Type, InterfaceTypes>();
 
         private InterfaceTypes Types;
+        private List<MarkeredMethod> ServerMethods=new List<MarkeredMethod>();
+        private List<MarkeredMethod> ClientMethods=new List<MarkeredMethod>();
 
         public SyncInterface(string name)
         {
@@ -50,15 +53,12 @@ namespace EMI.SyncInterface
                     if (method.Attributes.HasFlag(MethodAttributes.SpecialName)) //пропуск спецтодов по типу ToString()
                         continue;
 
-                    var mParametersInfo = method.GetParameters();
-                    var mParameters = new Type[mParametersInfo.Length];
-                    for (int i = 0; i < mParametersInfo.Length; i++)
-                        mParameters[i] = mParametersInfo[i].ParameterType;
+                    var mParameters = method.GetParametersType();
 
-                    void build(TypeBuilder tBuilder, FieldInfo clientField, List<FieldList> fieldsClass, bool plug)
+                    void build(TypeBuilder tBuilder, FieldInfo clientField, List<FieldList> fieldsClass, List<MarkeredMethod> methodsList, bool plug)
                     {
                         var mBuilder = tBuilder.DefineMethod(method.Name, mAttributes, method.CallingConvention, method.ReturnType, mParameters);
-                        var ilCode = mBuilder.GetILGenerator();
+                        var ilCode = mBuilder.GetILGenerator(); //TODO посчитать стек
                         if (!plug)
                         {
                             ilCode.ThrowException(typeof(NotImplementedException));
@@ -66,6 +66,7 @@ namespace EMI.SyncInterface
                         }
                         else
                         {
+                            bool isReturnData = method.IsReturnData();
                             var indicatorType = Utils.GetIndicatorFunc(method);
                             if (indicatorType.IsGenericType)
                                 indicatorType = Utils.CreateGenericIndicator(indicatorType, method);
@@ -77,10 +78,10 @@ namespace EMI.SyncInterface
                             var fieldIndicatorInst = tBuilder.DefineField(Utils.FieldNameCreate(ref NameID), indicatorType, fieldAttributes);
                             string indicatorName = $"{tBuilder.Name}#{method}";
                             var inst = Activator.CreateInstance(indicatorType, new object[] { indicatorName });
+                            methodsList.Add(new MarkeredMethod(method, inst));
 
                             var fieldRCType = tBuilder.DefineField(Utils.FieldNameCreate(ref NameID), typeof(RCType), fieldAttributes);
-
-
+                            
                             ilCode.DeclareLocal(typeof(CancellationToken));
 
                             ilCode.Emit(OpCodes.Ldarg_0);                  //0
@@ -99,14 +100,33 @@ namespace EMI.SyncInterface
                             ilCode.Emit(OpCodes.Initobj, typeof(CancellationToken));//
                             ilCode.Emit(OpCodes.Ldloc, 0);                          //default CancellationToken
 
-                            ilCode.Emit(OpCodes.Callvirt, func);
+                            if (method.IsAsync())
+                            {
+                                throw new NotImplementedException();
+                            }
+                            else
+                            {
+                                ilCode.Emit(OpCodes.Callvirt, func);
+                                if (method.ReturnType == typeof(void))
+                                {
+                                    var taskWait = typeof(Task).GetMethod(nameof(Task.Wait), new Type[] { });
+                                    ilCode.Emit(OpCodes.Callvirt, taskWait);
+                                }
+                                else
+                                {
+                                    //var taskWait = typeof(Task).GetMethod(nameof(Task.g), new Type[] { });
+                                    //ilCode.Emit(OpCodes.Callvirt, taskWait);
+                                    throw new NotImplementedException();
+                                }
+                                //ilCode.Emit(OpCodes.Pop);
+                                ilCode.Emit(OpCodes.Ret);
+                            }
+
+                            var t = funParam[funParam.Length - 2].DefaultValue.GetType();
 
 
                             fieldsClass.Add(new FieldList() { Type = fieldIndicatorInst.FieldType, FieldInfo = fieldIndicatorInst, Content = inst });
                             fieldsClass.Add(new FieldList() { Type = fieldRCType.FieldType, FieldInfo = fieldRCType, Content = funParam[funParam.Length - 2].DefaultValue });
-
-                            ilCode.Emit(OpCodes.Pop);
-                            ilCode.Emit(OpCodes.Ret);
                         }
                         tBuilder.DefineMethodOverride(mBuilder, method);
                     }
@@ -115,8 +135,8 @@ namespace EMI.SyncInterface
                     var isClient = method.GetCustomAttribute<OnlyClientAttribute>() != null;
                     var allSide = !isServer & !isClient;
 
-                    build(tBuilderClient, fieldClientClient, ClientFields, isClient | allSide);
-                    build(tBuilderServer, fieldClientServer, ServerFields, isServer | allSide);
+                    build(tBuilderClient, fieldClientClient, ClientFields, ClientMethods, isClient | allSide);
+                    build(tBuilderServer, fieldClientServer, ServerFields, ServerMethods, isServer | allSide);
                 }
 
                 var fields = interfaceType.GetProperties();
@@ -173,7 +193,46 @@ namespace EMI.SyncInterface
                     args.Add(arg.Content);
                 return (T)Activator.CreateInstance(Types.Client, args.ToArray(), null);
             }
+        }
 
+        public void RegisterClass(Client client, T Class)
+        {
+            RegisterClass(client.RPC, Class, ServerMethods);
+        }
+
+        public void RegisterClass(Server server, T Class)
+        {
+            RegisterClass(server.RPC, Class, ClientMethods);
+        }
+
+        private void RegisterClass(RPC rpc,T Class, List<MarkeredMethod> methods)
+        {
+            foreach (var mMethod in methods)
+            {
+                var method = mMethod.MethodInfo;
+                var mParameters = method.GetParametersType();
+                Type delegateType;
+                Type genericDelegateType;
+                Type genericIndicatorType = mMethod.Indicator.GetType();
+                if (method.ReturnType == typeof(void))
+                    delegateType = Utils.GetRPCDelegate(mParameters);
+                else
+                    delegateType = Utils.GetRPCDelegateOut(method.ReturnType, mParameters);
+
+                if (delegateType.IsGenericType)
+                    genericDelegateType = delegateType.GetGenericTypeDefinition();
+                else
+                    genericDelegateType = delegateType;
+
+                if (genericIndicatorType.IsGenericType)
+                    genericIndicatorType = genericIndicatorType.GetGenericTypeDefinition();
+
+                //TODO НЕ ИЩЕТ МЕТОД
+                MethodInfo RegMethod = typeof(RPC).GetMethod(nameof(rpc.RegisterMethod), new Type[] { genericDelegateType, genericIndicatorType });
+                
+                //RPCfunc
+                //RPCfuncOut
+            }
         }
     }
 }

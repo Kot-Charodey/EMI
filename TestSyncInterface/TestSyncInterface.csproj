@@ -4,10 +4,10 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{BF34B1F1-84A4-494C-8FC6-85315E6CBB9B}</ProjectGuid>
+    <ProjectGuid>{9E1B1F62-C2F4-4F84-9523-4842B014289D}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>DebTest</RootNamespace>
-    <AssemblyName>DebTest</AssemblyName>
+    <RootNamespace>TestSyncInterface</RootNamespace>
+    <AssemblyName>TestSyncInterface</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -48,15 +48,29 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="client.bat">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="server.bat">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\SmartPackager\SmartPackager\SmartPackager.csproj">
       <Project>{7bb03a3c-b5ed-474d-89b0-c457630c5cfe}</Project>
       <Name>SmartPackager</Name>
     </ProjectReference>
+    <ProjectReference Include="..\EMI.SyncInteface\EMI.SyncInterface.csproj">
+      <Project>{f0668ed0-3407-49c9-9c96-c32408e10c9f}</Project>
+      <Name>EMI.SyncInterface</Name>
+    </ProjectReference>
     <ProjectReference Include="..\EMI\EMI.csproj">
       <Project>{e73775b8-58dd-45a6-a686-bd5878f7e5ca}</Project>
       <Name>EMI</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NetBaseTCP\NetBaseTCP.csproj">
+      <Project>{fe1deb7c-fa5e-4da1-b2e2-58530b36f40a}</Project>
+      <Name>NetBaseTCP</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

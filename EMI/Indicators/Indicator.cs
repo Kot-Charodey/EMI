@@ -39,6 +39,8 @@ namespace EMI.Indicators
             /// <returns></returns>
             public async Task RCall(Client client, RCType type = RCType.Guaranteed, CancellationToken token = default)
             {
+                type = RCType.Guaranteed;
+                token = default;
                 await RCallLow(client, type, token).ConfigureAwait(false);
             }
 
