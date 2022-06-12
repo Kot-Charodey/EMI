@@ -12,13 +12,15 @@ namespace TestSyncInterface
     public interface ITest
     {
         [OnlyClient]
-        int WaitAndGet();
+        Task<int> WaitAndGet();
     }
 
     class MyTest : ITest
     {
-        public int WaitAndGet()
+        public async Task<int> WaitAndGet()
         {
+            Console.WriteLine("wait");
+            await Task.Delay(5000);
             Console.WriteLine("return");
             return 404;
         }
@@ -55,8 +57,8 @@ namespace TestSyncInterface
 
                 var ob = sync.NewIndicator(client);
                 Console.WriteLine("Ждём");
-                int a = ob.WaitAndGet();
-                Console.WriteLine(a);
+                int a= ob.WaitAndGet().Result;
+                Console.WriteLine("Вывод:" + a);
                 Console.ReadLine();
             }//server
             else

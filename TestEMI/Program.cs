@@ -32,7 +32,6 @@ namespace TestEMI
                     goto reconect;
                 }
                 Console.WriteLine("Успех");
-                //TestSynsInteface.InitFull(client);
                 Chat(client);
             }//server
             else
@@ -43,7 +42,6 @@ namespace TestEMI
                 client = server.Accept().Result;
                 client.Disconnected += Client_Disconnected;
                 Console.WriteLine("Готово");
-                //TestSynsInteface.InitFull(client);
                 Chat(client);
             }
         }

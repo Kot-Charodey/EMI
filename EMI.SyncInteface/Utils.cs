@@ -117,6 +117,7 @@ namespace EMI.SyncInterface
 
         public static bool IsAsync(this MethodInfo method)
         {
+            var atr = method.GetCustomAttributes();
             if (method.GetCustomAttribute<AsyncCompileAttribute>() != null)
             {
                 return true;

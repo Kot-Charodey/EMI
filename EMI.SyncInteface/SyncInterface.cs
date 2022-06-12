@@ -19,8 +19,8 @@ namespace EMI.SyncInterface
         private readonly static Dictionary<Type, InterfaceTypes> CachedInterfaces = new Dictionary<Type, InterfaceTypes>();
 
         private InterfaceTypes Types;
-        private List<MarkeredMethod> ServerMethods = new List<MarkeredMethod>();
-        private List<MarkeredMethod> ClientMethods = new List<MarkeredMethod>();
+        private readonly List<MarkeredMethod> ServerMethods = new List<MarkeredMethod>();
+        private readonly List<MarkeredMethod> ClientMethods = new List<MarkeredMethod>();
 
         public SyncInterface(string name)
         {
@@ -115,10 +115,8 @@ namespace EMI.SyncInterface
                                 else
                                 {
                                     var TaskResultMethod = typeof(Task<>).MakeGenericType(method.ReturnType).GetProperty(nameof(Task<int>.Result)).GetGetMethod();
-                                    ilCode.Emit(OpCodes.Callvirt, TaskResultMethod); //РАБОТАЕТ НЕ КОРРЕКТНО
-                                    //throw new NotImplementedException();
+                                    ilCode.Emit(OpCodes.Callvirt, TaskResultMethod);
                                 }
-                                //ilCode.Emit(OpCodes.Pop);
                                 ilCode.Emit(OpCodes.Ret);
                             }
 
@@ -142,7 +140,7 @@ namespace EMI.SyncInterface
                 var fields = interfaceType.GetProperties();
                 foreach (var field in fields)
                 {
-
+                    throw new NotImplementedException();
                 }
 
                 //конструктор
@@ -161,7 +159,7 @@ namespace EMI.SyncInterface
                     for (int i = 0; i < fieldsClass.Count; i++)
                     {
                         ilCode.Emit(OpCodes.Ldarg_0);
-                        ilCode.Emit(OpCodes.Ldarg, 2);
+                        ilCode.Emit(OpCodes.Ldarg, i + 2);
                         ilCode.Emit(OpCodes.Stfld, fieldsClass[i].FieldInfo);
                     }
                     ilCode.Emit(OpCodes.Ret);
