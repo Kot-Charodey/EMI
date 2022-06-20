@@ -112,7 +112,7 @@ namespace EMI
 
         #region RegisterMethod
         /// <summary>
-        /// Регестрирует метод для возможности вызвать его
+        /// Регистрирует метод для возможности вызвать его
         /// </summary>
         /// <param name="method">метод</param>
         /// <param name="indicator">имя ключа</param>
@@ -133,7 +133,7 @@ namespace EMI
         }
 
         /// <summary>
-        /// Регестрирует метод для возможности вызвать его
+        /// Регистрирует метод для возможности вызвать его
         /// </summary>
         /// <param name="method">метод</param>
         /// <param name="indicator">ссылка на метод</param>
@@ -157,7 +157,7 @@ namespace EMI
         #endregion
         #region RegisterMethodReturned
         /// <summary>
-        /// Регестрирует метод для возможности вызвать его
+        /// Регистрирует метод для возможности вызвать его
         /// </summary>
         /// <param name="method">метод</param>
         /// <param name="indicator">ссылка на метод</param>
@@ -182,7 +182,7 @@ namespace EMI
         }
 
         /// <summary>
-        /// Регестрирует метод для возможности вызвать его
+        /// Регистрирует метод для возможности вызвать его
         /// </summary>
         /// <param name="method">метод</param>
         /// <param name="indicator">ссылка на метод</param>

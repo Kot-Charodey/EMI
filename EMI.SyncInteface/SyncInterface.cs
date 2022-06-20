@@ -102,7 +102,8 @@ namespace EMI.SyncInterface
 
                             if (method.IsAsync())
                             {
-                                throw new NotImplementedException();
+                                ilCode.Emit(OpCodes.Callvirt, func);
+                                //throw new NotImplementedException();
                             }
                             else
                             {
@@ -209,6 +210,7 @@ namespace EMI.SyncInterface
             {
                 var method = mMethod.MethodInfo;
                 var mParameters = method.GetParametersType();
+                //создаёт делегат для регистрации метода
                 Delegate runDelegate;
                 if (method.ReturnType == typeof(void))
                     runDelegate = Utils.MakeRPCDelegate(mParameters, Class, method);
@@ -232,7 +234,7 @@ namespace EMI.SyncInterface
                 if(RegMethod.IsGenericMethod)
                     RegMethod = RegMethod.MakeGenericMethod(delegateType.GetGenericArguments());
 
-                RegMethod.Invoke(rpc, new object[] { runDelegate, mMethod.Indicator });
+                RegMethod.Invoke(rpc, new object[] {runDelegate, mMethod.Indicator});
             }
         }
     }

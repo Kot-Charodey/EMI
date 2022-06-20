@@ -11,7 +11,7 @@ namespace TestSyncInterface
 {
     public interface ITest
     {
-        [OnlyClient]
+        //[OnlyClient]
         Task<int> WaitAndGet();
     }
 
@@ -36,7 +36,9 @@ namespace TestSyncInterface
         private static void Run(string[] args)
         {
             Client client = new Client(NetBaseTCPService.Service);
+            
             var sync = new SyncInterface<ITest>("MyTest");
+            sync.RegisterClass(client, new MyTest());
 
             //client
             if (args.Length == 0)

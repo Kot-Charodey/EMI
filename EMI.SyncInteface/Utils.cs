@@ -31,6 +31,12 @@ namespace EMI.SyncInterface
             throw new KeyNotFoundException();
         }
 
+        /// <summary>
+        /// Ищит и возвращает подходящий индикатор для метода
+        /// </summary>
+        /// <param name="method">метод для которого ищится индикатор</param>
+        /// <returns>индикатор (может быть generic (надо создать))</returns>
+        /// <exception cref="KeyNotFoundException">метод не найден</exception>
         public static Type GetIndicatorFunc(MethodInfo method)
         {
             var classes = typeof(Indicator).GetNestedTypes();
@@ -84,14 +90,23 @@ namespace EMI.SyncInterface
             return type != typeof(void) && type != typeof(Task);
         }
 
-        public static Type[] GetReturnAndParametrs(MethodInfo method)
+        public static Type GetReturnType(this MethodInfo method)
+        {
+            if (method.IsAsync(true))
+                return method.ReturnType.GenericTypeArguments[0];
+            else
+                return method.ReturnType;
+        }
+
+        public static Type[] GetReturnAndParametrs(this MethodInfo method)
         {
             Type[] types;
             if (method.IsReturnData())
             {
                 var param = method.GetParameters();
                 types = new Type[param.Length + 1];
-                types[0] = method.ReturnType;
+                types[0] = method.GetReturnType();
+
                 for (int i = 0; i < param.Length; i++)
                     types[i + 1] = param[i].ParameterType;
             }
@@ -105,9 +120,15 @@ namespace EMI.SyncInterface
             return types;
         }
 
+        /// <summary>
+        /// Создаёт generic метод
+        /// </summary>
+        /// <param name="indicator">индикатор который необходимо создать</param>
+        /// <param name="method">метод для которого создаётся индикатор</param>
+        /// <returns></returns>
         public static Type CreateGenericIndicator(Type indicator, MethodInfo method)
         {
-            return indicator.MakeGenericType(GetReturnAndParametrs(method));
+            return indicator.MakeGenericType(method.GetReturnAndParametrs());
         }
 
         public static string FieldNameCreate(ref int id)
@@ -115,21 +136,10 @@ namespace EMI.SyncInterface
             return $"SyncInterface::Field#[{id++}]";
         }
 
-        public static bool IsAsync(this MethodInfo method)
+        public static bool IsAsync(this MethodInfo method,bool onlyTaskReturn = false)
         {
-            var atr = method.GetCustomAttributes();
-            if (method.GetCustomAttribute<AsyncCompileAttribute>() != null)
-            {
-                return true;
-            }
-            else if (method.Module.GetCustomAttribute<AsyncCompileAttribute>() != null)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            var rp = method.ReturnParameter.ParameterType;
+            return rp == typeof(Task) && !onlyTaskReturn || rp.BaseType == typeof(Task);
         }
 
         public static Type[] GetParametersType(this MethodInfo method)
