@@ -1,10 +1,10 @@
 ﻿namespace EMI.RPCInternal
 {
-    using ProBuffer;
+    using NGC;
 
     internal interface IRPCReturn
     {
         int PackSize { get; }
-        void PackUp(IReleasableArray array);
+        void PackUp(INGCArray array);
     }
 }

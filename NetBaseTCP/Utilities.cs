@@ -4,7 +4,7 @@ namespace NetBaseTCP
 {
     internal static class Utilities
     {
-        public static IPEndPoint ParseAddress(string address)
+        public static IPEndPoint ParseIPAddress(string address)
         {
             string[] adds = address.Split('#');
             adds[0] = adds[0].ToLower().Trim();

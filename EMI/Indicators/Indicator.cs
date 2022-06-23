@@ -1,10 +1,10 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
-using EMI.ProBuffer;
 using SmartPackager;
 
 namespace EMI.Indicators
 {
+    using NGC;
     /// <summary>
     /// Позволяет создать ссылку на удалённый метод
     /// </summary>
@@ -47,12 +47,12 @@ namespace EMI.Indicators
 #pragma warning disable CS1591 // Отсутствует комментарий XML для открытого видимого типа или члена
             protected internal override int Size => 0;
 
-            protected internal override void PackUp(IReleasableArray array)
+            protected internal override void PackUp(INGCArray array)
             {
 
             }
 
-            protected internal override void UnPack(IReleasableArray array)
+            protected internal override void UnPack(INGCArray array)
             {
 
             }
@@ -94,12 +94,12 @@ namespace EMI.Indicators
             private readonly static Packager.M<T1> DPackUp = Packager.Create<T1>();
             private T1 Dt1;
 
-            protected internal override void PackUp(IReleasableArray array)
+            protected internal override void PackUp(INGCArray array)
             {
                 DPackUp.PackUP(array.Bytes, array.Offset, Dt1);
             }
 
-            protected internal override void UnPack(IReleasableArray array)
+            protected internal override void UnPack(INGCArray array)
             {
 
             }
@@ -141,11 +141,11 @@ namespace EMI.Indicators
             private readonly static Packager.M<TOut> DUnPack = Packager.Create<TOut>();
             private TOut Dtout;
 
-            protected internal override void PackUp(IReleasableArray array)
+            protected internal override void PackUp(INGCArray array)
             {
             }
 
-            protected internal override void UnPack(IReleasableArray array)
+            protected internal override void UnPack(INGCArray array)
             {
                 DUnPack.UnPack(array.Bytes, array.Offset, out Dtout);
             }
@@ -196,7 +196,7 @@ namespace EMI.Indicators
             /// Упаковка
             /// </summary>
             /// <param name="array">массив для упаковки</param>
-            protected internal override void PackUp(IReleasableArray array)
+            protected internal override void PackUp(INGCArray array)
             {
                 DPackUp.PackUP(array.Bytes, array.Offset, Dt1);
             }
@@ -205,7 +205,7 @@ namespace EMI.Indicators
             /// Разпаковка
             /// </summary>
             /// <param name="array">массив для распаковки</param>
-            protected internal override void UnPack(IReleasableArray array)
+            protected internal override void UnPack(INGCArray array)
             {
                 DUnPack.UnPack(array.Bytes, array.Offset, out Dtout);
             }

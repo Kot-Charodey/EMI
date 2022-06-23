@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace EMI.Indicators
 {
-    using ProBuffer;
+    using NGC;
     /// <summary>
     /// Ссылка на удалённый метод
     /// </summary>
@@ -21,13 +21,20 @@ namespace EMI.Indicators
         /// Упаковщик
         /// </summary>
         /// <param name="array"></param>
-        protected internal abstract void PackUp(IReleasableArray array);
+        protected internal abstract void PackUp(INGCArray array);
         /// <summary>
         /// Распаковщик
         /// </summary>
         /// <param name="array"></param>
-        protected internal abstract void UnPack(IReleasableArray array);
+        protected internal abstract void UnPack(INGCArray array);
 
+        /// <summary>
+        /// Вызов удалённого метода
+        /// </summary>
+        /// <param name="client">у кого вызвать</param>
+        /// <param name="type">тип вызова</param>
+        /// <param name="token">токен отмены</param>
+        /// <returns></returns>
         internal async Task RCallLow(Client client, RCType type, CancellationToken token)
         {
             bool guarant = type != RCType.Fast && type != RCType.FastForwarding;
@@ -42,40 +49,44 @@ namespace EMI.Indicators
                 packetType = (byte)PacketType.RPC_Simple;
             }
 
-            IReleasableArray sendArray;
-            if (packetType == (byte)PacketType.RPC_Forwarding) //PACK HEADER, init array
+            INGCArray sendArray=default;
+            try
             {
-                const int bsize = DPack.sizeof_DForwarding + 1;
-                sendArray = client.MyArrayBufferSend.AllocateArray(bsize + Size);
-                DPack.DForwarding.PackUP(sendArray.Bytes, 1, guarant, ID);
-                sendArray.Offset += bsize;
-            }
-            else
-            {
-                const int bsize = DPack.sizeof_DRPC + 1;
-                sendArray = client.MyArrayBufferSend.AllocateArray(bsize + Size);
-                DPack.DRPC.PackUP(sendArray.Bytes, 1, ID);
-                sendArray.Offset += bsize;
-            }
-            sendArray.Bytes[0] = packetType;
-
-            PackUp(sendArray);
-
-            await client.MyNetworkClient.SendAsync(sendArray, guarant, token).ConfigureAwait(false);
-            if (type == RCType.ReturnWait)
-            {
-                RCWaitHandle handle = new RCWaitHandle();
-                var tokenPro = CancellationTokenSource.CreateLinkedTokenSource(token, client.CancellationRun.Token).Token;
-
-                lock (client.RPCReturn)
+                if (packetType == (byte)PacketType.RPC_Forwarding) //PACK HEADER, init array
                 {
-                    client.RPCReturn.Add(ID, handle);
+                    const int bsize = DPack.sizeof_DForwarding + 1;
+                    sendArray = new NGCArray(bsize + Size);
+                    DPack.DForwarding.PackUP(sendArray.Bytes, 1, guarant, ID);
+                    sendArray.Offset += bsize;
                 }
-                await handle.Semaphore.WaitAsync(tokenPro).ConfigureAwait(false);
-                UnPack(handle.Array);
-                handle.Array.Release();
+                else
+                {
+                    const int bsize = DPack.sizeof_DRPC + 1;
+                    sendArray = new NGCArray(bsize + Size);
+                    DPack.DRPC.PackUP(sendArray.Bytes, 1, ID);
+                    sendArray.Offset += bsize;
+                }
+                sendArray.Bytes[0] = packetType;
+
+                PackUp(sendArray);
+
+                await client.MyNetworkClient.Send(sendArray, guarant, token).ConfigureAwait(false);
+                if (type == RCType.ReturnWait)
+                {
+                    var handle = new RCWaitHandle(this);
+                    var tokenPro = CancellationTokenSource.CreateLinkedTokenSource(token, client.CancellationRun.Token).Token;
+
+                    lock (client.RPCReturn)
+                    {
+                        client.RPCReturn.Add(ID, handle);
+                    }
+                    await handle.Semaphore.WaitAsync(tokenPro).ConfigureAwait(false);
+                }
             }
-            sendArray.Release();
+            finally
+            {
+                sendArray.Dispose();
+            }
         }
     }
 }

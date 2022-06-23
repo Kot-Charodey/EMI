@@ -10,7 +10,7 @@ namespace EMI
     public static class TaskUtilities
     {
         /// <summary>
-        /// Позволяет выполнить блокирующию операцию с функцией отмены и асинхронно (в другом потоке)
+        /// Дожидается выполнение функции (не асинхронной блокируйщей операции) в другом потоке асинхроно с возможность отмены
         /// </summary>
         /// <param name="function">функция на выполнение</param>
         /// <param name="tokenSource">передаётся именно TokenSource так как задача себя таким образом разбудит когда закончит выполняться</param>
@@ -65,34 +65,6 @@ namespace EMI
             }
 
             return threadEndWork;
-        }
-
-        /// <summary>
-        /// Попытаться выполнить функцию (блок try-cath)
-        /// </summary>
-        /// <param name="function">функция которую надо попытаться вызвать</param>
-        public static void Try(RPCfunc function)
-        {
-            try
-            {
-                function();
-            }
-            catch { }
-        }
-
-        /// <summary>
-        /// Попытаться выполнить функцию (блок try-cath)
-        /// </summary>
-        /// <typeparam name="T">тип отлавливоемой ошибки</typeparam>
-        /// <param name="function">функция которую надо попытаться вызвать</param>
-        /// <param name="cath">функция которая вызовиться при исключении</param>
-        public static void Try<T>(RPCfunc function, RPCfunc<T> cath) where T : Exception
-        {
-            try
-            {
-                function();
-            }
-            catch (T e) { cath(e); }
         }
     }
 }

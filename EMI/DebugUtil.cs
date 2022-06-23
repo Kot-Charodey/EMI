@@ -8,6 +8,7 @@ namespace EMI
 {
     internal static class DebugUtil
     {
+#if DEBUG
         public static string GetStackTrace()
         {
             var st = new System.Diagnostics.StackTrace(true);
@@ -22,4 +23,5 @@ namespace EMI
             return err;
         }
     }
+#endif
 }

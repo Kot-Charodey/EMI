@@ -8,7 +8,7 @@ using SmartPackager;
 namespace EMI
 {
     using Network;
-    using ProBuffer;
+    using NGC;
     using Indicators;
     using MyException;
     using RPCInternal;
@@ -22,7 +22,7 @@ namespace EMI
         /// </summary>
         /// <param name="array">необработанный пакет данных</param>
         /// <returns></returns>
-        internal delegate IRPCReturn MicroFunc(IReleasableArray array);
+        internal delegate IRPCReturn MicroFunc(INGCArray array);
         /// <summary>
         /// Указывает каким клиентам необходимо выполнить пересылку
         /// </summary>
@@ -118,7 +118,7 @@ namespace EMI
         /// <param name="indicator">имя ключа</param>
         public IRPCRemoveHandle RegisterMethod(RPCfunc method, Indicator.Func indicator)
         {
-            return RegisterMethodHelp(indicator.ID, (IReleasableArray array) =>
+            return RegisterMethodHelp(indicator.ID, (INGCArray array) =>
              {
                  try
                  {
@@ -140,7 +140,7 @@ namespace EMI
         public IRPCRemoveHandle RegisterMethod<T1>(RPCfunc<T1> method, Indicator.Func<T1> indicator)
         {
             var packager = Packager.Create<T1>();
-            return RegisterMethodHelp(indicator.ID, (IReleasableArray array) =>
+            return RegisterMethodHelp(indicator.ID, (INGCArray array) =>
              {
                  packager.UnPack(array.Bytes, array.Offset, out T1 t1);
                  try
@@ -164,7 +164,7 @@ namespace EMI
         public IRPCRemoveHandle RegisterMethod<Tout>(RPCfuncOut<Tout> method, Indicator.FuncOut<Tout> indicator)
         {
             var @out = RPCReturn<Tout>.Create();
-            return RegisterMethodHelp(indicator.ID, (IReleasableArray array) =>
+            return RegisterMethodHelp(indicator.ID, (INGCArray array) =>
             {
                 Tout data;
                 try
@@ -190,7 +190,7 @@ namespace EMI
         {
             var packager = Packager.Create<T1>();
             var @out = RPCReturn<Tout>.Create();
-            return RegisterMethodHelp(indicator.ID, (IReleasableArray array) =>
+            return RegisterMethodHelp(indicator.ID, (INGCArray array) =>
             {
                 packager.UnPack(array.Bytes, array.Offset, out T1 t1);
                 Tout data;

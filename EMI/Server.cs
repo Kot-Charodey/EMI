@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -35,7 +32,7 @@ namespace EMI
         internal event RPCfuncOut<Task> PingSend;
 
         /// <summary>
-        /// Создаёт новую копию сервера
+        /// Создаёт новый сервер
         /// </summary>
         /// <param name="service">интерфейс подключения</param>
         public Server(INetworkService service)
@@ -118,7 +115,7 @@ namespace EMI
                 }
                 token = CancellationTokenSource.Token;
             }
-            var LowClient = await LowServer.AcceptClient().ConfigureAwait(false);
+            var LowClient = await LowServer.AcceptClient(token).ConfigureAwait(false);
             token.ThrowIfCancellationRequested();
             Client client = null;
 
@@ -126,7 +123,7 @@ namespace EMI
             token.Register(() => cts.Cancel());
             await TaskUtilities.InvokeAsync(() =>
             {
-                client = Client.CreateClinetServerSide(LowClient, RPC, this);
+                client = new Client(LowClient, RPC, this);
             }, cts).ConfigureAwait(false);
 
             var list = Clients;

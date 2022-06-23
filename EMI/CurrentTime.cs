@@ -9,28 +9,13 @@ using System.Diagnostics;
 namespace EMI
 {
     /// <summary>
-    /// Позвояет получить текущее время (оптимизирован для частых запросов)   (DateTime.UtcNow слишком долго)
+    /// Позвояет получить число тиков для расчёта задержек (точное)
     /// </summary>
-    public static class CurrentTime
+    internal static class TickTime
     {
         /// <summary>
-        /// Текущее время
+        /// Текущие кол-во тиков
         /// </summary>
-        public static DateTime Now => new DateTime(TimerPoint + Stopwatch.Elapsed.Ticks);
-        private static long TimerPoint;
-        private readonly static Stopwatch Stopwatch;
-
-        static CurrentTime()
-        {
-            Stopwatch = new Stopwatch();
-            TimerPoint = DateTime.UtcNow.Ticks;
-            Stopwatch.Start();
-
-            //синхронизирует время с DateTime
-            Timer timer = new Timer((_) =>
-              {
-                  TimerPoint += DateTime.UtcNow.Ticks - Now.Ticks;
-              }, null, 0, 60000);
-        }
+        public static DateTime Now => new DateTime(Stopwatch.GetTimestamp());
     }
 }

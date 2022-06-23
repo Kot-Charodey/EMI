@@ -1,19 +1,16 @@
 ﻿using System;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Net.Sockets;
 
 using EMI.Network;
-using EMI.ProBuffer;
+using EMI.NGC;
 using EMI.MyException;
 
 namespace NetBaseTCP
 {
     public class NetBaseTCPClient : INetworkClient
     {
-        public ProArrayBuffer ProArrayBuffer { get; set; }
-
         public bool IsConnect { 
             get; 
             private set;
@@ -44,7 +41,6 @@ namespace NetBaseTCP
         {
             lock (this)
             {
-                ProArrayBuffer = server.ProArrayBuffer;
                 TcpClient = tcpClient;
                 NetworkStream = TcpClient.GetStream();
                 Server = server;
@@ -174,7 +170,7 @@ namespace NetBaseTCP
             SemaphoreWrite.Release();
         }
 
-        public async Task SendAsync(IReleasableArray array, bool guaranteed, CancellationToken token)
+        public async Task Send(IReleasableArray array, bool guaranteed, CancellationToken token)
         {
             await SemaphoreWrite.WaitAsync(token).ConfigureAwait(false);
             try
@@ -220,7 +216,7 @@ namespace NetBaseTCP
 
                     bool wait = await EMI.TaskUtilities.InvokeAsync(() =>
                     {
-                        TcpClient.Connect(Utilities.ParseAddress(address));
+                        TcpClient.Connect(Utilities.ParseIPAddress(address));
                     }, cts).ConfigureAwait(false);
 
                     NetworkStream = TcpClient.GetStream();

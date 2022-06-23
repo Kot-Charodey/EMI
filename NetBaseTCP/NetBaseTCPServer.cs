@@ -1,16 +1,14 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Net.Sockets;
-
 using EMI.Network;
-using EMI.ProBuffer;
+using EMI.NGC;
 using EMI.MyException;
 
 namespace NetBaseTCP
 {
     public class NetBaseTCPServer : INetworkServer
     {
-        public ProArrayBuffer ProArrayBuffer { get; set; }
 
         private TcpListener TcpListener;
         internal List<NetBaseTCPClient> TCPClients = new List<NetBaseTCPClient>(10);
@@ -34,7 +32,7 @@ namespace NetBaseTCP
             {
                 if (TcpListener != null)
                     throw new AlreadyException();
-                TcpListener = new TcpListener(Utilities.ParseAddress(address));
+                TcpListener = new TcpListener(Utilities.ParseIPAddress(address));
                 TcpListener.Start();
             }
         }

@@ -1,13 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace EMI
+﻿namespace EMI
 {
     internal static class Deterministic
     {
+        /// <summary>
+        /// Возвращает хеш код строки текста (детермизированный [одинаковый для одной и той же строки на всех устройсвах])
+        /// </summary>
+        /// <param name="str">строка текста для которой необходимо расчитать хеш код</param>
+        /// <returns>хеш код строки текста</returns>
         public static int DeterministicGetHashCode(this string str)
         {
             unchecked

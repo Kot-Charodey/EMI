@@ -4,7 +4,7 @@ using System;
 
 namespace EMI.Network
 {
-    using EMI.ProBuffer;
+    using NGC;
     /* Рекомендации по реализации интерфейса
     * address для сетевых подключений в виде текста localhost#port
     * address для других типов интерфейсов может быть описан свой
@@ -12,17 +12,14 @@ namespace EMI.Network
     * следует использовать многопоточность/асинхронность
     * не асинхронные методы не могут блокировать поток
     * данный интерфейс является узким местом и поэтому должн максимально оптимизированн (ИЗБЕГАТЬ создания объектов)
-    * event Disconnected должен вызываться даже при выполнении метода Сonnect и возвращать причину неуспешного подключения
     * при использовании сетевых сокетов и подобных проверять от того ли адреса приходят данные (для функции Accept) - посторонние данные отбрасывать
     * Disconnect по возможности должен собеседнику сообщать об отключении
-    * EMI сам управляет отключением если клиент долго не отвечает
     * Send игнорирует свойство offset массива и начинает с нуля
-    * Disconnect - может быть нечайно вызван несколько раз - игнорировать
     */
     /// <summary>
     /// Делегат для INetworkClient - вызывается когда клиент был отключен
     /// </summary>
-    /// <param name="error">код/текст ошибки</param>
+    /// <param name="error">код/сообщение/текст ошибки</param>
     public delegate void INetworkClientDisconnected(string error);
 
     /// <summary>
@@ -31,16 +28,11 @@ namespace EMI.Network
     public interface INetworkClient
     {
         /// <summary>
-        /// Конвеер для выдачи массивов (использовать при распакове/обработки входных данных) необходим для рекомендации "ИЗБЕГАТЬ создания объектов"
-        /// Устанавливается библиотекой при инициализации
-        /// </summary>
-        ProArrayBuffer ProArrayBuffer { set; }
-        /// <summary>
         /// Подключён ли клиент
         /// </summary>
         bool IsConnect { get; }
         /// <summary>
-        /// Вызывается при отключении клиента от сервера (вызывается если произойдёт сбой при вызове Сonnect)
+        /// Вызывается при отключении клиента из за внешней ошибки
         /// </summary>
         event INetworkClientDisconnected Disconnected;
         /// <summary>
@@ -52,26 +44,28 @@ namespace EMI.Network
         Task<bool> Сonnect(string address, CancellationToken token);
         /// <summary>
         /// Отключиться от сервера
+        /// <param name="user_error">ошибка/сообщение отключения</param>
         /// </summary>
         void Disconnect(string user_error);
         /// <summary>
-        /// Отправить данные асинхронно
+        /// Отправить данные на сервер
         /// </summary>
-        /// <param name="array">массив данных</param>
-        /// <param name="guaranteed">необходимо гарантированно доставить пакет (если false для оптимизации следует по возможности использовать негарантированную доставку, тоесть пакет может быть потерян)</param>
-        /// <param name="token">токен отмены задачи</param>
-        Task SendAsync(IReleasableArray array, bool guaranteed, CancellationToken token);
+        /// <param name="array">массив байт для отправки</param>
+        /// <param name="guaranteed">гарантированная доставка</param>
+        /// <param name="token">токен отмены</param>
+        /// <returns></returns>
+        Task Send(in INGCArray array, bool guaranteed, CancellationToken token);
         /// <summary>
-        /// Отправить данные
+        /// Ожидает пакет и возвращает размер пакета
         /// </summary>
-        /// <param name="array">массив данных</param>
-        /// <param name="guaranteed">необходимо гарантированно доставить пакет (если false для оптимизации следует по возможности использовать негарантированную доставку, тоесть пакет может быть потерян)</param>
-        void Send(IReleasableArray array, bool guaranteed);
+        /// <param name="token">токен отмены</param>
+        /// <returns>размер массива необходимый для считывания</returns>
+        Task<int> WaitPacket(CancellationToken token);
         /// <summary>
-        /// Считывает пришедшие данные
+        /// Считывает пакет (обязательно после WaitPacket)
         /// </summary>
-        /// <param name="token">токен отмены задачи</param>
-        /// <returns>массив и смещение от куда можно начинать считывать данные</returns>
-        Task<IReleasableArray> AcceptAsync(CancellationToken token);
+        /// <param name="array">массив куда будет записан пакет</param>
+        /// <param name="token">токен отмены операции</param>
+        Task AcceptPacket(ref INGCArray array, CancellationToken token);
     }
 }

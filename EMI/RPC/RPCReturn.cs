@@ -2,7 +2,7 @@
 
 namespace EMI.RPCInternal
 {
-    using ProBuffer;
+    using NGC;
 
     internal struct RPCReturn<T> : IRPCReturn
     {
@@ -28,7 +28,7 @@ namespace EMI.RPCInternal
             PackSize = (int)Pack.CalcNeedSize(data);
         }
 
-        public void PackUp(IReleasableArray array)
+        public void PackUp(INGCArray array)
         {
             Pack.PackUP(array.Bytes, array.Offset, Data);
         }
