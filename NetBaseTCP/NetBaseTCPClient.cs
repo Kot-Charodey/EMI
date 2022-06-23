@@ -24,9 +24,9 @@ namespace NetBaseTCP
         private const int MaxOneSendSize = 1024;
         private bool IsServerSide => Server != null;
 
-        private readonly byte[] AcceptHeaderBuffer = new byte[DataGramInfo.SizeOf];
+        private readonly byte[] AcceptHeaderBuffer = new byte[MessageHeader.SizeOf];
 
-        private readonly byte[] SendHeaderBuffer = new byte[DataGramInfo.SizeOf];
+        private readonly byte[] SendHeaderBuffer = new byte[MessageHeader.SizeOf];
 
 
         private SemaphoreSlim SemaphoreRead;
@@ -100,14 +100,14 @@ namespace NetBaseTCP
         {
             await SemaphoreRead.WaitAsync(token).ConfigureAwait(false);
 
-            await AcceptLow(AcceptHeaderBuffer, DataGramInfo.SizeOf, token).ConfigureAwait(false);
+            await AcceptLow(AcceptHeaderBuffer, MessageHeader.SizeOf, token).ConfigureAwait(false);
 
-            DataGramInfo header;
+            MessageHeader header;
             unsafe
             {
                 fixed (byte* headerBufferPtr = &AcceptHeaderBuffer[0])
                 {
-                    header = *((DataGramInfo*)headerBufferPtr);
+                    header = *((MessageHeader*)headerBufferPtr);
                 }
             }
 
@@ -146,13 +146,13 @@ namespace NetBaseTCP
             SemaphoreWrite.Wait();
             try
             {
-                DataGramInfo header = new DataGramInfo(array.Length, false);
+                MessageHeader header = new DataGramInfo(array.Length, false);
 
                 unsafe
                 {
                     fixed (byte* headerBufferPtr = &SendHeaderBuffer[0])
                     {
-                        *((DataGramInfo*)headerBufferPtr) = header;
+                        *((MessageHeader*)headerBufferPtr) = header;
                     }
                 }
 
@@ -175,13 +175,13 @@ namespace NetBaseTCP
             await SemaphoreWrite.WaitAsync(token).ConfigureAwait(false);
             try
             {
-                DataGramInfo header = new DataGramInfo(array.Length, false);
+                MessageHeader header = new DataGramInfo(array.Length, false);
 
                 unsafe
                 {
                     fixed (byte* headerBufferPtr = &SendHeaderBuffer[0])
                     {
-                        *((DataGramInfo*)headerBufferPtr) = header;
+                        *((MessageHeader*)headerBufferPtr) = header;
                     }
                 }
 
