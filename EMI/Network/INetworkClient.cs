@@ -54,18 +54,17 @@ namespace EMI.Network
         /// <param name="guaranteed">гарантированная доставка</param>
         /// <param name="token">токен отмены</param>
         /// <returns></returns>
-        Task Send(in INGCArray array, bool guaranteed, CancellationToken token);
+        Task Send(INGCArray array, bool guaranteed, CancellationToken token);
         /// <summary>
-        /// Ожидает пакет и возвращает размер пакета
+        /// Считывает пакет
         /// </summary>
-        /// <param name="token">токен отмены</param>
-        /// <returns>размер массива необходимый для считывания</returns>
-        Task<int> WaitPacket(CancellationToken token);
-        /// <summary>
-        /// Считывает пакет (обязательно после WaitPacket)
-        /// </summary>
-        /// <param name="array">массив куда будет записан пакет</param>
+        /// <param name="max_size">максимальный размер пакета для обработки (если больше то клиент будет отключен)</param>
         /// <param name="token">токен отмены операции</param>
-        Task AcceptPacket(ref INGCArray array, CancellationToken token);
+        Task<INGCArray> AcceptPacket(int max_size, CancellationToken token);
+        /// <summary>
+        /// Возвращает адресс с которым связан данных клиент
+        /// </summary>
+        /// <returns></returns>
+        string GetRemoteClientAddress();
     }
 }

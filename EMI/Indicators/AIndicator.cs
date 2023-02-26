@@ -13,6 +13,12 @@ namespace EMI.Indicators
         /// айди вызываймой функции
         /// </summary>
         protected internal int ID;
+#if DebugPro
+        /// <summary>
+        /// Имя индикатора для отладки
+        /// </summary>
+        internal string Name;
+#endif
         /// <summary>
         /// Размер необходимый для упаковки параметров
         /// </summary>

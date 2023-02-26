@@ -1,0 +1,80 @@
+﻿<ContentControl x:Class="EMI.Debugger.Controls.StateClientInfo"
+            xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+            xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+            xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+            mc:Ignorable="d" 
+            MinWidth="300" MinHeight="300"
+            syncfusion:DockingManager.Header="Информация о клиенте"
+            syncfusion:DockingManager.DesiredHeightInDockedMode="300"
+            syncfusion:DockingManager.DesiredWidthInDockedMode="300"
+   
+            syncfusion:DockingManager.DesiredHeightInFloatingMode="300"
+            syncfusion:DockingManager.DesiredWidthInFloatingMode="300"
+    
+            syncfusion:DockingManager.SideInDockedMode="None"
+            syncfusion:DockingManager.State="Document"
+                
+            Loaded="ContentControl_Loaded"
+            Unloaded="ContentControl_Unloaded">
+    <Grid Margin="5">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="200" MinWidth="150"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <TextBlock Text="Клиенты:"/>
+            <ScrollViewer Grid.Row="1">
+                <ListBox Name="ClientList"/>
+            </ScrollViewer>
+        </Grid>
+        <GridSplitter Grid.Column="1" Grid.RowSpan="2" ShowsPreview="False" Width="3" HorizontalAlignment="Center" VerticalAlignment="Stretch" />
+        <TabControl Grid.Column="2" Name="TabClientInfo">
+            <TabItem Header="Информация">
+                <StackPanel>
+                    <DockPanel Margin="0 0 0 5">
+                        <TextBlock Text="Статус подключения: "/>
+                        <TextBlock Text="null" Name="IsConnect"/>
+                    </DockPanel>
+
+                    <DockPanel Margin="0 0 0 5">
+                        <TextBlock Text="Серверный клиент: "/>
+                        <TextBlock Text="null" Name="IsServerSide"/>
+                    </DockPanel>
+
+                    <DockPanel Margin="0 0 0 5">
+                        <TextBlock Text="Пинг: "/>
+                        <TextBlock Text="null" Name="Ping"/>
+                    </DockPanel>
+
+                    <DockPanel Margin="0 0 0 5">
+                        <TextBlock Text="Допустимый макс. пинг: "/>
+                        <TextBlock Text="null" Name="PingTimeout"/>
+                    </DockPanel>
+                    
+                    <DockPanel Margin="0 0 0 5">
+                        <TextBlock Text="Лимит на размер пакета: "/>
+                        <TextBlock Text="null" Name="MaxPacketAcceptSize"/>
+                    </DockPanel>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="RPC">
+                <ScrollViewer>
+                    <ListBox Name="RPCList"/>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="Логи">
+                <ScrollViewer>
+                    <ListBox Name="LogsList"/>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+    </Grid>
+</ContentControl>

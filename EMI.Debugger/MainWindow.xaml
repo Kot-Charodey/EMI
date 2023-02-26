@@ -1,0 +1,37 @@
+﻿<syncfusion:ChromelessWindow x:Class="EMI.Debugger.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:EMI.Debugger"
+        xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+        mc:Ignorable="d"
+        Title="MG EMI Debugger" Height="450" Width="800">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        
+        <syncfusion:MenuAdv VerticalAlignment="Top" Grid.Row="0">
+            <syncfusion:MenuItemAdv Header="Файл">
+                <syncfusion:MenuItemAdv Header="Сохранить"/>
+                <syncfusion:MenuItemAdv Header="Сохранить как..."/>
+                <syncfusion:MenuItemAdv Header="Открыть"/>
+            </syncfusion:MenuItemAdv>
+
+            <syncfusion:MenuItemAdv Header="Окна">
+                <syncfusion:MenuItemAdv Header="Подключение" Click="ConnectMenuItem_Click"/>
+                <syncfusion:MenuItemAdv Header="Состояние NGC Array" Click="MenuStateNGCArray_Click"/>
+                <syncfusion:MenuItemAdv Header="Информация о клиенте" Click="MenuClientInfo_Click"/>
+                <syncfusion:MenuItemAdv Header="Информация о сервере" Click="MenuServerInfo_Click"/>
+            </syncfusion:MenuItemAdv>
+            
+            <syncfusion:MenuItemAdv Header="Параметры">
+                <syncfusion:MenuItemAdv Header="Внешний вид" Name="MenuTheme"/>
+                <syncfusion:MenuItemAdv Header="О програме..."/>
+            </syncfusion:MenuItemAdv>
+        </syncfusion:MenuAdv>
+        <syncfusion:DockingManager Name="Content" Grid.Row="1" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" UseDocumentContainer="True" UseNativeFloatWindow="True"/>
+    </Grid>
+</syncfusion:ChromelessWindow>

@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 
 namespace EMI
 {
-    using Network;
     using MyException;
+    using Network;
 
     /// <summary>
     /// Сервер
@@ -24,8 +24,63 @@ namespace EMI
 
         private CancellationTokenSource CancellationTokenSource;
         private List<Client> Clients;
+        /// <summary>
+        /// Логи сервера и клиентов
+        /// </summary>
+        public readonly DebugLog.Logger Logger = new DebugLog.Logger();
         private readonly INetworkService Service;
         private readonly INetworkServer LowServer;
+
+
+#if DebugPro
+        private Client[] GetClients()
+        {
+            if (Clients == null)
+                return new Client[0];
+            else
+                return Clients.ToArray();
+        }
+#endif
+
+        /// <summary>
+        /// Список клиентов подключеных к серверу
+        /// </summary>
+        public Client[] ServerClients =>
+#if DebugPro
+            GetClients();
+#else
+            throw new NotSupportedException();
+#endif
+        /// <summary>
+        /// Имя сервиса по которому осуществляется низкоуровневый обмен сообщениями
+        /// </summary>
+        public string ServiceName =>
+#if DebugPro
+            Service.ToString();
+#else
+            throw new NotSupportedException();
+#endif
+        private string _address = "";
+
+        /// <summary>
+        /// Адресс по которому сервер слушает подключения
+        /// </summary>
+        public string GetAddress =>
+#if DebugPro
+        _address;
+#else
+        throw new NotSupportedException();
+#endif
+
+        /// <summary>
+        /// Происходит когда клиент подключился
+        /// </summary>
+        public event Action<Client> OnClientConnect;
+        /// <summary>
+        /// Происходит когда клиент отключается
+        /// </summary>
+        public event Action<Client> OnClientDisconnect;
+
         /// <summary>
         /// Вызывается раз в секунду для проверки пинга
         /// </summary>
@@ -39,6 +94,7 @@ namespace EMI
         {
             Service = service;
             LowServer = Service.GetNewServer();
+            Logger.Log(DebugLog.LogType.Message, $"Server => init (service: {service})");
         }
 
         /// <summary>
@@ -48,6 +104,7 @@ namespace EMI
         /// <exception cref="AlreadyException">сервер уже запущен</exception>
         public void Start(string address)
         {
+            _address = address;
             lock (this)
             {
                 if (IsRun)
@@ -58,9 +115,9 @@ namespace EMI
                 CancellationTokenSource = new CancellationTokenSource();
 
                 LowServer.StartServer(address);
-
                 PingProcessStart();
             }
+            Logger.Log(DebugLog.LogType.Message, "Server => started");
         }
 
         /// <summary>
@@ -83,6 +140,7 @@ namespace EMI
                     }
                 }
             }
+            Logger.Log(DebugLog.LogType.Message, "Server => stoped");
         }
 
         private void PingProcessStart()
@@ -90,12 +148,14 @@ namespace EMI
             Task.Factory.StartNew(async () =>
             {
                 var token = CancellationTokenSource.Token;
-                    while (!token.IsCancellationRequested)
-                    {
-                        await Task.Delay(1000).ConfigureAwait(false);
-                        if (PingSend != null)
-                            await PingSend().ConfigureAwait(false);
-                    }
+                while (!token.IsCancellationRequested)
+                {
+                    await Task.Delay(1000).ConfigureAwait(false);
+                    if (PingSend != null)
+                        await PingSend().ConfigureAwait(false);
+                }
+
+                Logger.Log(DebugLog.LogType.Message, "Server ping process => stoped");
             }, TaskCreationOptions.LongRunning);
         }
 
@@ -127,11 +187,22 @@ namespace EMI
             }, cts).ConfigureAwait(false);
 
             var list = Clients;
+            lock (list)
+            {
+                list.Add(client);
+#if DebugPro
+                OnClientConnect?.Invoke(client);
+#endif
+            }
+
             client.Disconnected += (_) =>
             {
                 lock (list)
                 {
                     list.Remove(client);
+#if DebugPro
+                    OnClientDisconnect?.Invoke(client);
+#endif
                 }
             };
             return client;

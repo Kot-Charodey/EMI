@@ -1,0 +1,38 @@
+﻿<ContentControl x:Class="EMI.Debugger.Controls.StateNGCArray"
+            xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+            xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+            xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+            mc:Ignorable="d" 
+            MinWidth="300" MinHeight="100"
+            syncfusion:DockingManager.Header="Состояние NGC Array"
+            syncfusion:DockingManager.DesiredHeightInDockedMode="100"
+            syncfusion:DockingManager.DesiredWidthInDockedMode="300"
+   
+            syncfusion:DockingManager.DesiredHeightInFloatingMode="100"
+            syncfusion:DockingManager.DesiredWidthInFloatingMode="300"
+    
+            syncfusion:DockingManager.SideInDockedMode="Left"
+            syncfusion:DockingManager.State="Dock"
+                
+            Loaded="ContentControl_Loaded"
+            Unloaded="ContentControl_Unloaded">
+    <StackPanel Margin="5">
+        <DockPanel Margin="0 0 0 5">
+            <TextBlock Width="150" Text="Использование массивов"/>
+            <Grid VerticalAlignment="Stretch">
+                <ProgressBar Height="16" Maximum="100" Value="0" VerticalAlignment="Stretch" Name="ArrayProgress"/>
+                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="Нет данных" Name="ArrayText"/>
+            </Grid>
+        </DockPanel>
+
+        <DockPanel>
+            <TextBlock Width="150" Text="Использование кэша"/>
+            <Grid VerticalAlignment="Stretch">
+                <ProgressBar Height="16" Maximum="100" Value="0" VerticalAlignment="Stretch" Name="MemoryProgress"/>
+                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="Нет данных" Name="MemoryText"/>
+            </Grid>
+        </DockPanel>
+    </StackPanel>
+</ContentControl>

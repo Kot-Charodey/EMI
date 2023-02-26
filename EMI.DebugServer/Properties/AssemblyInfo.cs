@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // Общие сведения об этой сборке предоставляются следующим набором
 // набора атрибутов. Измените значения этих атрибутов для изменения сведений,
 // связанные со сборкой.
-[assembly: AssemblyTitle("EMI.Base")]
+[assembly: AssemblyTitle("EMI.DebugServer")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("EMI.Base")]
+[assembly: AssemblyProduct("EMI.DebugServer")]
 [assembly: AssemblyCopyright("Copyright ©  2022")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // Следующий GUID служит для идентификации библиотеки типов, если этот проект будет видимым для COM
-[assembly: Guid("3e6aeb4a-b660-4d1c-99e1-a36be1dc2913")]
+[assembly: Guid("9380db8f-ad7d-4ff8-be16-e692d0c39d57")]
 
 // Сведения о версии сборки состоят из указанных ниже четырех значений:
 //

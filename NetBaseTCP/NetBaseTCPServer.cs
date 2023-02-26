@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using System.Net.Sockets;
 using EMI.Network;
+using System.Threading;
 using EMI.NGC;
 using EMI.MyException;
 
@@ -13,7 +14,7 @@ namespace NetBaseTCP
         private TcpListener TcpListener;
         internal List<NetBaseTCPClient> TCPClients = new List<NetBaseTCPClient>(10);
 
-        public async Task<INetworkClient> AcceptClient()
+        public async Task<INetworkClient> AcceptClient(CancellationToken token)
         {
             try
             {

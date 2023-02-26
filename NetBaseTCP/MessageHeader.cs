@@ -22,9 +22,7 @@ namespace NetBaseTCP
         /// </summary>
         private const uint FlagMask = 0b10000000000000000000000000000000;
         [FieldOffset(0)]
-#pragma warning disable IDE0044 // Добавить модификатор только для чтения
         private uint Data;
-#pragma warning restore IDE0044 // Добавить модификатор только для чтения
 
         public MessageHeader(int size,bool isMessage)
         {
@@ -33,16 +31,25 @@ namespace NetBaseTCP
         /// <summary>
         /// Считывает 4 первых байта массива (проверку не делает) и преобразовывает в MessageHeader
         /// </summary>
-        /// <param name="bytes"></param>
+        /// <param name="buffer"></param>
         /// <returns>Заголовок сообщения</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe static MessageHeader FromBytes(byte[] bytes)
+        public unsafe static MessageHeader FromBytes(byte[] buffer)
         {
-            fixed (byte* ptr = bytes)
+            fixed (byte* ptr = buffer)
             {
                 return *(MessageHeader*)ptr;
             }
         }
+
+        public unsafe void WriteToBuffer(byte[] buffer)
+        {
+            fixed (byte* ptr = buffer)
+            {
+                *((MessageHeader*)ptr) = this;
+            }
+        }
+
         /// <summary>
         /// Получить размер пакета
         /// </summary>

@@ -9,7 +9,7 @@ namespace EMI.NGC
     /// <summary>
     /// Массив с вынесенной переменной длинны и смещения
     /// </summary>
-    public interface INGCArray:IDisposable
+    public interface INGCArray : IDisposable
     {
         /// <summary>
         /// Размер массива

@@ -17,11 +17,11 @@ namespace TestEMI
             Client client = new Client(NetBaseTCPService.Service);
 
             //client
-            if (args.Length == 0)
+            if (args.Length == 0 || args[0].Trim().ToLower()=="client")
             {
-                System.Diagnostics.Process.Start("server.bat");
+                if(args.Length!=0)
+                    System.Diagnostics.Process.Start("server.bat");
 
-                client = new Client(NetBaseTCPService.Service);
                 client.Disconnected += Client_Disconnected;
                 reconect:
                 Console.WriteLine("Попытка подключиться...");//"31.10.114.169#25566"
@@ -37,12 +37,27 @@ namespace TestEMI
             else
             {
                 Server server = new Server(NetBaseTCPService.Service);
+
+                var cc = new EMI.DebugServer.EDebuggerServer(server, NetBaseTCPService.Service);
+                cc.Start("any#9000");
+                Console.WriteLine("Нажмите кнопку что бы запустить сервер");
+                Console.ReadLine();
+
                 server.Start("any#25566");
                 Console.WriteLine("Ожидание клиента");
-                client = server.Accept().Result;
-                client.Disconnected += Client_Disconnected;
-                Console.WriteLine("Готово");
-                Chat(client);
+                rep:
+                try
+                {
+                    client = server.Accept().Result;
+                    client.Disconnected += Client_Disconnected;
+                    Console.WriteLine("Готово");
+                    Chat(client);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    goto rep;
+                }
             }
         }
 
@@ -58,6 +73,7 @@ namespace TestEMI
                 if (txt == "exit")
                 {
                     client.Disconnect("я так захотел");
+                    System.Threading.Thread.Sleep(3000);
                     break;
                 }
                 msg.RCall(txt, client).Wait();

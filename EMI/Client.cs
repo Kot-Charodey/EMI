@@ -43,7 +43,10 @@ namespace EMI
         /// Вызывается если произошло отключение
         /// </summary>
         public event INetworkClientDisconnected Disconnected;
-
+        /// <summary>
+        /// Максимальный размер пакета который может отправить удалённый пользователь за один раз (если размер будет превышен - клиент будет отключен)
+        /// </summary>
+        public int MaxPacketAcceptSize = 1024 * 1024 * 10;
         /// <summary>
         /// Интерфейс отправки/считывания датаграмм
         /// </summary>
@@ -66,6 +69,27 @@ namespace EMI
         /// Ссылка на сервер (если клиент серверный)
         /// </summary>
         private readonly Server Server;
+        /// <summary>
+        /// Логи сервера и клиентов
+        /// </summary>
+        public readonly DebugLog.Logger Logger;
+        /// <summary>
+        ///  Возвращает адресс удалённого связанного клиента
+        /// </summary>
+        public string RemoteAddress
+        {
+            get
+            {
+                if (IsConnect)
+                {
+                    return MyNetworkClient.GetRemoteClientAddress();
+                }
+                else
+                {
+                    return "none";
+                }
+            }
+        }
 
         /// <summary>
         /// Инициализирует клиента но не подключает к серверу
@@ -73,9 +97,12 @@ namespace EMI
         /// <param name="network">интерфейс подключения</param>
         public Client(INetworkService network)
         {
+            Logger = new DebugLog.Logger();
             MyNetworkClient = network.GetNewClient();
             RPC = LocalRPC;
             Init();
+            
+            Logger.Log(this, DebugLog.LogType.Message, $"Client => init on client side (service: {network})");
         }
 
         /// <summary>
@@ -86,11 +113,14 @@ namespace EMI
         /// <param name="server"></param>
         internal Client(INetworkClient network, RPC rpc, Server server)
         {
+            Logger = server.Logger;
             MyNetworkClient = network;
             RPC = rpc;
             Server = server;
             Init();
             RunProcces();
+
+            Logger.Log(this, DebugLog.LogType.Message, $"Client => init on server side (service: {network})");
         }
 
         /// <summary>
@@ -111,6 +141,8 @@ namespace EMI
         /// <returns>было ли произведено подключение</returns>
         public async Task<bool> Connect(string address, CancellationToken token)
         {
+            Logger.Log(this, DebugLog.LogType.Message, $"Client try connect => begin (IsConnect = {IsConnect}; IsServerSide = {IsServerSide})");
+
             if (IsConnect)
                 throw new AlreadyException("Сlient is already running!");
             if (IsServerSide)
@@ -120,20 +152,28 @@ namespace EMI
 
             var status = await MyNetworkClient.Сonnect(address, token).ConfigureAwait(false);
 
-            if (token.IsCancellationRequested)
+            Logger.Log(this, DebugLog.LogType.Message, $"Client try connect => MyNetworkClient.Сonnect status => " + status);
+
+            if (token.IsCancellationRequested && status==true)
             {
-                //TODO разорвать подключние
+                string msg = "The connection operation was canceled";
+                Logger.Log(this, DebugLog.LogType.Message, $"Client try connect => " + msg);
+                MyNetworkClient.Disconnect(msg);
+                DoCancellationRun();
+
+                Logger.Log(this, DebugLog.LogType.Message, $"Client try connect => unsuccessful!");
                 return false;
             }
-
 
             if (status == true)
             {
                 RunProcces();
+                Logger.Log(this, DebugLog.LogType.Message, $"Client try connect => done!");
                 return true;
             }
             else
             {
+                Logger.Log(this, DebugLog.LogType.Message, $"Client try connect => unsuccessful!");
                 return false;
             }
         }
@@ -144,15 +184,18 @@ namespace EMI
         /// <param name="user_error">что сообщить клиенту при отключении</param>
         public void Disconnect(string user_error = "unknown")
         {
+            Logger.Log(this, DebugLog.LogType.Message, $"Client disconnect => message: {user_error}");
 #if DEBUG
+            Console.WriteLine("Disconnect:");
             Console.WriteLine(DebugUtil.GetStackTrace());
 #endif
             if (!IsConnect)
             {
+                Logger.Log(this,DebugLog.LogType.Error, "Client disconnect => the client is already disconnected!");
                 throw new AlreadyException();
             }
             MyNetworkClient.Disconnect(user_error);
-            DoCancellationRun();
+            //DoCancellationRun();
         }
 
         /// <summary>
@@ -161,7 +204,9 @@ namespace EMI
         /// <param name="error"></param>
         private void LowDisconnect(string error)
         {
+            Logger.Log(this, DebugLog.LogType.CriticalError, "Client => LowDisconnect => " + error);
 #if DEBUG
+            Console.WriteLine("Disconnect:");
             Console.WriteLine(DebugUtil.GetStackTrace());
 #endif
             Disconnected?.Invoke(error);
@@ -174,13 +219,23 @@ namespace EMI
         {
             try
             {
-                var cr = CancellationRun;
-                CancellationRun = null;
-                cr.Cancel();
+                CancellationRun.Cancel();
+                CancellationRun.Dispose();
+                CancellationRun = new CancellationTokenSource();
+                //var cr = CancellationRun;
+                //CancellationRun = null;
+                //cr.Cancel();
                 Task.Run(async () =>
                 {
-                    await Task.Delay(15000).ConfigureAwait(false);
-                    cr.Dispose();
+                    try
+                    {
+                        await Task.Delay(5000).ConfigureAwait(false);
+                        //cr.Dispose();
+                    }
+                    catch(Exception e)
+                    {
+                        Logger.Log(this,DebugLog.LogType.Error, "Client DoCancellationRun => throw error: " + e.ToString());
+                    }
                 });
             }
             finally
@@ -216,6 +271,7 @@ namespace EMI
                 LastPing = TickTime.Now;
                 const int size = DPack.sizeof_DPing + 1;
                 var array = new EasyArray(size);
+                array.Bytes[0] = (byte)PacketType.Ping_Send;
 
                 async Task pingTask()
                 {
@@ -223,7 +279,10 @@ namespace EMI
                     {
                         if (TickTime.Now - LastPing > PingTimeout)
                         {
-                            MyNetworkClient.Disconnect($"Timeout (Timeout = {(TickTime.Now - LastPing).TotalMilliseconds} ms)");
+                            string msg = $"Timeout (Timeout = {(TickTime.Now - LastPing).TotalMilliseconds} ms)";
+                            Logger.Log(this, DebugLog.LogType.CriticalError, "Client process ping => " + msg);
+                            MyNetworkClient.Disconnect(msg);
+
                             if (IsServerSide)
                                 lock (Server)
                                     Server.PingSend -= pingTask;
@@ -231,13 +290,14 @@ namespace EMI
                         }
                         else
                         {
-                            array.Bytes[0] = (byte)PacketType.Ping_Send;
                             DPack.DPing.PackUP(array.Bytes, 1, TickTime.Now);
                             await MyNetworkClient.Send(array, false, token).ConfigureAwait(false);
                         }
                     }
-                    catch
+                    catch (Exception e)
                     {
+                        Logger.Log(this, DebugLog.LogType.CriticalError, "Client process ping => " + e.ToString());
+
                         MyNetworkClient.Disconnect($"Connection close");
                         if (IsServerSide)
                             lock (Server)
@@ -258,6 +318,7 @@ namespace EMI
                         await Task.Delay(1000).ConfigureAwait(false);
                         await pingTask().ConfigureAwait(false);
                     }
+                    Logger.Log(this, DebugLog.LogType.Message, "Client process ping (client side) => stoped");
                 }
             });
         }
@@ -269,25 +330,30 @@ namespace EMI
         /// <returns></returns>
         private async Task RunProccesAccept(CancellationToken token)
         {
-            while (!token.IsCancellationRequested)
+            try
             {
-                int size = await MyNetworkClient.WaitPacket(token);
-                INGCArray buffer = new NGCArray(size);
-                bool error = true;
-                try
+                while (!token.IsCancellationRequested)
                 {
-                    await MyNetworkClient.AcceptPacket(ref buffer, token);
-                    _ = InputStack.Push(buffer, token).ConfigureAwait(false);
-                    _ = ProccesAccept(token).ConfigureAwait(false);
-                    error = false;
-                }
-                finally
-                {
-                    if (error)
+                    var packet = await MyNetworkClient.AcceptPacket(MaxPacketAcceptSize, token);
+                    if (packet.IsEmpty())
+                        break;
+                    await InputStack.Push(packet, token).ConfigureAwait(false);
+                    try
                     {
-                        buffer.Dispose();
+                        _ = ProccesAccept(token).ConfigureAwait(false);
+                    }
+                    catch(Exception e)
+                    {
+                        string err_str = "Client process accept => packet accept => throw error: " + e.ToString();
+                        Logger.Log(this, DebugLog.LogType.CriticalError, err_str);
+                        MyNetworkClient.Disconnect("Remote => " + err_str);
                     }
                 }
+                Logger.Log(this, DebugLog.LogType.Message, "Client process accept => stoped");
+            }
+            catch(Exception e)
+            {
+                Logger.Log(this, DebugLog.LogType.Error, "Client process accept => throw error: " + e.ToString());
             }
         }
 
@@ -303,7 +369,7 @@ namespace EMI
 
             using (var ArrayHandle = await InputStack.Pop(token))
             {
-                if (token.IsCancellationRequested)
+                if (token.IsCancellationRequested || ArrayHandle.Buffer.IsEmpty())
                     return;
                 var array = ArrayHandle.Buffer;
                 PacketType packetType = (PacketType)array.Bytes[array.Offset];
@@ -332,6 +398,7 @@ namespace EMI
                         break;
                     case PacketType.RPC_Returned:
                         {
+                            //TODO - тут какета хуйня проиходит
                             DPack.DRPC.UnPack(array.Bytes, array.Offset, out var id);
                             array.Offset += sizeof(int);
 
@@ -343,7 +410,9 @@ namespace EMI
                             {
                                 if (source.IsCancellationRequested)
                                 {
-                                    MyNetworkClient.Disconnect("Bad packet header data");
+                                    string err_str = "Client process accept => RPCReturn.TryGetValue => not found, timeout";
+                                    Logger.Log(this, DebugLog.LogType.CriticalError, err_str);
+                                    MyNetworkClient.Disconnect("Remote => " + err_str);
                                     return;
                                 }
                                 await Task.Yield();
@@ -362,6 +431,7 @@ namespace EMI
                     case PacketType.RPC_Forwarding:
                         if (!IsServerSide)
                         {
+                            Logger.Log(this, DebugLog.LogType.CriticalError, "Client process accept => Bad packet type (forwarding not supported on clients)");
                             MyNetworkClient.Disconnect("Bad packet type (forwarding not supported on clients)");
                         }
                         else
@@ -395,11 +465,13 @@ namespace EMI
                             }
                             else
                             {
-                                Console.WriteLine("EMI RC => Not found forwarding!");
+                                Logger.Log(this, DebugLog.LogType.Waring, "EMI RC => Not found forwarding!");
+                                //Console.WriteLine("EMI RC => Not found forwarding!");
                             }
                         }
                         break;
                     default:
+                        Logger.Log(this, DebugLog.LogType.CriticalError, "Client process accept => Bad packet type");
                         MyNetworkClient.Disconnect("Bad packet type");
                         break;
                 }
@@ -459,7 +531,8 @@ namespace EMI
             }
             else
             {
-                Console.WriteLine("EMI RC => Not found method!");
+                Logger.Log(this, DebugLog.LogType.Waring, $"EMI RC => Not found method! [{id}]");
+                //Console.WriteLine("EMI RC => Not found method!");
             }
         }
     }

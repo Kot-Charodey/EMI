@@ -18,7 +18,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;NoBuild</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;DebugPro</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -55,10 +55,13 @@
   <ItemGroup>
     <Compile Include="Client.cs" />
     <Compile Include="CurrentTime.cs" />
+    <Compile Include="DebugLog\Logger.cs" />
+    <Compile Include="DebugLog\LogInfo.cs" />
     <Compile Include="DebugUtil.cs" />
     <Compile Include="Deterministic.cs" />
     <Compile Include="DPack.cs" />
     <Compile Include="Exception\AlreadyException.cs" />
+    <Compile Include="Exception\ClientViolationRightsException.cs" />
     <Compile Include="Exception\RegisterLimitException.cs" />
     <Compile Include="Exception\RPCRegisterNameException.cs" />
     <Compile Include="FixedStack.cs" />
@@ -67,6 +70,7 @@
     <Compile Include="InputStackBuffer.cs" />
     <Compile Include="NGC\EasyArray.cs" />
     <Compile Include="NGC\INGCArray.cs" />
+    <Compile Include="NGC\INGCArrayUtils.cs" />
     <Compile Include="RCType.cs" />
     <Compile Include="RCWaitHandle.cs" />
     <Compile Include="RPC\IRPCRemoveHandle.cs" />

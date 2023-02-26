@@ -1,0 +1,35 @@
+﻿<ContentControl
+            x:Class="EMI.Debugger.Controls.Connection"
+            xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+            xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+            xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+            mc:Ignorable="d" 
+            Loaded="ContentControl_Loaded"
+            Unloaded="UserControl_Unloaded"
+            MinWidth="250" MinHeight="80"
+            syncfusion:DockingManager.Header="Подключение отладчика"
+            syncfusion:DockingManager.DesiredHeightInDockedMode="80"
+            syncfusion:DockingManager.DesiredWidthInDockedMode="290"
+            syncfusion:DockingManager.DesiredMinHeightInDockedMode="80"
+            syncfusion:DockingManager.DesiredMinWidthInDockedMode="250"
+   
+            syncfusion:DockingManager.DesiredHeightInFloatingMode="80"
+            syncfusion:DockingManager.DesiredWidthInFloatingMode="290"
+            syncfusion:DockingManager.DesiredMinHeightInFloatingMode="80"
+            syncfusion:DockingManager.DesiredMinWidthInFloatingMode="250"
+    
+            syncfusion:DockingManager.SideInDockedMode="Right"
+            syncfusion:DockingManager.State="Dock">
+    <StackPanel Margin="5">
+            <DockPanel Margin="0 0 0 5">
+                <TextBlock Width="130" Text="Адресс отладчика"/>
+                <TextBox x:Name="Address" Text="127.0.0.1#9000"/>
+            </DockPanel>
+
+            <DockPanel Margin="0 0 0 5">
+                <Button Content="Подключить" Name="CButton" Click="Button_Click"/>
+            </DockPanel>
+    </StackPanel>
+</ContentControl>

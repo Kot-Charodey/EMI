@@ -1,0 +1,45 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Syncfusion.SfChart.WPF" Version="20.2.0.38" />
+    <PackageReference Include="Syncfusion.Themes.Blend.WPF" Version="20.2.0.38" />
+    <PackageReference Include="Syncfusion.Themes.FluentDark.WPF" Version="20.2.0.38" />
+    <PackageReference Include="Syncfusion.Themes.Lime.WPF" Version="20.2.0.38" />
+    <PackageReference Include="Syncfusion.Themes.MaterialDark.WPF" Version="20.2.0.38" />
+    <PackageReference Include="Syncfusion.Themes.MaterialDarkBlue.WPF" Version="20.2.0.38" />
+    <PackageReference Include="Syncfusion.Themes.MaterialLight.WPF" Version="20.2.0.38" />
+    <PackageReference Include="Syncfusion.Themes.MaterialLightBlue.WPF" Version="20.2.0.38" />
+    <PackageReference Include="Syncfusion.Themes.Metro.WPF" Version="20.2.0.38" />
+    <PackageReference Include="Syncfusion.Themes.Office2016Colorful.WPF" Version="20.2.0.38" />
+    <PackageReference Include="Syncfusion.Themes.Office2016DarkGray.WPF" Version="20.2.0.38" />
+    <PackageReference Include="Syncfusion.Themes.Office2016White.WPF" Version="20.2.0.38" />
+    <PackageReference Include="Syncfusion.Themes.Office2019Black.WPF" Version="20.2.0.38" />
+    <PackageReference Include="Syncfusion.Themes.Office2019HighContrastWhite.WPF" Version="20.2.0.38" />
+    <PackageReference Include="Syncfusion.Themes.Office2019White.WPF" Version="20.2.0.38" />
+    <PackageReference Include="Syncfusion.Themes.Office365.WPF" Version="20.2.0.38" />
+    <PackageReference Include="Syncfusion.Themes.Saffron.WPF" Version="20.2.0.38" />
+    <PackageReference Include="Syncfusion.Themes.SystemTheme.WPF" Version="20.2.0.38" />
+    <PackageReference Include="Syncfusion.Themes.VisualStudio2015.WPF" Version="20.2.0.38" />
+    <PackageReference Include="Syncfusion.Tools.WPF" Version="20.2.0.38" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EMI.DebugServer\EMI.DebugServer.csproj" />
+    <ProjectReference Include="..\EMI\EMI.csproj" />
+    <ProjectReference Include="..\NetBaseTCP\NetBaseTCP.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="ThemesList.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

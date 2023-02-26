@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -35,6 +36,45 @@ namespace EMI
         private readonly Dictionary<int, MicroFunc> RegisteredMethods = new Dictionary<int, MicroFunc>();
         private readonly Dictionary<int, ForwardingInfo> RegisteredForwarding = new Dictionary<int, ForwardingInfo>();
 
+#if DebugPro
+        private readonly Dictionary<int, (string, int)> RegisteredMethodsName = new Dictionary<int, (string, int)>();
+        private readonly Dictionary<int,string> RegisteredForwardingName = new Dictionary<int, string>();
+#endif
+        /// <summary>
+        /// Получает список зарегистрированных функций
+        /// </summary>
+        /// <returns></returns>
+        public KeyValuePair<int,(string,int)>[] GetRegisteredMethodsName()
+        {
+#if DebugPro
+            return RegisteredMethodsName.ToArray();
+#else
+            throw new NotSupportedException();
+#endif
+        }
+
+        /// <summary>
+        /// Получает список зарегистрированных функций (Forwarding)
+        /// </summary>
+        /// <returns></returns>
+        public KeyValuePair<int, string>[] GetRegisteredForwardingName()
+        {
+#if DebugPro
+            return RegisteredForwardingName.ToArray();
+#else
+            throw new NotSupportedException();
+#endif
+        }
+
+        /// <summary>
+        /// Вызывается когда изменён список зарегистрированных методов
+        /// </summary>
+        public event Action OnChangedRegisteredMethods;
+        /// <summary>
+        /// Вызывается когда изменён список зарегистрированных методов
+        /// </summary>
+        public event Action OnChangedRegisteredMethodsForwarding;
+
         internal RPC()
         {
         }
@@ -70,21 +110,30 @@ namespace EMI
         /// <summary>
         /// Производит основную регистрацию метода (остаётся только написать микрофункцию)
         /// </summary>
-        /// <param name="regName"></param>
+        /// <param name="indicator"></param>
         /// <param name="micro"></param>
         /// <returns></returns>
-        private IRPCRemoveHandle RegisterMethodHelp(int regName, MicroFunc micro)
+        private IRPCRemoveHandle RegisterMethodHelp(AIndicator indicator, MicroFunc micro)
         {
-            int id = regName;
+            int id = indicator.ID;
             lock (this)
             {
                 if (RegisteredMethods.ContainsKey(id))
                 {
                     RegisteredMethods[id] += micro;
+#if DebugPro
+                    var dat = RegisteredMethodsName[id];
+                    RegisteredMethodsName[id] = (dat.Item1, dat.Item2 + 1);
+                    OnChangedRegisteredMethods?.Invoke();
+#endif
                 }
                 else
                 {
                     RegisteredMethods.Add(id, micro);
+#if DebugPro
+                    RegisteredMethodsName.Add(id, (indicator.Name,1));
+                    OnChangedRegisteredMethods?.Invoke();
+#endif
                 }
                 return new RemoveHandleMethod(id, micro, this);
             }
@@ -106,11 +155,15 @@ namespace EMI
                 }
 
                 RegisteredForwarding.Add(indicator.ID, info);
+#if DebugPro
+                RegisteredForwardingName.Add(indicator.ID, indicator.Name);
+                OnChangedRegisteredMethodsForwarding?.Invoke();
+#endif
                 return new RemoveHandleForwarding(indicator.ID, this);
             }
         }
 
-        #region RegisterMethod
+#region RegisterMethod
         /// <summary>
         /// Регистрирует метод для возможности вызвать его
         /// </summary>
@@ -118,7 +171,7 @@ namespace EMI
         /// <param name="indicator">имя ключа</param>
         public IRPCRemoveHandle RegisterMethod(RPCfunc method, Indicator.Func indicator)
         {
-            return RegisterMethodHelp(indicator.ID, (INGCArray array) =>
+            return RegisterMethodHelp(indicator, (INGCArray array) =>
              {
                  try
                  {
@@ -140,7 +193,7 @@ namespace EMI
         public IRPCRemoveHandle RegisterMethod<T1>(RPCfunc<T1> method, Indicator.Func<T1> indicator)
         {
             var packager = Packager.Create<T1>();
-            return RegisterMethodHelp(indicator.ID, (INGCArray array) =>
+            return RegisterMethodHelp(indicator, (INGCArray array) =>
              {
                  packager.UnPack(array.Bytes, array.Offset, out T1 t1);
                  try
@@ -154,8 +207,8 @@ namespace EMI
                  return null;
              });
         }
-        #endregion
-        #region RegisterMethodReturned
+#endregion
+#region RegisterMethodReturned
         /// <summary>
         /// Регистрирует метод для возможности вызвать его
         /// </summary>
@@ -164,7 +217,7 @@ namespace EMI
         public IRPCRemoveHandle RegisterMethod<Tout>(RPCfuncOut<Tout> method, Indicator.FuncOut<Tout> indicator)
         {
             var @out = RPCReturn<Tout>.Create();
-            return RegisterMethodHelp(indicator.ID, (INGCArray array) =>
+            return RegisterMethodHelp(indicator, (INGCArray array) =>
             {
                 Tout data;
                 try
@@ -190,7 +243,7 @@ namespace EMI
         {
             var packager = Packager.Create<T1>();
             var @out = RPCReturn<Tout>.Create();
-            return RegisterMethodHelp(indicator.ID, (INGCArray array) =>
+            return RegisterMethodHelp(indicator, (INGCArray array) =>
             {
                 packager.UnPack(array.Bytes, array.Offset, out T1 t1);
                 Tout data;
@@ -207,7 +260,7 @@ namespace EMI
                 return @out;
             });
         }
-        #endregion
+#endregion
 
         /// <summary>
         /// Позволяет удалить зарегистрированный метод
@@ -239,9 +292,22 @@ namespace EMI
 
                     var deleg = RPC.RegisteredMethods[ID];
                     if (deleg.GetInvocationList().GetLength(0) > 1)
+                    {
                         deleg -= Micro;
+#if DebugPro
+                        var dat = RPC.RegisteredMethodsName[ID];
+                        RPC.RegisteredMethodsName[ID] = (dat.Item1, dat.Item2 - 1);
+                        RPC.OnChangedRegisteredMethods?.Invoke();
+#endif
+                    }
                     else
+                    {
                         RPC.RegisteredMethods.Remove(ID);
+#if DebugPro
+                        RPC.RegisteredMethodsName.Remove(ID);
+                        RPC.OnChangedRegisteredMethods?.Invoke();
+#endif
+                    }
 
                     RPC = null;
                     Micro = null;
@@ -277,6 +343,10 @@ namespace EMI
                     IsRemoved = true;
 
                     RPC.RegisteredForwarding.Remove(ID);
+#if DebugPro
+                    RPC.RegisteredForwardingName.Remove(ID);
+                    RPC.OnChangedRegisteredMethodsForwarding?.Invoke();
+#endif
                     RPC = null;
                 }
             }

@@ -50,6 +50,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\EMI.DebugServer\EMI.DebugServer.csproj">
+      <Project>{9380db8f-ad7d-4ff8-be16-e692d0c39d57}</Project>
+      <Name>EMI.DebugServer</Name>
+    </ProjectReference>
     <ProjectReference Include="..\EMI\EMI.csproj">
       <Project>{e73775b8-58dd-45a6-a686-bd5878f7e5ca}</Project>
       <Name>EMI</Name>

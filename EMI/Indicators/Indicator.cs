@@ -23,6 +23,9 @@ namespace EMI.Indicators
             public Func(string name)
             {
                 ID = name.DeterministicGetHashCode();
+#if DebugPro
+                Name = name;
+#endif
             }
 
             private Func()
@@ -72,6 +75,9 @@ namespace EMI.Indicators
             public Func(string name)
             {
                 ID = name.DeterministicGetHashCode();
+#if DebugPro
+                Name = name;
+#endif
             }
 
             /// <summary>
@@ -119,6 +125,9 @@ namespace EMI.Indicators
             public FuncOut(string name)
             {
                 ID = name.DeterministicGetHashCode();
+#if DebugPro
+                Name = name;
+#endif
             }
 
             /// <summary>
@@ -165,6 +174,9 @@ namespace EMI.Indicators
             public FuncOut(string name)
             {
                 ID = name.DeterministicGetHashCode();
+#if DebugPro
+                Name = name;
+#endif
             }
 
             /// <summary>

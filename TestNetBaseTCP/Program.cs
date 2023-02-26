@@ -15,29 +15,21 @@ namespace Test1
     {
         static void Main(string[] args)
         {
-            EMI.ProBuffer.ProArrayBuffer ProArray = new EMI.ProBuffer.ProArrayBuffer();
-
             //client
             if (args.Length == 0)
             {
-                NetBaseTCP.NetBaseTCPClient client = new NetBaseTCP.NetBaseTCPClient
-                {
-                    ProArrayBuffer = ProArray
-                };
+                NetBaseTCP.NetBaseTCPClient client = new NetBaseTCP.NetBaseTCPClient();
                 client.Disconnected += Client_Disconnected;
-                var resul = client.Сonnect("31.10.114.169#25566", default).Result;
+                var resul = client.Сonnect("127.0.0.1#25566", default).Result;
                 Console.WriteLine(resul);
                 PP(client);
             }
             else
             {
-                NetBaseTCP.NetBaseTCPServer server = new NetBaseTCP.NetBaseTCPServer
-                {
-                    ProArrayBuffer = ProArray
-                };
+                NetBaseTCP.NetBaseTCPServer server = new NetBaseTCP.NetBaseTCPServer();
                 server.StartServer("any#25566");
                 Console.WriteLine("Wait client");
-                var client = server.AcceptClient().Result;
+                var client = server.AcceptClient(default).Result;
                 Console.WriteLine("Done");
                 PP(client);
             }
@@ -53,16 +45,21 @@ namespace Test1
         {
             Task.Run(async () =>
               {
-                  while (true)
+                  bool r = true;
+                  while (r)
                   {
                       try
                       {
-                          var array = (await client.AcceptAsync(default));
+                          var array = (await client.AcceptPacket(1024, default));
                           Console.WriteLine(Encoding.Unicode.GetString(array.Bytes, 0, array.Length));
-                          array.Release();
-                      }
-                      catch
+                          array.Dispose();
+                      }catch(Exception ee)
                       {
+                          Console.WriteLine("Отвалился ридер данных\n" + ee.ToString());
+                      }
+                      finally
+                      {
+                          r = false;
                       }
                   }
               });
@@ -73,11 +70,12 @@ namespace Test1
                 if(str=="exit")
                 {
                     client.Disconnect("пошёл нахуй");
+                    System.Threading.Thread.Sleep(5000);
                     break;
                 }
                 byte[] arr = Encoding.Unicode.GetBytes(str);
-                var array = new EMI.ProBuffer.WrapperArray(arr);
-                client.Send(array, true);
+                var array = new EMI.NGC.EasyArray(arr);
+                client.Send(array, true, default);
             }
         }
     }

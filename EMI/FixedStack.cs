@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 /*
@@ -27,14 +28,20 @@ internal class FixedStack<T>
     /// Сколько максимум может находиться элементов в стеке
     /// </summary>
     public int Size => Items.Length;
+    /// <summary>
+    /// Максимальное время ожидания до отмены операции <see cref="Pop(CancellationToken)"/>
+    /// </summary>
+    private TimeSpan MaxWaitTime;
 
     /// <summary>
     /// Инициализировать новый стек
     /// </summary>
     /// <param name="size">размер стека</param>
-    public FixedStack(int size)
+    /// <param name="maxWaitTime">Максимальное время ожидания до отмены операции <see cref="Pop(CancellationToken)"/></param>
+    public FixedStack(int size, TimeSpan maxWaitTime)
     {
         Items = new T[size];
+        MaxWaitTime = maxWaitTime;
     }
 
     /// <summary>
@@ -68,8 +75,9 @@ internal class FixedStack<T>
     /// <returns>элемент из стека</returns>
     public async Task<T> Pop(CancellationToken token)
     {
+        DateTime time = DateTime.UtcNow + MaxWaitTime;
     //ожидаем если стек пуст
-    reWait: while (!token.IsCancellationRequested && FreeIndex == 0)
+    reWait: while (!token.IsCancellationRequested && FreeIndex == 0 && time > DateTime.UtcNow)
             await Task.Yield();
 
         if (token.IsCancellationRequested)

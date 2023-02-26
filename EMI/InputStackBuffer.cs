@@ -52,7 +52,7 @@ namespace EMI
         /// <param name="capacity">сумарный размер массивов в байтах, который им разрешено занимать [иначе операция <see cref="Push(INGCArray, CancellationToken)"/> будет ожидать]</param>
         public InputStackBuffer(int size, int capacity)
         {
-            Stack = new FixedStack<INGCArray>(size);
+            Stack = new FixedStack<INGCArray>(size, new TimeSpan(0, 0, 1));
             MaxBytesCount = capacity;
         }
 

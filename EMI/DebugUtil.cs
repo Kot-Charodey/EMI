@@ -22,6 +22,6 @@ namespace EMI
             }
             return err;
         }
-    }
 #endif
+    }
 }

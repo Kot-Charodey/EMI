@@ -9,7 +9,7 @@ namespace EMI.NGC
     /// <summary>
     /// Массив которй будет сохраняться для частого реиспользования (снимает нагрузку с сборщика мусора) (обязательно вызывать Dispose)
     /// </summary>
-    internal struct NGCArray : INGCArray
+    public struct NGCArray : INGCArray
     {
         /// <summary>
         /// Сколько будет жить массив если не используется
@@ -27,19 +27,41 @@ namespace EMI.NGC
         /// <summary>
         /// Сколько массивов используется [<see cref=" FreeArrays"/> не учитываются]
         /// </summary>
-        public static int UseArrays { get; private set; } = 0;
+
+
+        public static int UseArrays
+#if DebugPro
+        { get; private set; } = 0;
+#else
+        { get => throw new NotSupportedException(); private set => throw new NotSupportedException(); }
+#endif
         /// <summary>
         /// Сумарный размер всех массивов [<see cref=" FreeArrays"/> не учитываются]
         /// </summary>
-        public static long TotalUseSize { get; private set; } = 0;
+        public static long TotalUseSize
+#if DebugPro
+        { get; private set; } = 0;
+#else
+        { get => throw new NotSupportedException(); private set => throw new NotSupportedException(); }
+#endif
         /// <summary>
         /// Сколько массивов готово к реиспользованию в <see cref=" FreeArrays"/>
         /// </summary>
-        public static int FreeArraysCount => FreeArrays.Count;
+        public static int FreeArraysCount =>
+#if DebugPro
+            FreeArrays.Count;
+#else
+            throw new NotSupportedException();
+#endif
         /// <summary>
         /// Сумарный размер всех массивов для реиспользования в <see cref=" FreeArrays"/>
         /// </summary>
-        public static long TotalFreeArraysSize { get; private set; } = 0;
+        public static long TotalFreeArraysSize
+#if DebugPro
+        { get; private set; } = 0;
+#else
+        { get => throw new NotSupportedException(); private set => throw new NotSupportedException(); }
+#endif
 
         /// <summary>
         /// Смещение - от куда следует считывать
@@ -81,32 +103,33 @@ namespace EMI.NGC
                 {
                     Bytes = FreeArrays[index].Item1;
                     FreeArrays.RemoveAt(index);
-#if NoCounterPerformance
+#if DebugPro
                     RemoveFreeArray(Bytes.Length);
                     AddUseArray(Bytes.Length);
 #endif
-                    
+
                 }
                 else
                 {
                     Bytes = new byte[size];
-#if NoCounterPerformance
+#if DebugPro
                     AddUseArray(size);
 #endif
                 }
             }
         }
-
-#if NoCounterPerformance
+#if DebugPro
         /// <summary>
         /// Учёт массива (выделенного) в счётчике производительности
         /// </summary>
         /// <param name="size">размер массива</param>
         private static void AddUseArray(int size)
         {
+
             UseArrays++;
             TotalUseSize += size;
         }
+    
         /// <summary>
         /// Учёт массива (выделенного) в счётчике производительности
         /// </summary>
@@ -130,7 +153,6 @@ namespace EMI.NGC
         private static void RemoveFreeArray(int size) => TotalFreeArraysSize -= size;
 #endif
 
-
         /// <summary>
         /// Освобождает ресурсы, иначе масив нельзя реиспользовать (необходимо вызвать)
         /// </summary>
@@ -140,12 +162,12 @@ namespace EMI.NGC
             {
                 lock (FreeArrays)
                 {
-#if NoCounterPerformance
+#if DebugPro
                     RemoveUseArray(Bytes.Length);
                     AddFreeArray(Bytes.Length);
 #endif
                     FreeArrays.Add((Bytes, DateTime.UtcNow + ArrayLifetime));
-                    
+
                     Bytes = null;
                     if (!CleaningTimer)
                         Cleaner();
@@ -168,7 +190,7 @@ namespace EMI.NGC
                     {
                         if ((FreeArrays[i].Item2 - DateTime.UtcNow).Ticks < 0)
                         {
-#if NoCounterPerformance
+#if DebugPro
                             RemoveFreeArray(FreeArrays[i].Item1.Length);
 #endif
                             FreeArrays.RemoveAt(i--);

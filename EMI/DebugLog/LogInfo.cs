@@ -1,0 +1,25 @@
+﻿namespace EMI.DebugLog
+{
+    /// <summary>
+    /// Тип сообщения
+    /// </summary>
+    public enum LogType
+    {
+        /// <summary>
+        /// Просто сообщение
+        /// </summary>
+        Message,
+        /// <summary>
+        /// Предупреждение
+        /// </summary>
+        Waring,
+        /// <summary>
+        /// Ошибка не вызывающие отключение
+        /// </summary>
+        Error,
+        /// <summary>
+        /// Ошибка приводящия к отключению клиента
+        /// </summary>
+        CriticalError
+    }
+}
