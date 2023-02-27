@@ -31,6 +31,7 @@ namespace EMI.DebugLog
         internal void Log(LogType type, string message)
         {
 #if DebugPro || DEBUG
+            Console.WriteLine($"EMI => {type} => {message}");
             OnMessage?.Invoke(null, type, DateTime.Now, message);
 #endif
         }
@@ -38,6 +39,7 @@ namespace EMI.DebugLog
         internal void Log(Client client, LogType type, string message)
         {
 #if DebugPro || DEBUG
+            Console.WriteLine($"EMI => {type} => client: {client.RemoteAddress} => {message}");
             OnMessage?.Invoke(client, type, DateTime.Now, message);
 #endif
         }

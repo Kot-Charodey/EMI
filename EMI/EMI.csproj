@@ -68,9 +68,15 @@
     <Compile Include="Indicators\AIndicator.cs" />
     <Compile Include="Indicators\Indicator.cs" />
     <Compile Include="InputStackBuffer.cs" />
+    <Compile Include="LogMessages\Messages.cs" />
     <Compile Include="NGC\EasyArray.cs" />
     <Compile Include="NGC\INGCArray.cs" />
     <Compile Include="NGC\INGCArrayUtils.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
     <Compile Include="RCType.cs" />
     <Compile Include="RCWaitHandle.cs" />
     <Compile Include="RPC\IRPCRemoveHandle.cs" />
@@ -96,6 +102,13 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Defines.txt" />
+    <None Include="LogMessages\Messages.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
