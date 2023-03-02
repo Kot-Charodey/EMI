@@ -94,8 +94,6 @@ namespace NetBaseTCP
 
         public void Disconnect(string user_error)
         {
-            //System.Diagnostics.Debug.WriteLine("Disconnect: " + user_error);
-
             if (IsConnect)
             {
                 IsConnect = false;

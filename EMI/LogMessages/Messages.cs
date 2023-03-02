@@ -12,10 +12,19 @@ namespace EMI.LogMessages
     {
         private static Dictionary<ushort, string> Map = Init();
 
+        private static string Trace()
+        {
+#if DebugPro
+            return $"\nDebugTrace: {DebugUtil.GetStackTrace()}";
+#else
+            return "";
+#endif
+        }
+
         public static string Log(ushort id)
         {
 #if DEBUG
-            return $"{id:000} # {Map[id]}\nDebugTrace: {DebugUtil.GetStackTrace()}";
+            return $"{id:000} # {Map[id]}{Trace()}";
 #else
             return $"{id:000} # {Map[id]}";
 #endif
@@ -24,7 +33,7 @@ namespace EMI.LogMessages
         public static string Log(ushort id,params object[] args)
         {
 #if DEBUG
-            return $"{string.Format(Map[id],args)}\nDebugTrace: {DebugUtil.GetStackTrace()}";
+            return $"{string.Format(Map[id],args)}{Trace()}";
 #else
             return $"{id:000} # {string.Format(Map[id],args)}";
 #endif

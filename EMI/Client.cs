@@ -9,6 +9,7 @@ namespace EMI
     using MyException;
     using Network;
     using NGC;
+    using System.Diagnostics;
     using System.Runtime.CompilerServices;
 
     /// <summary>
@@ -103,7 +104,7 @@ namespace EMI
             RPC = LocalRPC;
             Init();
 
-            Logger.Log(this, DebugLog.LogType.Message, Messages.Log(1,network));
+            Logger.Log(this, DebugLog.LogType.Message, Messages.Log(1, network));
         }
 
         /// <summary>
@@ -236,7 +237,7 @@ namespace EMI
                         await Task.Delay(5000).ConfigureAwait(false);
                         //cr.Dispose();
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         Logger.Log(this, DebugLog.LogType.Error, Messages.Log(13, e.ToString()));
                     }
@@ -272,6 +273,7 @@ namespace EMI
         {
             TaskLongFactory.StartNew(async () =>
             {
+                Logger.Log(this, DebugLog.LogType.Message, Messages.Log(25));
                 LastPing = TickTime.Now;
                 const int size = DPack.sizeof_DPing + 1;
                 var array = new EasyArray(size);
@@ -335,6 +337,22 @@ namespace EMI
         /// <returns></returns>
         private async Task RunProcessAccept(CancellationToken token)
         {
+            Logger.Log(this, DebugLog.LogType.Message, Messages.Log(24));
+
+            void process()
+            {
+                try
+                {
+                    ProccesAccept(token);
+                }
+                catch (Exception e)
+                {
+                    string msg = Messages.Log(17, e.ToString());
+                    Logger.Log(this, DebugLog.LogType.CriticalError, msg);
+                    MyNetworkClient.Disconnect(msg);
+                }
+            }
+
             try
             {
                 while (!token.IsCancellationRequested)
@@ -342,21 +360,13 @@ namespace EMI
                     var packet = await MyNetworkClient.AcceptPacket(MaxPacketAcceptSize, token);
                     if (packet.IsEmpty())
                         break;
+                    
                     await InputStack.Push(packet, token).ConfigureAwait(false);
-                    try
-                    {
-                        _ = ProccesAccept(token).ConfigureAwait(false);
-                    }
-                    catch(Exception e)
-                    {
-                        string msg = Messages.Log(17, e.ToString());
-                        Logger.Log(this, DebugLog.LogType.CriticalError, msg);
-                        MyNetworkClient.Disconnect(msg);
-                    }
+                    _ = Task.Factory.StartNew(process);
                 }
                 Logger.Log(this, DebugLog.LogType.Message, Messages.Log(18));
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Logger.Log(this, DebugLog.LogType.Message, Messages.Log(17, e.ToString()));
             }
@@ -367,7 +377,7 @@ namespace EMI
         /// </summary>
         /// <param name="token">токен отмены</param>
         /// <returns></returns>
-        private async Task ProccesAccept(CancellationToken token)
+        private async void ProccesAccept(CancellationToken token)
         {
             if (token.IsCancellationRequested)
                 return;
@@ -378,6 +388,7 @@ namespace EMI
                     return;
                 var array = ArrayHandle.Buffer;
                 PacketType packetType = (PacketType)array.Bytes[array.Offset];
+                //Debug.WriteLine("accept => " + packetType);
                 array.Offset += 1;
                 switch (packetType)
                 {
@@ -393,12 +404,12 @@ namespace EMI
                         break;
                     case PacketType.RPC_Simple:
                         {
-                            await RPCRun(false, array, token).ConfigureAwait(false);
+                            _ = RPCRun(false, array, token).ConfigureAwait(false);
                         }
                         break;
                     case PacketType.RPC_Return:
                         {
-                            await RPCRun(true, array, token).ConfigureAwait(false);
+                            _ = RPCRun(true, array, token).ConfigureAwait(false);
                         }
                         break;
                     case PacketType.RPC_Returned:

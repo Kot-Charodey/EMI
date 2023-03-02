@@ -13,7 +13,7 @@
 013 # Client => DoCancellationRun => throw error: {0}
 014 # Client => ProccesPing => timeout ({0} ms)
 015 # Client => ProccesPing => error: {0}
-016 # Client => ProccesPing - stoped
+016 # Client => ProccesPing => stoped
 017 # Client => ProcessAccept => packet accept => throw error: {0}
 018 # Client => ProcessAccept => stoped
 019 # Client => ProcessAccept => RPCReturn.TryGetValue => not found, timeout
@@ -21,3 +21,5 @@
 021 # Client => EMI RC => not found forwarding!
 022 # Client => ProcessAccept => bad packet type
 023 # Client => EMI RC => Not found method! [{0}]
+024 # Client => ProcessAccept => start
+025 # Client => ProccesPing => start
