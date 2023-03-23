@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 
 namespace EMI
 {
+    using EMI.DebugLog;
     using EMI.LogMessages;
     using MyException;
     using Network;
@@ -104,7 +105,7 @@ namespace EMI
             RPC = LocalRPC;
             Init();
 
-            Logger.Log(this, DebugLog.LogType.Message, Messages.Log(1, network));
+            Logger.Log(this, Messages.InitClientSide, network);
         }
 
         /// <summary>
@@ -122,7 +123,7 @@ namespace EMI
             Init();
             RunProcces();
 
-            Logger.Log(this, DebugLog.LogType.Message, Messages.Log(2, network));
+            Logger.Log(this, Messages.InitServerSide, network);
         }
 
         /// <summary>
@@ -143,47 +144,45 @@ namespace EMI
         /// <returns>было ли произведено подключение</returns>
         public async Task<bool> Connect(string address, CancellationToken token)
         {
-            Logger.Log(this, DebugLog.LogType.Message, Messages.Log(3, IsConnect, IsServerSide));
+            Logger.Log(this, Messages.ConnectBeding, IsConnect, IsServerSide);
 
             if (IsConnect)
             {
-                string msg = Messages.Log(8);
-                Logger.Log(this, DebugLog.LogType.CriticalError, msg);
-                throw new AlreadyException(msg);
+                Logger.Log(this, Messages.AlreadyRunning);
+                throw new AlreadyException(Messages.AlreadyRunning.Message);
             }
             if (IsServerSide)
             {
-                string msg = Messages.Log(9);
-                Logger.Log(this, DebugLog.LogType.CriticalError, msg);
-                throw new Exception(msg);
+                Logger.Log(this, Messages.PossibleReconnect);
+                throw new Exception(Messages.PossibleReconnect.Message);
             }
 
             CancellationRun = new CancellationTokenSource();
 
             var status = await MyNetworkClient.Сonnect(address, token).ConfigureAwait(false);
 
-            Logger.Log(this, DebugLog.LogType.Message, Messages.Log(4, status));
+
+            Logger.Log(this, Messages.ConnectStatus, status);
 
             if (token.IsCancellationRequested && status == true)
             {
-                string msg = Messages.Log(5);
-                Logger.Log(this, DebugLog.LogType.Message, msg);
-                MyNetworkClient.Disconnect(msg);
+                Logger.Log(this, Messages.ConnectCanceled);
+                MyNetworkClient.Disconnect(Messages.ConnectCanceled.Message);
                 DoCancellationRun();
 
-                Logger.Log(this, DebugLog.LogType.Message, Messages.Log(7));
+                Logger.Log(this, Messages.ConnectUnsuccessful);
                 return false;
             }
 
             if (status == true)
             {
                 RunProcces();
-                Logger.Log(this, DebugLog.LogType.Message, Messages.Log(6));
+                Logger.Log(this, Messages.ConnectDone);
                 return true;
             }
             else
             {
-                Logger.Log(this, DebugLog.LogType.Message, Messages.Log(7));
+                Logger.Log(this, Messages.ConnectUnsuccessful);
                 return false;
             }
         }
@@ -194,13 +193,12 @@ namespace EMI
         /// <param name="user_error">что сообщить клиенту при отключении</param>
         public void Disconnect(string user_error = "unknown")
         {
-            Logger.Log(this, DebugLog.LogType.Message, Messages.Log(10, user_error));
+            Logger.Log(this, Messages.ClientDisconnect, user_error);
 
             if (!IsConnect)
             {
-                string msg = Messages.Log(11);
-                Logger.Log(this, DebugLog.LogType.Error, msg);
-                throw new AlreadyException(msg);
+                Logger.Log(this, Messages.AlreadyDisconnected);
+                throw new AlreadyException(Messages.AlreadyDisconnected.Message);
             }
             MyNetworkClient.Disconnect(user_error);
             //DoCancellationRun();
@@ -212,7 +210,7 @@ namespace EMI
         /// <param name="error"></param>
         private void LowDisconnect(string error)
         {
-            Logger.Log(this, DebugLog.LogType.CriticalError, Messages.Log(12, error));
+            Logger.Log(this, Messages.LowDisconnectError, error);
             Disconnected?.Invoke(error);
             DoCancellationRun();
         }
@@ -239,7 +237,7 @@ namespace EMI
                     }
                     catch (Exception e)
                     {
-                        Logger.Log(this, DebugLog.LogType.Error, Messages.Log(13, e.ToString()));
+                        Logger.Log(this, Messages.DoCanellationError, e.ToString());
                     }
                 });
             }
@@ -273,7 +271,7 @@ namespace EMI
         {
             TaskLongFactory.StartNew(async () =>
             {
-                Logger.Log(this, DebugLog.LogType.Message, Messages.Log(25));
+                Logger.Log(this, Messages.PingStart);
                 LastPing = TickTime.Now;
                 const int size = DPack.sizeof_DPing + 1;
                 var array = new EasyArray(size);
@@ -285,9 +283,9 @@ namespace EMI
                     {
                         if (TickTime.Now - LastPing > PingTimeout)
                         {
-                            string msg = Messages.Log(14, (TickTime.Now - LastPing).TotalMilliseconds);
-                            Logger.Log(this, DebugLog.LogType.CriticalError, msg);
-                            MyNetworkClient.Disconnect(msg);
+                            var ping = (TickTime.Now - LastPing).TotalMilliseconds;
+                            Logger.Log(this, Messages.PingTimeout, ping);
+                            MyNetworkClient.Disconnect(Messages.PingTimeout.Format(ping));
 
                             if (IsServerSide)
                                 lock (Server)
@@ -302,10 +300,9 @@ namespace EMI
                     }
                     catch (Exception e)
                     {
-                        string msg = Messages.Log(15, e.ToString());
-                        Logger.Log(this, DebugLog.LogType.CriticalError, msg);
+                        Logger.Log(this, Messages.PingError, e.ToString());
 
-                        MyNetworkClient.Disconnect(msg);
+                        MyNetworkClient.Disconnect(Messages.PingError.Format(e.ToString()));
                         if (IsServerSide)
                             lock (Server)
                                 Server.PingSend -= pingTask;
@@ -325,7 +322,7 @@ namespace EMI
                         await Task.Delay(1000).ConfigureAwait(false);
                         await pingTask().ConfigureAwait(false);
                     }
-                    Logger.Log(this, DebugLog.LogType.Message, Messages.Log(16));
+                    Logger.Log(this, Messages.PingStoped);
                 }
             });
         }
@@ -337,7 +334,7 @@ namespace EMI
         /// <returns></returns>
         private async Task RunProcessAccept(CancellationToken token)
         {
-            Logger.Log(this, DebugLog.LogType.Message, Messages.Log(24));
+            Logger.Log(this, Messages.AcceptStart);
 
             void process()
             {
@@ -347,9 +344,8 @@ namespace EMI
                 }
                 catch (Exception e)
                 {
-                    string msg = Messages.Log(17, e.ToString());
-                    Logger.Log(this, DebugLog.LogType.CriticalError, msg);
-                    MyNetworkClient.Disconnect(msg);
+                    Logger.Log(this, Messages.AcceptPacketError, e.ToString());
+                    MyNetworkClient.Disconnect(Messages.AcceptPacketError.Format(e.ToString()));
                 }
             }
 
@@ -364,11 +360,11 @@ namespace EMI
                     await InputStack.Push(packet, token).ConfigureAwait(false);
                     _ = Task.Factory.StartNew(process);
                 }
-                Logger.Log(this, DebugLog.LogType.Message, Messages.Log(18));
+                Logger.Log(this, Messages.AcceptStoped);
             }
             catch (Exception e)
             {
-                Logger.Log(this, DebugLog.LogType.Message, Messages.Log(17, e.ToString()));
+                Logger.Log(this, Messages.AcceptPacketError, e.ToString());
             }
         }
 
@@ -426,9 +422,8 @@ namespace EMI
                             {
                                 if (source.IsCancellationRequested)
                                 {
-                                    string err_str = Messages.Log(19);
-                                    Logger.Log(this, DebugLog.LogType.CriticalError, err_str);
-                                    MyNetworkClient.Disconnect(err_str);
+                                    Logger.Log(this, Messages.RPCReturnNotFound);
+                                    MyNetworkClient.Disconnect(Messages.RPCReturnNotFound.Message);
                                     return;
                                 }
                                 await Task.Yield();
@@ -447,8 +442,8 @@ namespace EMI
                     case PacketType.RPC_Forwarding:
                         if (!IsServerSide)
                         {
-                            Logger.Log(this, DebugLog.LogType.CriticalError, Messages.Log(20));
-                            MyNetworkClient.Disconnect(Messages.Log(20));
+                            Logger.Log(this, Messages.BadPacketTypeForwarding);
+                            MyNetworkClient.Disconnect(Messages.BadPacketTypeForwarding.Message);
                         }
                         else
                         {
@@ -481,14 +476,13 @@ namespace EMI
                             }
                             else
                             {
-                                Logger.Log(this, DebugLog.LogType.Waring, Messages.Log(21));
+                                Logger.Log(this, Messages.NotFoundForwarding);
                             }
                         }
                         break;
                     default:
-                        string msg = Messages.Log(22);
-                        Logger.Log(this, DebugLog.LogType.CriticalError, msg);
-                        MyNetworkClient.Disconnect(msg);
+                        Logger.Log(this, Messages.BadPacketType);
+                        MyNetworkClient.Disconnect(Messages.BadPacketType.Message);
                         break;
                 }
             }
@@ -547,7 +541,7 @@ namespace EMI
             }
             else
             {
-                Logger.Log(this, DebugLog.LogType.Waring, Messages.Log(23, id));
+                Logger.Log(this, Messages.RPCNotFount, id);
             }
         }
     }

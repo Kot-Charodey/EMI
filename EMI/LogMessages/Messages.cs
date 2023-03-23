@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace EMI.LogMessages
 {
-    internal static class Messages
+    internal static class _Messages
     {
         private static Dictionary<ushort, string> Map = Init();
 

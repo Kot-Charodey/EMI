@@ -3,7 +3,7 @@
     /// <summary>
     /// Тип сообщения
     /// </summary>
-    public enum LogType
+    public enum LogType:byte
     {
         /// <summary>
         /// Просто сообщение

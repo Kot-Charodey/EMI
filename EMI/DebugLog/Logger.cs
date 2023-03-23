@@ -28,19 +28,31 @@ namespace EMI.DebugLog
         {
 
         }
-        internal void Log(LogType type, string message)
+
+        private static string Trace()
         {
-#if DebugPro || DEBUG
-            Console.WriteLine($"EMI => {type} => {message}");
-            OnMessage?.Invoke(null, type, DateTime.Now, message);
+#if DebugPro
+            return $"\nDebugTrace: {DebugUtil.GetStackTrace()}";
+#else
+            return "";
 #endif
         }
 
-        internal void Log(Client client, LogType type, string message)
+        internal void Log(LogMessage message,params object[] format)
         {
 #if DebugPro || DEBUG
-            Console.WriteLine($"EMI => {type} => client: {client.RemoteAddress} => {message}");
-            OnMessage?.Invoke(client, type, DateTime.Now, message);
+            string msg = string.Format(message.Message, format);
+            Console.WriteLine($"EMI => {message.Type} => {msg}");
+            OnMessage?.Invoke(null, message.Type, DateTime.Now, msg);
+#endif
+        }
+
+        internal void Log(Client client, LogMessage message, params object[] format)
+        {
+#if DebugPro || DEBUG
+            string msg = string.Format(message.Message, format);
+            Console.WriteLine($"EMI => {message.Type} => client: {client.RemoteAddress} => {msg}");
+            OnMessage?.Invoke(client, message.Type, DateTime.Now, msg);
 #endif
         }
     }

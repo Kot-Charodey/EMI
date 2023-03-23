@@ -57,6 +57,8 @@
     <Compile Include="CurrentTime.cs" />
     <Compile Include="DebugLog\Logger.cs" />
     <Compile Include="DebugLog\LogInfo.cs" />
+    <Compile Include="DebugLog\LogMessage.cs" />
+    <Compile Include="DebugLog\Messages.cs" />
     <Compile Include="DebugUtil.cs" />
     <Compile Include="Deterministic.cs" />
     <Compile Include="DPack.cs" />

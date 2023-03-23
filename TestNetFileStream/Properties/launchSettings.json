@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "TestNetFileStream": {
+      "commandName": "Project",
+      "commandLineArgs": "client"
+    }
+  }
+}

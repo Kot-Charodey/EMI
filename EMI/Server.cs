@@ -94,7 +94,8 @@ namespace EMI
         {
             Service = service;
             LowServer = Service.GetNewServer();
-            Logger.Log(DebugLog.LogType.Message, $"Server => init (service: {service})");
+            //TODO
+            //Logger.Log(DebugLog.LogType.Message, $"Server => init (service: {service})");
         }
 
         /// <summary>
@@ -117,7 +118,8 @@ namespace EMI
                 LowServer.StartServer(address);
                 PingProcessStart();
             }
-            Logger.Log(DebugLog.LogType.Message, "Server => started");
+            //TODO
+            //Logger.Log(DebugLog.LogType.Message, "Server => started");
         }
 
         /// <summary>
@@ -140,7 +142,8 @@ namespace EMI
                     }
                 }
             }
-            Logger.Log(DebugLog.LogType.Message, "Server => stoped");
+            //TODO
+            //Logger.Log(DebugLog.LogType.Message, "Server => stoped");
         }
 
         private void PingProcessStart()
@@ -154,8 +157,8 @@ namespace EMI
                     if (PingSend != null)
                         await PingSend().ConfigureAwait(false);
                 }
-
-                Logger.Log(DebugLog.LogType.Message, "Server ping process => stoped");
+                //TODO
+                //Logger.Log(DebugLog.LogType.Message, "Server ping process => stoped");
             }, TaskCreationOptions.LongRunning);
         }
 
