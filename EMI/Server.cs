@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 
 namespace EMI
 {
+    using EMI.DebugLog;
     using MyException;
     using Network;
 
@@ -21,13 +22,21 @@ namespace EMI
         /// Запущен ли сервер
         /// </summary>
         public bool IsRun { get; private set; }
+        /// <summary>
+        /// [Устанавливается для всех подключённых клиентов] Максимальный размер пакета который может отправить удалённый пользователь за один раз (если размер будет превышен - клиент будет отключен)
+        /// </summary>
+        public int MaxPacketAcceptSize = 1024 * 1024 * 10; //10 мегобайт
+        /// <summary>
+        /// [Устанавливается для всех подключённых клиентов] Частота опроса пинга
+        /// </summary>
+        public TimeSpan PingPollingInterval = new TimeSpan(0, 0, 0, 15);
 
         private CancellationTokenSource CancellationTokenSource;
         private List<Client> Clients;
         /// <summary>
-        /// Логи сервера и клиентов
+        /// Логи сервера и клиентов [только для DEBUG билда]
         /// </summary>
-        public readonly DebugLog.Logger Logger = new DebugLog.Logger();
+        public readonly Logger Logger = new Logger();
         private readonly INetworkService Service;
         private readonly INetworkServer LowServer;
 
@@ -60,18 +69,12 @@ namespace EMI
 #else
             throw new NotSupportedException();
 #endif
-        private string _address = "";
-
         /// <summary>
         /// Адресс по которому сервер слушает подключения
         /// </summary>
-        public string GetAddress =>
-#if DEBUG
-        _address;
-#else
-        throw new NotSupportedException();
-#endif
+        public string Address;
 
+#if DEBUG
         /// <summary>
         /// Происходит когда клиент подключился
         /// </summary>
@@ -80,7 +83,7 @@ namespace EMI
         /// Происходит когда клиент отключается
         /// </summary>
         public event Action<Client> OnClientDisconnect;
-
+#endif
         /// <summary>
         /// Вызывается раз в секунду для проверки пинга
         /// </summary>
@@ -94,8 +97,7 @@ namespace EMI
         {
             Service = service;
             LowServer = Service.GetNewServer();
-            //TODO
-            //Logger.Log(DebugLog.LogType.Message, $"Server => init (service: {service})");
+            Logger.Log(Messages.InitServer, Service);
         }
 
         /// <summary>
@@ -105,7 +107,7 @@ namespace EMI
         /// <exception cref="AlreadyException">сервер уже запущен</exception>
         public void Start(string address)
         {
-            _address = address;
+            Address = address;
             lock (this)
             {
                 if (IsRun)
@@ -118,8 +120,7 @@ namespace EMI
                 LowServer.StartServer(address);
                 PingProcessStart();
             }
-            //TODO
-            //Logger.Log(DebugLog.LogType.Message, "Server => started");
+            Logger.Log(Messages.ServerStarted);
         }
 
         /// <summary>
@@ -142,23 +143,22 @@ namespace EMI
                     }
                 }
             }
-            //TODO
-            //Logger.Log(DebugLog.LogType.Message, "Server => stoped");
+            Logger.Log(Messages.ServerStoped);
         }
 
         private void PingProcessStart()
         {
             Task.Factory.StartNew(async () =>
             {
+                Logger.Log(Messages.ServerPingStarted);
                 var token = CancellationTokenSource.Token;
                 while (!token.IsCancellationRequested)
                 {
-                    await Task.Delay(1000).ConfigureAwait(false);
+                    await Task.Delay(PingPollingInterval).ConfigureAwait(false);
                     if (PingSend != null)
                         await PingSend().ConfigureAwait(false);
                 }
-                //TODO
-                //Logger.Log(DebugLog.LogType.Message, "Server ping process => stoped");
+                Logger.Log(Messages.ServerPingStoped);
             }, TaskCreationOptions.LongRunning);
         }
 
@@ -186,7 +186,10 @@ namespace EMI
             token.Register(() => cts.Cancel());
             await TaskUtilities.InvokeAsync(() =>
             {
-                client = new Client(LowClient, RPC, this);
+                client = new Client(LowClient, RPC, this)
+                {
+                    MaxPacketAcceptSize = MaxPacketAcceptSize,
+                };
             }, cts).ConfigureAwait(false);
 
             var list = Clients;

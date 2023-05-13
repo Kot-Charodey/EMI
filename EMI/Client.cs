@@ -32,6 +32,28 @@ namespace EMI
         /// Этот клиент на стороне сервера?
         /// </summary>
         public bool IsServerSide => Server != null;
+
+        private TimeSpan _PingPollingInterval = new TimeSpan(0, 0, 0, 15);
+        /// <summary>
+        /// Частота опроса пинга (устанавливается только на стороне клиента)
+        /// </summary>
+        public TimeSpan PingPollingInterval
+        {
+            get
+            {
+                if (IsServerSide)
+                    return Server.PingPollingInterval;
+                else
+                    return _PingPollingInterval;
+            }
+            set
+            {
+                if (IsServerSide)
+                    throw new Exception("Only on the client side!");
+                else
+                    _PingPollingInterval = value;
+            }
+        }
         /// <summary>
         /// Ping
         /// </summary>
@@ -47,7 +69,7 @@ namespace EMI
         /// <summary>
         /// Максимальный размер пакета который может отправить удалённый пользователь за один раз (если размер будет превышен - клиент будет отключен)
         /// </summary>
-        public int MaxPacketAcceptSize = 1024 * 1024 * 10;
+        public int MaxPacketAcceptSize = 1024 * 1024 * 10; //10 мегобайт
         /// <summary>
         /// Интерфейс отправки/считывания датаграмм
         /// </summary>
@@ -123,7 +145,6 @@ namespace EMI
 
             Logger.Log(this, Messages.InitServerSide, network);
         }
-
         /// <summary>
         /// Для инициализации клиента
         /// </summary>
@@ -317,7 +338,7 @@ namespace EMI
                 {
                     while (!token.IsCancellationRequested)
                     {
-                        await Task.Delay(1000).ConfigureAwait(false);
+                        await Task.Delay(_PingPollingInterval).ConfigureAwait(false);
                         await pingTask().ConfigureAwait(false);
                     }
                     Logger.Log(this, Messages.PingStoped);
@@ -408,7 +429,6 @@ namespace EMI
                         break;
                     case PacketType.RPC_Returned:
                         {
-                            //TODO - тут какета хуйня проиходит
                             DPack.DRPC.UnPack(array.Bytes, array.Offset, out var id);
                             array.Offset += sizeof(int);
 

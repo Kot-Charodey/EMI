@@ -15,7 +15,7 @@ namespace EMI.Indicators
         protected internal int ID;
 #if DEBUG
         /// <summary>
-        /// Имя индикатора для отладки
+        /// Имя индикатора для отладки [только для DEBUG]
         /// </summary>
         internal string Name;
 #endif

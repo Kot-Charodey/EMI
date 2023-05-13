@@ -1,14 +1,11 @@
 ﻿using System;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Collections.Generic;
 
 using SmartPackager;
 
 namespace EMI
 {
-    using Network;
     using NGC;
     using Indicators;
     using MyException;
@@ -40,17 +37,15 @@ namespace EMI
         private readonly Dictionary<int, (string, int)> RegisteredMethodsName = new Dictionary<int, (string, int)>();
         private readonly Dictionary<int,string> RegisteredForwardingName = new Dictionary<int, string>();
 #endif
+
+#if DEBUG
         /// <summary>
         /// Получает список зарегистрированных функций
         /// </summary>
         /// <returns></returns>
         public KeyValuePair<int,(string,int)>[] GetRegisteredMethodsName()
         {
-#if DEBUG
             return RegisteredMethodsName.ToArray();
-#else
-            throw new NotSupportedException();
-#endif
         }
 
         /// <summary>
@@ -59,22 +54,20 @@ namespace EMI
         /// <returns></returns>
         public KeyValuePair<int, string>[] GetRegisteredForwardingName()
         {
-#if DEBUG
             return RegisteredForwardingName.ToArray();
-#else
-            throw new NotSupportedException();
-#endif
         }
+#endif
 
+#if DEBUG
         /// <summary>
         /// Вызывается когда изменён список зарегистрированных методов
         /// </summary>
         public event Action OnChangedRegisteredMethods;
         /// <summary>
-        /// Вызывается когда изменён список зарегистрированных методов
+        /// Вызывается когда изменён список зарегистрированных методов (Forwarding)
         /// </summary>
         public event Action OnChangedRegisteredMethodsForwarding;
-
+#endif
         internal RPC()
         {
         }
@@ -349,6 +342,35 @@ namespace EMI
 #endif
                     RPC = null;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Позволяет добавить все методы в группу что бы удалить всю группу когда это будет нужно
+        /// </summary>
+        public class RemoveHandleGroup
+        {
+            private readonly HashSet<IRPCRemoveHandle> Handles = new HashSet<IRPCRemoveHandle>();
+
+            /// <summary>
+            /// Добавить метод в группу для удаления
+            /// </summary>
+            /// <param name="handle">метод</param>
+            public void Add(IRPCRemoveHandle handle)
+            {
+                Handles.Add(handle);
+            }
+
+            /// <summary>
+            /// Удалить все добавленные методы
+            /// </summary>
+            public void RemoveAll()
+            {
+                foreach(var handle in Handles)
+                {
+                    handle.Remove();
+                }
+                Handles.Clear();
             }
         }
     }

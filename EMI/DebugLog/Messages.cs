@@ -1,16 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace EMI.DebugLog
+﻿namespace EMI.DebugLog
 {
     /// <summary>
     /// Сообщения для вывода в логи
     /// </summary>
     internal static class Messages
     {
+        public static LogMessage InitServer = LogMessage.Create(LogType.Message, "Server => init (service: {0})");
+        public static LogMessage ServerStarted = LogMessage.Create(LogType.Message, "Server => started");
+        public static LogMessage ServerStoped = LogMessage.Create(LogType.Message, "Server => stoped");
+        public static LogMessage ServerPingStarted = LogMessage.Create(LogType.Message, "Server => PingProcess => started");
+        public static LogMessage ServerPingStoped = LogMessage.Create(LogType.Message, "Server => PingProcess => stoped");
+
         public static LogMessage InitClientSide = LogMessage.Create(LogType.Message, "Client => init on client side (service: {0})");
         public static LogMessage InitServerSide = LogMessage.Create(LogType.Message, "Client => init on server side (service: {0})");
         public static LogMessage ConnectBeding = LogMessage.Create(LogType.Message, "Client => connect begin (IsConnect = {0}; IsServerSide = {1})");

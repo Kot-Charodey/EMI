@@ -19,11 +19,12 @@ namespace EMI.DebugLog
         /// <param name="time">время когда было сгенерировано сообщение</param>
         /// <param name="message">текст сообщения</param>
         public delegate void Message(Client client, LogType type, DateTime time, string message);
+#if DEBUG
         /// <summary>
         /// Вызывается при создании сообщения
         /// </summary>
         public event Message OnMessage;
-
+#endif
         internal Logger()
         {
 
