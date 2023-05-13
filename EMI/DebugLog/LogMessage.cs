@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace EMI.DebugLog
+﻿namespace EMI.DebugLog
 {
     /// <summary>
     /// Сообщение об ошибке или событие

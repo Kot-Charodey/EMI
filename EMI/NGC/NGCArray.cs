@@ -30,7 +30,7 @@ namespace EMI.NGC
 
 
         public static int UseArrays
-#if DebugPro
+#if DEBUG
         { get; private set; } = 0;
 #else
         { get => throw new NotSupportedException(); private set => throw new NotSupportedException(); }
@@ -39,7 +39,7 @@ namespace EMI.NGC
         /// Сумарный размер всех массивов [<see cref=" FreeArrays"/> не учитываются]
         /// </summary>
         public static long TotalUseSize
-#if DebugPro
+#if DEBUG
         { get; private set; } = 0;
 #else
         { get => throw new NotSupportedException(); private set => throw new NotSupportedException(); }
@@ -48,7 +48,7 @@ namespace EMI.NGC
         /// Сколько массивов готово к реиспользованию в <see cref=" FreeArrays"/>
         /// </summary>
         public static int FreeArraysCount =>
-#if DebugPro
+#if DEBUG
             FreeArrays.Count;
 #else
             throw new NotSupportedException();
@@ -57,7 +57,7 @@ namespace EMI.NGC
         /// Сумарный размер всех массивов для реиспользования в <see cref=" FreeArrays"/>
         /// </summary>
         public static long TotalFreeArraysSize
-#if DebugPro
+#if DEBUG
         { get; private set; } = 0;
 #else
         { get => throw new NotSupportedException(); private set => throw new NotSupportedException(); }
@@ -103,7 +103,7 @@ namespace EMI.NGC
                 {
                     Bytes = FreeArrays[index].Item1;
                     FreeArrays.RemoveAt(index);
-#if DebugPro
+#if DEBUG
                     RemoveFreeArray(Bytes.Length);
                     AddUseArray(Bytes.Length);
 #endif
@@ -112,20 +112,19 @@ namespace EMI.NGC
                 else
                 {
                     Bytes = new byte[size];
-#if DebugPro
+#if DEBUG
                     AddUseArray(size);
 #endif
                 }
             }
         }
-#if DebugPro
+#if DEBUG
         /// <summary>
         /// Учёт массива (выделенного) в счётчике производительности
         /// </summary>
         /// <param name="size">размер массива</param>
         private static void AddUseArray(int size)
         {
-
             UseArrays++;
             TotalUseSize += size;
         }
@@ -162,7 +161,7 @@ namespace EMI.NGC
             {
                 lock (FreeArrays)
                 {
-#if DebugPro
+#if DEBUG
                     RemoveUseArray(Bytes.Length);
                     AddFreeArray(Bytes.Length);
 #endif
@@ -190,7 +189,7 @@ namespace EMI.NGC
                     {
                         if ((FreeArrays[i].Item2 - DateTime.UtcNow).Ticks < 0)
                         {
-#if DebugPro
+#if DEBUG
                             RemoveFreeArray(FreeArrays[i].Item1.Length);
 #endif
                             FreeArrays.RemoveAt(i--);

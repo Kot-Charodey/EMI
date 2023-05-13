@@ -114,8 +114,7 @@ namespace EMI
                     }
                     MyStackBuffer = null;
                 }
-                if (Buffer != null)
-                    Buffer.Dispose();
+                Buffer?.Dispose();
             }
         }
     }

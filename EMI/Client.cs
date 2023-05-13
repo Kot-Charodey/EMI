@@ -2,16 +2,14 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
 
 namespace EMI
 {
-    using EMI.DebugLog;
-    using EMI.LogMessages;
+    using DebugLog;
     using MyException;
     using Network;
     using NGC;
-    using System.Diagnostics;
-    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Клиент EMI
@@ -75,7 +73,7 @@ namespace EMI
         /// <summary>
         /// Логи сервера и клиентов
         /// </summary>
-        public readonly DebugLog.Logger Logger;
+        public readonly Logger Logger;
         /// <summary>
         ///  Возвращает адресс удалённого связанного клиента
         /// </summary>
@@ -100,7 +98,7 @@ namespace EMI
         /// <param name="network">интерфейс подключения</param>
         public Client(INetworkService network)
         {
-            Logger = new DebugLog.Logger();
+            Logger = new Logger();
             MyNetworkClient = network.GetNewClient();
             RPC = LocalRPC;
             Init();

@@ -70,7 +70,6 @@
     <Compile Include="Indicators\AIndicator.cs" />
     <Compile Include="Indicators\Indicator.cs" />
     <Compile Include="InputStackBuffer.cs" />
-    <Compile Include="LogMessages\Messages.cs" />
     <Compile Include="NGC\EasyArray.cs" />
     <Compile Include="NGC\INGCArray.cs" />
     <Compile Include="NGC\INGCArrayUtils.cs" />
@@ -104,7 +103,6 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Defines.txt" />
-    <None Include="LogMessages\Messages.txt" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\Resources.resx">

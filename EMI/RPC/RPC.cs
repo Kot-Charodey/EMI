@@ -36,7 +36,7 @@ namespace EMI
         private readonly Dictionary<int, MicroFunc> RegisteredMethods = new Dictionary<int, MicroFunc>();
         private readonly Dictionary<int, ForwardingInfo> RegisteredForwarding = new Dictionary<int, ForwardingInfo>();
 
-#if DebugPro
+#if DEBUG
         private readonly Dictionary<int, (string, int)> RegisteredMethodsName = new Dictionary<int, (string, int)>();
         private readonly Dictionary<int,string> RegisteredForwardingName = new Dictionary<int, string>();
 #endif
@@ -46,7 +46,7 @@ namespace EMI
         /// <returns></returns>
         public KeyValuePair<int,(string,int)>[] GetRegisteredMethodsName()
         {
-#if DebugPro
+#if DEBUG
             return RegisteredMethodsName.ToArray();
 #else
             throw new NotSupportedException();
@@ -59,7 +59,7 @@ namespace EMI
         /// <returns></returns>
         public KeyValuePair<int, string>[] GetRegisteredForwardingName()
         {
-#if DebugPro
+#if DEBUG
             return RegisteredForwardingName.ToArray();
 #else
             throw new NotSupportedException();
@@ -121,7 +121,7 @@ namespace EMI
                 if (RegisteredMethods.ContainsKey(id))
                 {
                     RegisteredMethods[id] += micro;
-#if DebugPro
+#if DEBUG
                     var dat = RegisteredMethodsName[id];
                     RegisteredMethodsName[id] = (dat.Item1, dat.Item2 + 1);
                     OnChangedRegisteredMethods?.Invoke();
@@ -130,7 +130,7 @@ namespace EMI
                 else
                 {
                     RegisteredMethods.Add(id, micro);
-#if DebugPro
+#if DEBUG
                     RegisteredMethodsName.Add(id, (indicator.Name,1));
                     OnChangedRegisteredMethods?.Invoke();
 #endif
@@ -155,7 +155,7 @@ namespace EMI
                 }
 
                 RegisteredForwarding.Add(indicator.ID, info);
-#if DebugPro
+#if DEBUG
                 RegisteredForwardingName.Add(indicator.ID, indicator.Name);
                 OnChangedRegisteredMethodsForwarding?.Invoke();
 #endif
@@ -294,7 +294,7 @@ namespace EMI
                     if (deleg.GetInvocationList().GetLength(0) > 1)
                     {
                         deleg -= Micro;
-#if DebugPro
+#if DEBUG
                         var dat = RPC.RegisteredMethodsName[ID];
                         RPC.RegisteredMethodsName[ID] = (dat.Item1, dat.Item2 - 1);
                         RPC.OnChangedRegisteredMethods?.Invoke();
@@ -303,7 +303,7 @@ namespace EMI
                     else
                     {
                         RPC.RegisteredMethods.Remove(ID);
-#if DebugPro
+#if DEBUG
                         RPC.RegisteredMethodsName.Remove(ID);
                         RPC.OnChangedRegisteredMethods?.Invoke();
 #endif
@@ -343,7 +343,7 @@ namespace EMI
                     IsRemoved = true;
 
                     RPC.RegisteredForwarding.Remove(ID);
-#if DebugPro
+#if DEBUG
                     RPC.RegisteredForwardingName.Remove(ID);
                     RPC.OnChangedRegisteredMethodsForwarding?.Invoke();
 #endif

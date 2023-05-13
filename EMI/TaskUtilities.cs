@@ -21,22 +21,22 @@ namespace EMI
             bool threadEndWork = false;
 
             Thread th = new Thread(() =>
+            {
+                try
                 {
-                    try
-                    {
-                        function.Invoke();
-                    }
-                    catch (ThreadAbortException)
-                    {
-                        return;
-                    }
-                    catch (Exception e)
-                    {
-                        exception = e;
-                    }
-                    threadEndWork = true;
-                    tokenSource.Cancel();
-                })
+                    function.Invoke();
+                }
+                catch (ThreadAbortException)
+                {
+                    return;
+                }
+                catch (Exception e)
+                {
+                    exception = e;
+                }
+                threadEndWork = true;
+                tokenSource.Cancel();
+            })
             {
                 IsBackground = true
             };

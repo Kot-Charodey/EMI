@@ -13,7 +13,7 @@ namespace EMI.Indicators
         /// айди вызываймой функции
         /// </summary>
         protected internal int ID;
-#if DebugPro
+#if DEBUG
         /// <summary>
         /// Имя индикатора для отладки
         /// </summary>

@@ -32,7 +32,7 @@ namespace EMI
         private readonly INetworkServer LowServer;
 
 
-#if DebugPro
+#if DEBUG
         private Client[] GetClients()
         {
             if (Clients == null)
@@ -46,7 +46,7 @@ namespace EMI
         /// Список клиентов подключеных к серверу
         /// </summary>
         public Client[] ServerClients =>
-#if DebugPro
+#if DEBUG
             GetClients();
 #else
             throw new NotSupportedException();
@@ -55,7 +55,7 @@ namespace EMI
         /// Имя сервиса по которому осуществляется низкоуровневый обмен сообщениями
         /// </summary>
         public string ServiceName =>
-#if DebugPro
+#if DEBUG
             Service.ToString();
 #else
             throw new NotSupportedException();
@@ -66,7 +66,7 @@ namespace EMI
         /// Адресс по которому сервер слушает подключения
         /// </summary>
         public string GetAddress =>
-#if DebugPro
+#if DEBUG
         _address;
 #else
         throw new NotSupportedException();
@@ -193,7 +193,7 @@ namespace EMI
             lock (list)
             {
                 list.Add(client);
-#if DebugPro
+#if DEBUG
                 OnClientConnect?.Invoke(client);
 #endif
             }
@@ -203,7 +203,7 @@ namespace EMI
                 lock (list)
                 {
                     list.Remove(client);
-#if DebugPro
+#if DEBUG
                     OnClientDisconnect?.Invoke(client);
 #endif
                 }
