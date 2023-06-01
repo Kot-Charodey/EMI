@@ -314,7 +314,7 @@ namespace EMI
                         else
                         {
                             DPack.DPing.PackUP(array.Bytes, 1, TickTime.Now);
-                            await MyNetworkClient.Send(array, false, token).ConfigureAwait(false);
+                            _ = MyNetworkClient.Send(array, false, token);
                         }
                     }
                     catch (Exception e)

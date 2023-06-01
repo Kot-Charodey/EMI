@@ -234,7 +234,22 @@ namespace EMI.NetParallelTCP
 
         public async Task Send(INGCArray array, bool guaranteed, CancellationToken token)
         {
-            await SendLow(array, false, token);
+            if (guaranteed == true)
+            {
+                await SendLow(array, false, token);
+            }
+            else
+            {
+                var cts = new CancellationTokenSource(5000);
+                token.Register(() =>
+                {
+                    if (cts != null && !cts.IsCancellationRequested)
+                    {
+                        cts.Cancel();
+                    }
+                });
+                await SendLow(array, false, cts.Token);
+            }
         }
 
         public async Task<INGCArray> AcceptPacket(int max_size, CancellationToken token)
