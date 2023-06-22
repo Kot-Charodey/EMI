@@ -8,7 +8,7 @@
 
         public ServerInfo(Server server)
         {
-            Address = server.GetAddress;
+            Address = server.Address;
             ServiceName = server.ServiceName.ToString();
             IsRun = server.IsRun;
         }

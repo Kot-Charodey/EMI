@@ -31,7 +31,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EMI.NetStream", "EMI.NetStr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EMI.NetParallelTCP", "EMI.NetParallelTCP\EMI.NetParallelTCP.csproj", "{4A840A02-B5B7-4FD7-9B52-CBECF354E9BD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestNetFileStream", "TestNetFileStream\TestNetFileStream.csproj", "{9D0222D8-3620-499D-8288-8F58894267E0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestNetFileStream", "TestNetFileStream\TestNetFileStream.csproj", "{9D0222D8-3620-499D-8288-8F58894267E0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Элементы решения", "Элементы решения", "{90E47AA7-D8B2-482B-83BD-625D60D0B298}"
+	ProjectSection(SolutionItems) = preProject
+		LICENSE.txt = LICENSE.txt
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

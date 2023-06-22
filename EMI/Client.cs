@@ -296,7 +296,7 @@ namespace EMI
                 var array = new EasyArray(size);
                 array.Bytes[0] = (byte)PacketType.Ping_Send;
 
-                async Task pingTask()
+                void pingTask()
                 {
                     try
                     {
@@ -314,7 +314,7 @@ namespace EMI
                         else
                         {
                             DPack.DPing.PackUP(array.Bytes, 1, TickTime.Now);
-                            _ = MyNetworkClient.Send(array, false, token);
+                            _ = MyNetworkClient.Send(array, true, token);
                         }
                     }
                     catch (Exception e)
@@ -339,7 +339,7 @@ namespace EMI
                     while (!token.IsCancellationRequested)
                     {
                         await Task.Delay(_PingPollingInterval).ConfigureAwait(false);
-                        await pingTask().ConfigureAwait(false);
+                        pingTask();
                     }
                     Logger.Log(this, Messages.PingStoped);
                 }
@@ -409,7 +409,7 @@ namespace EMI
                 {
                     case PacketType.Ping_Send:
                         array.Bytes[array.Offset - 1] = (byte)PacketType.Ping_Receive;
-                        await MyNetworkClient.Send(array, false, token).ConfigureAwait(false);
+                        await MyNetworkClient.Send(array, true, token).ConfigureAwait(false);
                         break;
                     case PacketType.Ping_Receive:
                         DPack.DPing.UnPack(array.Bytes, array.Offset, out var time);

@@ -87,7 +87,7 @@ namespace EMI
         /// <summary>
         /// Вызывается раз в секунду для проверки пинга
         /// </summary>
-        internal event RPCfuncOut<Task> PingSend;
+        internal event Action PingSend;
 
         /// <summary>
         /// Создаёт новый сервер
@@ -155,8 +155,7 @@ namespace EMI
                 while (!token.IsCancellationRequested)
                 {
                     await Task.Delay(PingPollingInterval).ConfigureAwait(false);
-                    if (PingSend != null)
-                        await PingSend().ConfigureAwait(false);
+                    PingSend?.Invoke();
                 }
                 Logger.Log(Messages.ServerPingStoped);
             }, TaskCreationOptions.LongRunning);

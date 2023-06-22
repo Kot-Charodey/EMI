@@ -59,6 +59,7 @@
     <Compile Include="DebugUtil.cs" />
     <Compile Include="Deterministic.cs" />
     <Compile Include="DPack.cs" />
+    <Compile Include="DPingPack.cs" />
     <Compile Include="Exception\AlreadyException.cs" />
     <Compile Include="Exception\ClientViolationRightsException.cs" />
     <Compile Include="Exception\RegisterLimitException.cs" />
