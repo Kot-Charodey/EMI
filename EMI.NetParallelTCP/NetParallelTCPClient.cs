@@ -27,6 +27,9 @@ namespace EMI.NetParallelTCP
         private bool IsServerSide => Server != null;
         public float DeliveredRate { get; } = 1;
         public RandomDropType RandomDrop { get; set; } = RandomDropType.NoGuaranteed;
+
+        public int SendByteSpeed => 0;
+
         private ushort IDGen = 0;
 
         private static readonly int MaxHeaderSize = Math.Max(MessageHeader.SizeOf, MessagePacketSegment.SizeOf);

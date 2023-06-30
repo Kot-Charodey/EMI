@@ -89,7 +89,7 @@ namespace EMI
         /// <summary>
         /// Интерфейс отправки/считывания датаграмм
         /// </summary>
-        private INetworkClient MyNetworkClient;
+        internal INetworkClient MyNetworkClient;
         /// <summary>
         /// Когда приходил прошлый запрос о пинге (для time out)
         /// </summary>
