@@ -24,6 +24,9 @@ namespace NetBaseTCP
         private readonly NetBaseTCPServer Server;
         private const int MaxOneSendSize = 1024;
         private bool IsServerSide => Server != null;
+        public float DeliveredRate { get; } = 1;
+        public RandomDropType RandomDrop { get; set; } = RandomDropType.NoGuaranteed;
+        public int SendByteSpeed => 0;
 
         private readonly byte[] AcceptHeaderBuffer = new byte[MessageHeader.SizeOf];
         private readonly byte[] SendHeaderBuffer = new byte[MessageHeader.SizeOf];
@@ -173,7 +176,7 @@ namespace NetBaseTCP
 
         private async Task SendLow(INGCArray array, bool isError, CancellationToken token)
         {
-            await SemaphoreWrite.WaitAsync(token);
+            await SemaphoreWrite.WaitAsync(token).ConfigureAwait(false);
             try
             {
                 MessageHeader header = new MessageHeader(array.Length, isError);
@@ -204,12 +207,12 @@ namespace NetBaseTCP
 
         public async Task Send(INGCArray array, bool guaranteed, CancellationToken token)
         {
-            await SendLow(array, false, token);
+            await SendLow(array, false, token).ConfigureAwait(false);
         }
 
         public async Task<INGCArray> AcceptPacket(int max_size, CancellationToken token)
         {
-            await SemaphoreRead.WaitAsync(token);
+            await SemaphoreRead.WaitAsync(token).ConfigureAwait(false);
             try
             {
                 await AcceptLow(AcceptHeaderBuffer, MessageHeader.SizeOf, token).ConfigureAwait(false);

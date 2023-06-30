@@ -32,6 +32,18 @@ namespace EMI.Network
         /// </summary>
         bool IsConnect { get; }
         /// <summary>
+        /// Сколько байт в секунду отправляется
+        /// </summary>
+        int SendByteSpeed { get; }
+        /// <summary>
+        /// Число от 0 до 1 (сколько % байт доставленно) [если 0 то сеть сильно перегружена]
+        /// </summary>
+        float DeliveredRate { get; }
+        /// <summary>
+        /// Какие пакеты можно игнорировать при перезгрузке сети
+        /// </summary>
+        RandomDropType RandomDrop { get; set; }
+        /// <summary>
         /// Вызывается при отключении клиента из за внешней ошибки
         /// </summary>
         event INetworkClientDisconnected Disconnected;

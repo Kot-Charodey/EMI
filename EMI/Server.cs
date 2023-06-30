@@ -30,6 +30,10 @@ namespace EMI
         /// [Устанавливается для всех подключённых клиентов] Частота опроса пинга
         /// </summary>
         public TimeSpan PingPollingInterval = new TimeSpan(0, 0, 0, 15);
+        /// <summary>
+        /// [Устанавливается для новых клиентов] Какие пакеты можно игнорировать при перезгрузке сети
+        /// </summary>
+        public RandomDropType RandomDrop = RandomDropType.NoGuaranteed;
 
         private CancellationTokenSource CancellationTokenSource;
         private List<Client> Clients;
@@ -188,6 +192,7 @@ namespace EMI
                 client = new Client(LowClient, RPC, this)
                 {
                     MaxPacketAcceptSize = MaxPacketAcceptSize,
+                    RandomDrop = RandomDrop,
                 };
             }, cts).ConfigureAwait(false);
 

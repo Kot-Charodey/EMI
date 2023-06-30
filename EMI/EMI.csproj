@@ -59,7 +59,6 @@
     <Compile Include="DebugUtil.cs" />
     <Compile Include="Deterministic.cs" />
     <Compile Include="DPack.cs" />
-    <Compile Include="DPingPack.cs" />
     <Compile Include="Exception\AlreadyException.cs" />
     <Compile Include="Exception\ClientViolationRightsException.cs" />
     <Compile Include="Exception\RegisterLimitException.cs" />
@@ -68,6 +67,7 @@
     <Compile Include="Indicators\AIndicator.cs" />
     <Compile Include="Indicators\Indicator.cs" />
     <Compile Include="InputStackBuffer.cs" />
+    <Compile Include="Network\RandomDropType.cs" />
     <Compile Include="NGC\EasyArray.cs" />
     <Compile Include="NGC\INGCArray.cs" />
     <Compile Include="NGC\INGCArrayUtils.cs" />

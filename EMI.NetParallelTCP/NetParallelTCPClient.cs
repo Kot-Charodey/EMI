@@ -25,6 +25,8 @@ namespace EMI.NetParallelTCP
         private readonly NetParallelTCPServer Server;
         private const int MaxOneSendSize = 1024;
         private bool IsServerSide => Server != null;
+        public float DeliveredRate { get; } = 1;
+        public RandomDropType RandomDrop { get; set; } = RandomDropType.NoGuaranteed;
         private ushort IDGen = 0;
 
         private static readonly int MaxHeaderSize = Math.Max(MessageHeader.SizeOf, MessagePacketSegment.SizeOf);
@@ -234,22 +236,7 @@ namespace EMI.NetParallelTCP
 
         public async Task Send(INGCArray array, bool guaranteed, CancellationToken token)
         {
-            if (guaranteed == true)
-            {
-                await SendLow(array, false, token);
-            }
-            else
-            {
-                var cts = new CancellationTokenSource(5000);
-                token.Register(() =>
-                {
-                    if (cts != null && !cts.IsCancellationRequested)
-                    {
-                        cts.Cancel();
-                    }
-                });
-                await SendLow(array, false, cts.Token);
-            }
+            await SendLow(array, false, token).ConfigureAwait(false);
         }
 
         public async Task<INGCArray> AcceptPacket(int max_size, CancellationToken token)

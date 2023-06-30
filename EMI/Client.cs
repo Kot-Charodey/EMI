@@ -55,6 +55,22 @@ namespace EMI
             }
         }
         /// <summary>
+        /// Сколько байт в секунду отправляется
+        /// </summary>
+        public int SendByteSpeed => MyNetworkClient.SendByteSpeed;
+        /// <summary>
+        /// Число от 0 до 1 (сколько % байт доставленно) [если 0 то сеть сильно перегружена]
+        /// </summary>
+        public float DeliveredRate => MyNetworkClient.DeliveredRate;
+        /// <summary>
+        /// Какие пакеты можно игнорировать при перезгрузке сети
+        /// </summary>
+        public RandomDropType RandomDrop
+        {
+            get => MyNetworkClient.RandomDrop;
+            set => MyNetworkClient.RandomDrop = value;
+        }
+        /// <summary>
         /// Ping
         /// </summary>
         public TimeSpan Ping = new TimeSpan(0);
@@ -73,7 +89,7 @@ namespace EMI
         /// <summary>
         /// Интерфейс отправки/считывания датаграмм
         /// </summary>
-        internal INetworkClient MyNetworkClient;
+        private INetworkClient MyNetworkClient;
         /// <summary>
         /// Когда приходил прошлый запрос о пинге (для time out)
         /// </summary>
